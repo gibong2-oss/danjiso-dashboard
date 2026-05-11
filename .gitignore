@@ -1,0 +1,16 @@
+# Python
+*.py
+*.pyc
+__pycache__/
+
+# 인증 파일
+service_account.json
+*.json
+*.env
+
+# 로그
+*.log
+*.bat
+
+# 기타
+.DS_Store
