@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>단지서비스팀 서비스 현황 대시보드</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg:        #F5F5F5;
+  --card:      #FFFFFF;
+  --border:    #EEEEEE;
+  --text-main: #333333;
+  --text-sub:  #888888;
+  --c-purple:  #8B80D4;
+  --c-green:   #52C41A;
+  --c-pink:    #F06292;
+  --c-amber:   #FFC107;
+  --c-coral:   #FF7043;
+  --c-red:     #EF5350;
+  --c-sky:     #5EC8E8;
+  --s1: #9B8FE8;
+  --s2: #5EC8E8;
+  --s3: #FF7056;
+  --s4: #FFC654;
+  --s5: #F48FB1;
+  --radius: 12px;
+  --shadow: 0 2px 8px rgba(0,0,0,0.06);
+  --pad:    20px;
+  --gap:    16px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Pretendard', -apple-system, sans-serif; background: var(--bg); color: var(--text-main); }
+
+/* 레이아웃 */
+.page { padding: 24px; max-width: 1600px; margin: 0 auto; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--gap); }
+.grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--gap); }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--gap); }
+.grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--gap); }
+.col-2 { grid-column: span 2; }
+.col-3 { grid-column: span 3; }
+
+/* 카드 */
+.card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: var(--pad); }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.card-title { font-size: 14px; font-weight: 600; color: var(--text-main); }
+.card-sub { font-size: 12px; color: var(--text-sub); }
+
+/* 헤더 */
+.dashboard-header {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid var(--border);
+}
+.dashboard-title { font-size: 22px; font-weight: 700; color: var(--text-main); }
+.dashboard-title span { color: var(--c-purple); }
+.dashboard-date { font-size: 12px; color: var(--text-sub); }
+
+/* KPI 카드 */
+.kpi-card { display: flex; flex-direction: column; gap: 6px; }
+.kpi-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 4px; }
+.kpi-value { font-size: 26px; font-weight: 700; line-height: 1; }
+.kpi-label { font-size: 13px; color: var(--text-sub); }
+.kpi-delta { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 3px; }
+.delta-up { color: var(--c-green); }
+.delta-down { color: var(--c-red); }
+
+/* 탭 */
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
+.tab-btn {
+  padding: 10px 20px; font-size: 14px; font-weight: 600; border: none;
+  background: none; cursor: pointer; color: var(--text-sub);
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  transition: all .2s; border-radius: 6px 6px 0 0;
+}
+.tab-btn:hover { color: var(--c-purple); background: rgba(139,128,212,.06); }
+.tab-btn.active { color: var(--c-purple); border-bottom-color: var(--c-purple); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* 뱃지 */
+.badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+.badge-success { background: var(--c-green);  color: #fff; }
+.badge-warn    { background: var(--c-amber);  color: #fff; }
+.badge-danger  { background: var(--c-red);    color: #fff; }
+.badge-info    { background: var(--c-sky);    color: #fff; }
+.badge-neutral { background: var(--border);   color: var(--text-sub); }
+.badge-purple  { background: var(--c-purple); color: #fff; }
+.badge-coral   { background: var(--c-coral);  color: #fff; }
+
+/* 차트 컨테이너 */
+.chart-wrap { height: 220px; position: relative; }
+.chart-wrap-lg { height: 280px; position: relative; }
+.chart-wrap-sm { height: 180px; position: relative; }
+
+/* 섹션 간격 */
+.section { margin-bottom: 20px; }
+
+/* 테이블 */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--border); font-size: 13px; white-space: nowrap; }
+th { font-size: 11px; font-weight: 600; color: var(--text-sub); text-transform: uppercase; background: #FAFAFA; position: sticky; top: 0; }
+tr:hover td { background: rgba(139,128,212,.04); }
+.table-container { max-height: 520px; overflow-y: auto; border-radius: 8px; border: 1px solid var(--border); }
+
+/* 검색/필터 */
+.filter-bar { display: flex; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; align-items: center; }
+.filter-input {
+  padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px;
+  font-size: 13px; color: var(--text-main); outline: none; font-family: inherit;
+  background: var(--card); min-width: 220px;
+}
+.filter-input:focus { border-color: var(--c-purple); }
+.filter-select {
+  padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px;
+  font-size: 13px; color: var(--text-main); outline: none; cursor: pointer;
+  font-family: inherit; background: var(--card);
+}
+.filter-select:focus { border-color: var(--c-purple); }
+.filter-count { font-size: 12px; color: var(--text-sub); margin-left: auto; }
+
+/* 진행바 */
+.progress-wrap { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.progress-label { font-size: 12px; color: var(--text-main); min-width: 90px; }
+.progress-bar { height: 6px; border-radius: 3px; flex: 1; background: #eee; }
+.progress-fill { height: 100%; border-radius: 3px; }
+.progress-val { font-size: 12px; color: var(--text-sub); min-width: 40px; text-align: right; }
+
+/* 도넛 범례 */
+.legend-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.legend-name { flex: 1; color: var(--text-main); }
+.legend-val { color: var(--text-sub); font-weight: 600; }
+
+/* 수평 바 (활성율 랭킹) */
+.rank-item { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.rank-num { font-size: 11px; font-weight: 700; color: var(--text-sub); min-width: 18px; text-align: right; }
+.rank-name { font-size: 12px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-bar-wrap { width: 120px; height: 6px; border-radius: 3px; background: #eee; }
+.rank-bar-fill { height: 100%; border-radius: 3px; background: var(--c-purple); }
+.rank-pct { font-size: 12px; font-weight: 600; color: var(--text-sub); min-width: 50px; text-align: right; }
+
+/* stat row */
+.stat-row { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px; }
+.stat-item { display: flex; flex-direction: column; gap: 2px; }
+.stat-val { font-size: 20px; font-weight: 700; }
+.stat-lbl { font-size: 11px; color: var(--text-sub); }
+
+/* 반응형 */
+@media (max-width: 1200px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 800px) {
+  .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  .col-2, .col-3 { grid-column: span 1; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- 헤더 -->
+  <div class="dashboard-header">
+    <div>
+      <div class="dashboard-title">🏘 단지서비스팀 <span>서비스 현황</span> 대시보드</div>
+      <div class="dashboard-date" style="margin-top:4px">기준일: 2026.04.23 &nbsp;|&nbsp; 데이터: Rawdata 기준</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <span class="badge badge-purple">단지 3,474</span>
+      <span class="badge badge-info">세대 286만+</span>
+    </div>
+  </div>
+
+  <!-- 탭 -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('overview', this)">📊 개요</button>
+    <button class="tab-btn" onclick="switchTab('service', this)">🔧 서비스 현황</button>
+    <button class="tab-btn" onclick="switchTab('complex', this)">🏢 단지 분석</button>
+    <button class="tab-btn" onclick="switchTab('table', this)">📋 상세 테이블</button>
+  </div>
+
+  <!-- ═══════ 탭1: 개요 ═══════ -->
+  <div id="tab-overview" class="tab-pane active">
+
+    <!-- KPI 카드 -->
+    <div class="grid-4 section">
+      <div class="card kpi-card">
+        <div class="kpi-icon" style="background:rgba(155,143,232,.12)">🏘</div>
+        <div class="kpi-value" style="color:var(--c-purple)">3,474</div>
+        <div class="kpi-label">총 등록 단지</div>
+        <div class="kpi-delta"><span class="badge badge-info" style="font-size:10px">진행 350</span> <span class="badge badge-neutral" style="font-size:10px">종료 26</span></div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-icon" style="background:rgba(94,200,232,.12)">🏠</div>
+        <div class="kpi-value" style="color:var(--c-sky)">286만+</div>
+        <div class="kpi-label">총 세대수</div>
+        <div class="kpi-delta"><span style="color:var(--text-sub);font-size:12px">2,861,578 세대</span></div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-icon" style="background:rgba(82,196,26,.12)">📱</div>
+        <div class="kpi-value" style="color:var(--c-green)">149.5만</div>
+        <div class="kpi-label">MAU (2026-03)</div>
+        <div class="kpi-delta delta-up">▲ 2.8% <span style="color:var(--text-sub);font-weight:400">전월 대비</span></div>
+      </div>
+      <div class="card kpi-card">
+        <div class="kpi-icon" style="background:rgba(255,112,86,.12)">💰</div>
+        <div class="kpi-value" style="color:var(--c-coral)">4,820만원</div>
+        <div class="kpi-label">정산 청구 (2026-03)</div>
+        <div class="kpi-delta"><span class="badge badge-success" style="font-size:10px">발행완료</span></div>
+      </div>
+    </div>
+
+    <!-- MAU 추이 + 서비스오픈 현황 -->
+    <div class="grid-3 section">
+      <div class="card col-2">
+        <div class="card-header">
+          <span class="card-title">📈 월별 MAU 추이</span>
+          <span class="card-sub">최근 6개월</span>
+        </div>
+        <div class="chart-wrap-lg">
+          <canvas id="chartMAU"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🔄 서비스 오픈 현황</span>
+        </div>
+        <div class="chart-wrap-sm">
+          <canvas id="chartOpenStatus"></canvas>
+        </div>
+        <div class="stat-row" style="margin-top:14px">
+          <div class="stat-item">
+            <div class="stat-val" style="color:var(--c-purple)">350</div>
+            <div class="stat-lbl">진행</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val" style="color:var(--c-amber)">6</div>
+            <div class="stat-lbl">준비</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val" style="color:var(--c-sky)">1</div>
+            <div class="stat-lbl">보류</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val" style="color:var(--c-red)">26</div>
+            <div class="stat-lbl">종료</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 서비스 이용 현황 한눈에 -->
+    <div class="grid-3 section">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🗳 전자투표 이용 추이</span>
+          <span class="card-sub">건수 기준</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chartVoteOverview"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📣 알림서비스 발송 추이</span>
+          <span class="card-sub">건수 기준</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chartNotifyOverview"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📋 설문조사 이용 추이</span>
+          <span class="card-sub">건수 기준</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chartSurveyOverview"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-overview -->
+
+  <!-- ═══════ 탭2: 서비스 현황 ═══════ -->
+  <div id="tab-service" class="tab-pane">
+
+    <!-- 전자투표 -->
+    <div class="grid-3 section">
+      <div class="card col-2">
+        <div class="card-header">
+          <span class="card-title">🗳 전자투표 월별 이용 건수</span>
+          <span class="card-sub">참여 투표 건수 합산</span>
+        </div>
+        <div class="chart-wrap-lg">
+          <canvas id="chartVote"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📊 전자투표 현황 요약</span>
+        </div>
+        <div style="margin-top:8px">
+          <div class="progress-wrap">
+            <div class="progress-label">2026-03</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:100%;background:var(--s1)"></div></div>
+            <div class="progress-val">1,475,433</div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-label">2026-01</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:68%;background:var(--s2)"></div></div>
+            <div class="progress-val">1,002,716</div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-label">2025-08</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:67%;background:var(--s3)"></div></div>
+            <div class="progress-val">995,233</div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-label">2025-07</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:59%;background:var(--s4)"></div></div>
+            <div class="progress-val">877,087</div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-label">2025-09</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:59%;background:var(--s5)"></div></div>
+            <div class="progress-val">872,523</div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-label">2026-02</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:56%;background:var(--c-sky)"></div></div>
+            <div class="progress-val">821,216</div>
+          </div>
+        </div>
+        <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)">
+          <div style="font-size:12px;color:var(--text-sub);margin-bottom:4px">총 데이터 행</div>
+          <div style="font-size:20px;font-weight:700;color:var(--c-purple)">25,063건</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 알림서비스 -->
+    <div class="grid-3 section">
+      <div class="card col-2">
+        <div class="card-header">
+          <span class="card-title">📣 알림서비스 월별 발송 건수</span>
+          <span class="card-sub">LMS/SMS/MMS/카카오 합산</span>
+        </div>
+        <div class="chart-wrap-lg">
+          <canvas id="chartNotify"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📱 발송 수단별 비중</span>
+        </div>
+        <div class="chart-wrap-sm">
+          <canvas id="chartNotifyMeans"></canvas>
+        </div>
+        <div style="margin-top:12px">
+          <div class="progress-wrap">
+            <div class="progress-label">LMS</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:91%;background:var(--s1)"></div></div>
+            <div class="progress-val">91%</div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-label">SMS</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:6%;background:var(--s2)"></div></div>
+            <div class="progress-val">6%</div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-label">MMS</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:2%;background:var(--s3)"></div></div>
+            <div class="progress-val">2%</div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-label">카카오</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:1%;background:var(--s4)"></div></div>
+            <div class="progress-val">1%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 설문조사 + 정산현황 -->
+    <div class="grid-2 section">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📋 설문조사 월별 이용 건수</span>
+          <span class="card-sub">참여 응답 건수 합산</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chartSurvey"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">💰 정산 현황</span>
+          <span class="card-sub">서비스별 청구금액 (만원)</span>
+        </div>
+        <div class="chart-wrap-sm">
+          <canvas id="chartSettle"></canvas>
+        </div>
+        <div style="display:flex;gap:16px;margin-top:14px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:11px;color:var(--text-sub)">전자투표</div>
+            <div style="font-size:18px;font-weight:700;color:var(--s1)">8,046만원</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-sub)">알림서비스</div>
+            <div style="font-size:18px;font-weight:700;color:var(--s2)">193만원</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-sub)">설문조사</div>
+            <div style="font-size:18px;font-weight:700;color:var(--s3)">21만원</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /tab-service -->
+
+  <!-- ═══════ 탭3: 단지 분석 ═══════ -->
+  <div id="tab-complex" class="tab-pane">
+
+    <!-- 권역 + 단지유형 -->
+    <div class="grid-3 section">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🗺 권역별 단지 분포</span>
+          <span class="card-sub">권역 확인 단지 391개 기준</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chartRegion"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🏢 단지 규모별 분포</span>
+          <span class="card-sub">전체 3,474 단지</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chartType"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📅 건물 연식별 분포</span>
+          <span class="card-sub">연식 확인 2,408 단지</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chartAge"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- 솔루션 + 영업채널 + 계약서비스 -->
+    <div class="grid-3 section">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🔧 솔루션 구분</span>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chartSolution"></canvas>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📡 영업채널 분포</span>
+          <span class="card-sub">미확인 제외</span>
+        </div>
+        <div class="chart-wrap-sm">
+          <canvas id="chartChannel"></canvas>
+        </div>
+        <div class="stat-row" style="margin-top:14px">
+          <div class="stat-item">
+            <div class="stat-val" style="color:var(--s1)">188</div>
+            <div class="stat-lbl">IN</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val" style="color:var(--s2)">64</div>
+            <div class="stat-lbl">OUT</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val" style="color:var(--s3)">38</div>
+            <div class="stat-lbl">B2B</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">📋 계약서비스 TOP 조합</span>
+        </div>
+        <div style="margin-top:4px">
+          <div class="progress-wrap">
+            <div class="progress-label">S/W</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:100%;background:var(--s1)"></div></div>
+            <div class="progress-val">149건</div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-label">H/W + S/W</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:39%;background:var(--s2)"></div></div>
+            <div class="progress-val">58건</div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-label">App + S/W</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:19%;background:var(--s3)"></div></div>
+            <div class="progress-val">28건</div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-label">S/W + 연동</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:15%;background:var(--s4)"></div></div>
+            <div class="progress-val">22건</div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-label">App</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:15%;background:var(--s5)"></div></div>
+            <div class="progress-val">22건</div>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-label">App+H/W+S/W</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:13%;background:var(--c-sky)"></div></div>
+            <div class="progress-val">20건</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 활성율 TOP 15 -->
+    <div class="card section">
+      <div class="card-header">
+        <span class="card-title">🏆 세대 대비 활성율 TOP 15</span>
+        <span class="card-sub">100세대 이상, 300% 이하 필터링</span>
+      </div>
+      <div class="grid-2" style="gap:10px">
+        <div id="rankListLeft"></div>
+        <div id="rankListRight"></div>
+      </div>
+    </div>
+
+  </div><!-- /tab-complex -->
+
+  <!-- ═══════ 탭4: 상세 테이블 ═══════ -->
+  <div id="tab-table" class="tab-pane">
+    <div class="card section">
+      <div class="card-header">
+        <span class="card-title">📋 단지 상세 데이터 (상위 200개)</span>
+        <span class="card-sub">활성율 높은 순 정렬</span>
+      </div>
+      <div class="filter-bar">
+        <input class="filter-input" id="searchInput" type="text" placeholder="🔍 단지명 검색...">
+        <select class="filter-select" id="filterRegion">
+          <option value="">전체 권역</option>
+          <option value="서남권">서남권</option>
+          <option value="동남권">동남권</option>
+          <option value="동북권">동북권</option>
+          <option value="서북권">서북권</option>
+          <option value="경상권">경상권</option>
+          <option value="기타">기타</option>
+        </select>
+        <select class="filter-select" id="filterStatus">
+          <option value="">전체 상태</option>
+          <option value="진행">진행</option>
+          <option value="준비">준비</option>
+          <option value="종료">종료</option>
+          <option value="취소">취소</option>
+        </select>
+        <select class="filter-select" id="filterAge">
+          <option value="">전체 연식</option>
+          <option value="신축">신축</option>
+          <option value="준신축">준신축</option>
+          <option value="구축">구축</option>
+        </select>
+        <span class="filter-count" id="filterCount"></span>
+      </div>
+      <div class="table-container">
+        <table id="mainTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>단지명</th>
+              <th>권역</th>
+              <th>규모</th>
+              <th>연식</th>
+              <th>세대수</th>
+              <th>앱가입자</th>
+              <th>활성율</th>
+              <th>영업채널</th>
+              <th>상태</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div><!-- /tab-table -->
+
+</div><!-- /page -->
+
+<script>
+/* ═══════ 데이터 ═══════ */
+const DATA = {
+  mauLabels:  ['2025-11','2025-12','2026-01','2026-02','2026-03','2026-04'],
+  mauValues:  [1358942, 1398408, 1440461, 1453699, 1494707, 1359158],
+
+  voteLabels: ['2025-07','2025-08','2025-09','2026-01','2026-02','2026-03'],
+  voteValues: [877087, 995233, 872523, 1002716, 821216, 1475433],
+
+  notifyLabels: ['2025-11','2025-12','2026-01','2026-02','2026-03','2026-04'],
+  notifyValues: [12627, 35473, 20043, 26780, 21819, 21183],
+
+  surveyLabels: ['2025-11','2025-12','2026-02','2026-03','2026-04'],
+  surveyValues: [8942, 839, 1982, 4739, 35],
+
+  settleLabels: ['2026-03','2026-04'],
+  settleValues: [4820, 3440],
+
+  regionLabels: ['서남권','기타','동남권','동북권','경상권','서북권'],
+  regionValues: [117, 112, 62, 58, 28, 14],
+
+  typeLabels: ['중대단지(500~999세대)','중소단지(100~499세대)','대단지(1000세대+)','소단지(100세대 미만)'],
+  typeValues: [1344, 1110, 922, 97],
+
+  ageLabels: ['준신축','구축','신축'],
+  ageValues: [928, 805, 675],
+
+  solutionLabels: ['주차관제','커뮤니티','App','공동현관'],
+  solutionValues: [244, 190, 106, 70],
+
+  channelLabels: ['IN','OUT','B2B'],
+  channelValues: [188, 64, 38],
+
+  notifyMeansLabels: ['LMS','SMS','MMS','카카오'],
+  notifyMeansValues: [226330, 14756, 5849, 4742],
+
+  settleBySvcLabels: ['전자투표','알림서비스','설문조사'],
+  settleBySvcValues: [8046, 193, 21],
+
+  openStatusLabels: ['진행','준비','보류','종료','취소'],
+  openStatusValues: [350, 6, 1, 26, 8],
+
+  topActive: [
+    {name:'대방노블랜드연리지2차3차아파트', rate:297.4, households:680, region:'기타'},
+    {name:'천안불당파크푸르지오1단지', rate:274.2, households:240, region:'기타'},
+    {name:'오포자이디오브', rate:273.4, households:448, region:'기타'},
+    {name:'신검단중앙역풍경채어바니티', rate:235.7, households:1425, region:'서남권'},
+    {name:'송도더샵엑스포아파트', rate:230.5, households:1337, region:'서북권'},
+    {name:'갈매한라비발디', rate:227.7, households:1075, region:'기타'},
+    {name:'계림아이파크SK뷰', rate:218.5, households:1715, region:'기타'},
+    {name:'힐스테이트 남산', rate:214.2, households:141, region:'동북권'},
+    {name:'화성파크드림 구수산공원', rate:211.2, households:520, region:'기타'},
+    {name:'트리마제순천2단지', rate:203.8, households:705, region:'동남권'},
+    {name:'트리마제순천1단지', rate:203.7, households:1314, region:'동남권'},
+    {name:'파주운정신도시 디에트르 에듀타운', rate:203.1, households:489, region:'동남권'},
+    {name:'금호자이2차', rate:201.7, households:403, region:'기타'},
+    {name:'각화센트럴파크서희스타힐스', rate:200.2, households:888, region:'동남권'},
+    {name:'하이파크시티 5단지', rate:195.8, households:1197, region:'기타'}
+  ],
+
+  tableData: []
+};
+
+/* ─── 테이블 데이터 ─────────────────────── */
+const rawTableData = [
+  {name:"V2 데모아파트",region:"기타",type:"소단지",age:"-",households:1,subscribers:44,active_rate:3400.0,status:"-",channel:"-"},
+  {name:"안락스위첸",region:"기타",type:"소단지",age:"신축",households:40,subscribers:367,active_rate:762.5,status:"-",channel:"-"},
+  {name:"불당파크푸르지오2단지",region:"기타",type:"중소단지",age:"준신축",households:270,subscribers:1141,active_rate:421.9,status:"-",channel:"-"},
+  {name:"푸른마을",region:"기타",type:"중대단지",age:"구축",households:804,subscribers:3352,active_rate:407.7,status:"-",channel:"-"},
+  {name:"광주역e편한세상센트럴",region:"기타",type:"중소단지",age:"준신축",households:289,subscribers:1113,active_rate:378.2,status:"-",channel:"-"},
+  {name:"주안더월드스테이트",region:"기타",type:"중대단지",age:"구축",households:961,subscribers:4101,active_rate:368.2,status:"-",channel:"-"},
+  {name:"라크몽",region:"기타",type:"소단지",age:"-",households:10,subscribers:69,active_rate:350.0,status:"-",channel:"-"},
+  {name:"대방노블랜드연리지2차3차아파트",region:"기타",type:"중대단지",age:"준신축",households:680,subscribers:2024,active_rate:297.4,status:"-",channel:"-"},
+  {name:"천안불당파크푸르지오1단지",region:"기타",type:"중소단지",age:"준신축",households:240,subscribers:792,active_rate:274.2,status:"-",channel:"-"},
+  {name:"오포자이디오브",region:"기타",type:"중소단지",age:"신축",households:448,subscribers:1685,active_rate:273.4,status:"-",channel:"-"},
+  {name:"방배블레스밸리",region:"기타",type:"소단지",age:"구축",households:57,subscribers:155,active_rate:266.7,status:"-",channel:"-"},
+  {name:"신검단중앙역풍경채어바니티",region:"서남권",type:"대단지",age:"신축",households:1425,subscribers:3456,active_rate:235.7,status:"진행",channel:"OUT"},
+  {name:"송도더샵엑스포아파트",region:"서북권",type:"대단지",age:"구축",households:1337,subscribers:3168,active_rate:230.5,status:"진행",channel:"OUT"},
+  {name:"갈매한라비발디",region:"기타",type:"대단지",age:"준신축",households:1075,subscribers:2473,active_rate:227.7,status:"-",channel:"-"},
+  {name:"계림아이파크SK뷰",region:"기타",type:"대단지",age:"신축",households:1715,subscribers:3748,active_rate:218.5,status:"-",channel:"-"},
+  {name:"힐스테이트 남산",region:"동북권",type:"중소단지",age:"신축",households:141,subscribers:434,active_rate:214.2,status:"진행",channel:"미확인"},
+  {name:"화성파크드림 구수산공원",region:"기타",type:"중대단지",age:"-",households:520,subscribers:1179,active_rate:211.2,status:"-",channel:"-"},
+  {name:"트리마제순천2단지",region:"동남권",type:"중대단지",age:"신축",households:705,subscribers:1604,active_rate:203.8,status:"진행",channel:"OUT"},
+  {name:"트리마제순천1단지",region:"동남권",type:"대단지",age:"신축",households:1314,subscribers:3041,active_rate:203.7,status:"진행",channel:"IN"},
+  {name:"데모 아파트",region:"기타",type:"중대단지",age:"-",households:688,subscribers:76628,active_rate:203.5,status:"-",channel:"-"},
+  {name:"파주운정신도시 디에트르 에듀타운",region:"동남권",type:"중소단지",age:"신축",households:489,subscribers:1012,active_rate:203.1,status:"진행",channel:"OUT"},
+  {name:"금호자이2차",region:"기타",type:"중소단지",age:"준신축",households:403,subscribers:842,active_rate:201.7,status:"-",channel:"-"},
+  {name:"각화센트럴파크서희스타힐스",region:"동남권",type:"중대단지",age:"신축",households:888,subscribers:1794,active_rate:200.2,status:"진행",channel:"OUT"},
+  {name:"힐스테이트 송도 더스카이",region:"동남권",type:"대단지",age:"-",households:1205,subscribers:2976,active_rate:199.9,status:"진행",channel:"IN"},
+  {name:"중흥신동아영남",region:"동남권",type:"중대단지",age:"-",households:640,subscribers:1292,active_rate:199.8,status:"진행",channel:"IN"},
+  {name:"수원역한라비발디퍼스트",region:"기타",type:"중소단지",age:"신축",households:288,subscribers:677,active_rate:199.7,status:"-",channel:"-"},
+  {name:"인천용현엑슬루타워",region:"기타",type:"중대단지",age:"준신축",households:630,subscribers:1237,active_rate:194.8,status:"-",channel:"-"},
+  {name:"인천SK스카이뷰",region:"동북권",type:"대단지",age:"준신축",households:3971,subscribers:7737,active_rate:194.6,status:"진행",channel:"OUT"},
+  {name:"금정역호계푸르지오",region:"동남권",type:"중소단지",age:"준신축",households:410,subscribers:813,active_rate:194.6,status:"진행",channel:"IN"},
+  {name:"인덕원자이SKVIEW",region:"기타",type:"대단지",age:"-",households:2633,subscribers:5132,active_rate:194.5,status:"-",channel:"-"},
+  {name:"헬리오시티",region:"동남권",type:"대단지",age:"준신축",households:9510,subscribers:22283,active_rate:194.3,status:"진행",channel:"B2B"},
+  {name:"힐스테이트e편한세상문정",region:"기타",type:"대단지",age:"-",households:1265,subscribers:2461,active_rate:190.3,status:"-",channel:"-"},
+  {name:"오산세교중흥S클래스에듀파크",region:"서남권",type:"대단지",age:"신축",households:1245,subscribers:2432,active_rate:189.6,status:"진행",channel:"OUT"},
+  {name:"트리지움",region:"기타",type:"대단지",age:"구축",households:3696,subscribers:7121,active_rate:188.0,status:"-",channel:"-"},
+  {name:"금정산2차쌍용예가",region:"기타",type:"중대단지",age:"준신축",households:565,subscribers:1077,active_rate:187.1,status:"-",channel:"-"},
+  {name:"한들물빛도시지웰시티센트럴 푸르지오3단지",region:"기타",type:"중대단지",age:"신축",households:852,subscribers:2098,active_rate:185.1,status:"-",channel:"-"},
+  {name:"e편한옥정더퍼스트",region:"기타",type:"대단지",age:"준신축",households:1566,subscribers:3518,active_rate:184.7,status:"-",channel:"-"},
+  {name:"롯데캐슬라센트",region:"경상권",type:"대단지",age:"-",households:2195,subscribers:4397,active_rate:184.2,status:"진행",channel:"OUT"},
+  {name:"힐스테이트 몬테로이3단지",region:"기타",type:"대단지",age:"-",households:1370,subscribers:2539,active_rate:183.9,status:"-",channel:"-"},
+  {name:"문수로두산위브더제니스",region:"기타",type:"중소단지",age:"-",households:256,subscribers:541,active_rate:183.6,status:"-",channel:"-"},
+  {name:"부평SK뷰해모로",region:"서남권",type:"대단지",age:"신축",households:1559,subscribers:2919,active_rate:183.4,status:"진행",channel:"OUT"},
+  {name:"정릉2차e편한세상",region:"동북권",type:"중대단지",age:"-",households:527,subscribers:1252,active_rate:182.5,status:"진행",channel:"B2B"},
+  {name:"수원장안힐스테이트",region:"기타",type:"중대단지",age:"준신축",households:927,subscribers:1704,active_rate:182.3,status:"-",channel:"-"},
+  {name:"힐스테이트레이크송도4차",region:"기타",type:"대단지",age:"-",households:1319,subscribers:2409,active_rate:181.4,status:"-",channel:"-"},
+  {name:"수원SK스카이뷰아파트",region:"기타",type:"대단지",age:"-",households:3498,subscribers:8790,active_rate:180.9,status:"진행",channel:"IN"},
+  {name:"더비치푸르지오써밋",region:"기타",type:"대단지",age:"-",households:1384,subscribers:3026,active_rate:180.8,status:"진행",channel:"B2B"},
+  {name:"운서역금강펜테리움",region:"동북권",type:"중대단지",age:"신축",households:600,subscribers:1243,active_rate:180.7,status:"진행",channel:"IN"},
+  {name:"서울숲아이파크리버포레1차",region:"기타",type:"중대단지",age:"-",households:825,subscribers:1653,active_rate:180.6,status:"-",channel:"-"},
+  {name:"호매실한양수자인파크원",region:"서남권",type:"대단지",age:"준신축",households:1394,subscribers:3506,active_rate:180.2,status:"진행",channel:"B2B"},
+  {name:"다산자이아이비플레이스",region:"동북권",type:"중대단지",age:"신축",households:967,subscribers:2069,active_rate:180.1,status:"진행",channel:"B2B"},
+  {name:"인덕원푸르지오엘센트로",region:"기타",type:"대단지",age:"준신축",households:1774,subscribers:4297,active_rate:179.7,status:"진행",channel:"IN"},
+  {name:"봉담자이프라이드시티",region:"기타",type:"대단지",age:"신축",households:1701,subscribers:3070,active_rate:179.7,status:"-",channel:"-"},
+  {name:"쌍암 중흥 S 클래스 리버시티",region:"기타",type:"중소단지",age:"준신축",households:406,subscribers:727,active_rate:179.1,status:"-",channel:"-"},
+  {name:"한들물빛도시지웰시티센트럴 푸르지오2단지",region:"서남권",type:"중대단지",age:"신축",households:669,subscribers:1525,active_rate:178.8,status:"진행",channel:"B2B"},
+  {name:"판교해링턴플레이스",region:"동남권",type:"대단지",age:"신축",households:1123,subscribers:2024,active_rate:177.9,status:"진행",channel:"OUT"},
+  {name:"미사강변한신휴플러스",region:"서남권",type:"중대단지",age:"준신축",households:763,subscribers:1716,active_rate:177.3,status:"진행",channel:"미확인"},
+  {name:"미사강변하우스디더레이크",region:"기타",type:"중대단지",age:"준신축",households:821,subscribers:1507,active_rate:177.3,status:"-",channel:"-"},
+  {name:"매곡에듀파크에일린의뜰",region:"기타",type:"중대단지",age:"신축",households:851,subscribers:1516,active_rate:176.5,status:"-",channel:"-"},
+  {name:"광교더샵",region:"기타",type:"중대단지",age:"준신축",households:686,subscribers:1369,active_rate:175.7,status:"-",channel:"-"},
+  {name:"백운호수해링턴플레이스2단지",region:"기타",type:"중대단지",age:"준신축",households:534,subscribers:953,active_rate:175.7,status:"-",channel:"-"},
+  {name:"동탄역대원칸타빌포레지움",region:"기타",type:"중대단지",age:"준신축",households:714,subscribers:1732,active_rate:175.5,status:"종료",channel:"IN"},
+  {name:"영종국제도시화성파크드림오션브릿지",region:"서남권",type:"중대단지",age:"-",households:675,subscribers:1223,active_rate:174.7,status:"진행",channel:"IN"},
+  {name:"시흥장현유승한내들퍼스트파크",region:"기타",type:"중대단지",age:"신축",households:676,subscribers:1659,active_rate:174.3,status:"진행",channel:"B2B"},
+  {name:"강서힐스테이트",region:"기타",type:"대단지",age:"준신축",households:2603,subscribers:6476,active_rate:174.2,status:"진행",channel:"B2B"},
+  {name:"장유자이더파크",region:"기타",type:"중대단지",age:"신축",households:587,subscribers:1047,active_rate:173.9,status:"-",channel:"-"},
+  {name:"둔산더샵엘리프1단지",region:"동남권",type:"중대단지",age:"-",households:997,subscribers:1733,active_rate:173.8,status:"진행",channel:"OUT"},
+  {name:"가락쌍용1차",region:"서북권",type:"대단지",age:"구축",households:2064,subscribers:4005,active_rate:173.6,status:"진행",channel:"IN"},
+  {name:"수원하늘채 더 퍼스트 1단지",region:"서남권",type:"대단지",age:"-",households:1403,subscribers:2780,active_rate:173.6,status:"진행",channel:"OUT"},
+  {name:"화서역파크푸르지오",region:"기타",type:"대단지",age:"신축",households:2355,subscribers:5743,active_rate:173.5,status:"종료",channel:"미확인"},
+  {name:"천안레이크타운푸르지오",region:"동북권",type:"중대단지",age:"준신축",households:995,subscribers:1870,active_rate:173.5,status:"진행",channel:"미확인"},
+  {name:"힐스테이트 광교",region:"기타",type:"중대단지",age:"-",households:928,subscribers:1767,active_rate:173.3,status:"-",channel:"-"},
+  {name:"두꺼비세상 데모",region:"기타",type:"소단지",age:"-",households:11,subscribers:19,active_rate:172.7,status:"-",channel:"-"},
+  {name:"광교아이파크아파트",region:"기타",type:"중대단지",age:"-",households:958,subscribers:1801,active_rate:172.3,status:"-",channel:"-"},
+  {name:"과천푸르지오오르투스",region:"기타",type:"중소단지",age:"신축",households:435,subscribers:995,active_rate:172.2,status:"종료",channel:"미확인"},
+  {name:"판교원마을12단지아파트",region:"기타",type:"중소단지",age:"구축",households:428,subscribers:865,active_rate:171.5,status:"-",channel:"-"},
+  {name:"기흥역 센트럴푸르지오",region:"기타",type:"대단지",age:"-",households:1316,subscribers:3226,active_rate:170.9,status:"-",channel:"-"},
+  {name:"광명역푸르지오",region:"기타",type:"중대단지",age:"준신축",households:640,subscribers:1093,active_rate:170.5,status:"-",channel:"-"},
+  {name:"수성푸르지오리버센트",region:"경상권",type:"중대단지",age:"신축",households:714,subscribers:1248,active_rate:170.4,status:"진행",channel:"IN"},
+  {name:"죽전역코아루더리브아파트",region:"기타",type:"중소단지",age:"신축",households:274,subscribers:644,active_rate:170.1,status:"-",channel:"-"},
+  {name:"고산대광로제비앙더퍼스트",region:"기타",type:"중대단지",age:"신축",households:722,subscribers:1553,active_rate:169.4,status:"-",channel:"-"},
+  {name:"구리토평삼성래미안",region:"기타",type:"중소단지",age:"구축",households:402,subscribers:682,active_rate:169.2,status:"-",channel:"-"},
+  {name:"빌리브스카이",region:"기타",type:"중대단지",age:"-",households:504,subscribers:980,active_rate:168.8,status:"-",channel:"-"},
+  {name:"일산와이시티",region:"기타",type:"대단지",age:"-",households:2404,subscribers:4059,active_rate:168.6,status:"-",channel:"-"},
+  {name:"송도랜드마크시티센트럴더샵",region:"기타",type:"대단지",age:"신축",households:2230,subscribers:5281,active_rate:168.4,status:"종료",channel:"미확인"},
+  {name:"송산그린시티리안비채테라스하우스1단지",region:"기타",type:"중소단지",age:"신축",households:131,subscribers:287,active_rate:167.9,status:"-",channel:"-"},
+  {name:"플루리움4,5단지",region:"기타",type:"대단지",age:"구축",households:1437,subscribers:2420,active_rate:167.8,status:"-",channel:"-"},
+  {name:"e편한세상광진그랜드파크",region:"기타",type:"중대단지",age:"신축",households:730,subscribers:1778,active_rate:167.5,status:"진행",channel:"IN"},
+  {name:"송파레이크파크호반써밋2차",region:"기타",type:"중대단지",age:"신축",households:700,subscribers:1638,active_rate:167.3,status:"-",channel:"-"},
+  {name:"한라비발디캠퍼스2차",region:"기타",type:"대단지",age:"준신축",households:2695,subscribers:5343,active_rate:167.3,status:"-",channel:"-"},
+  {name:"쌍용더플래티넘프리미어",region:"동북권",type:"대단지",age:"신축",households:1696,subscribers:2919,active_rate:167.1,status:"진행",channel:"B2B"},
+  {name:"다산한양수자인리버팰리스",region:"기타",type:"중대단지",age:"준신축",households:640,subscribers:1311,active_rate:167.0,status:"-",channel:"-"},
+  {name:"장자마을동양",region:"기타",type:"중소단지",age:"구축",households:212,subscribers:354,active_rate:166.5,status:"-",channel:"-"},
+  {name:"청량리역해링턴플레이스",region:"동남권",type:"중소단지",age:"신축",households:220,subscribers:449,active_rate:166.4,status:"진행",channel:"미확인"},
+  {name:"청라센트럴에일린의뜰아파트",region:"기타",type:"대단지",age:"준신축",households:1163,subscribers:2460,active_rate:166.4,status:"-",channel:"-"},
+  {name:"힐스테이트 신용 더리버",region:"기타",type:"대단지",age:"-",households:1647,subscribers:3475,active_rate:166.2,status:"-",channel:"-"},
+  {name:"빌리브죽전",region:"기타",type:"중소단지",age:"신축",households:176,subscribers:362,active_rate:165.9,status:"-",channel:"-"},
+  {name:"남양휴튼",region:"기타",type:"중대단지",age:"구축",households:577,subscribers:1131,active_rate:165.2,status:"-",channel:"-"},
+  {name:"호반써밋그랜드파크 1BL",region:"기타",type:"대단지",age:"-",households:1059,subscribers:2503,active_rate:165.0,status:"-",channel:"-"},
+  {name:"동래래미안아이파크",region:"기타",type:"대단지",age:"신축",households:3853,subscribers:8499,active_rate:164.8,status:"-",channel:"-"},
+  {name:"송산그린시티리안비채테라스하우스2단지",region:"기타",type:"중소단지",age:"신축",households:128,subscribers:287,active_rate:164.8,status:"-",channel:"-"},
+  {name:"마포프레스티지자이",region:"기타",type:"대단지",age:"신축",households:1694,subscribers:3804,active_rate:164.1,status:"-",channel:"-"},
+  {name:"더샵판교포레스트11단지",region:"기타",type:"중소단지",age:"-",households:448,subscribers:739,active_rate:164.1,status:"-",channel:"-"},
+  {name:"래미안개포루체하임",region:"기타",type:"중대단지",age:"준신축",households:850,subscribers:1530,active_rate:164.0,status:"-",channel:"-"},
+  {name:"광명역파크자이",region:"기타",type:"중대단지",age:"준신축",households:875,subscribers:1433,active_rate:163.7,status:"-",channel:"-"},
+  {name:"한빛마을7단지",region:"기타",type:"대단지",age:"준신축",households:1352,subscribers:2355,active_rate:163.6,status:"-",channel:"-"},
+  {name:"힐스테이트 레이크송도3차",region:"기타",type:"대단지",age:"신축",households:1100,subscribers:2483,active_rate:163.4,status:"-",channel:"-"},
+  {name:"군포송정금강펜테리움센트럴파크3차",region:"기타",type:"중대단지",age:"준신축",households:750,subscribers:1224,active_rate:163.2,status:"-",channel:"-"},
+  {name:"더샵판교포레스트12단지",region:"기타",type:"중대단지",age:"-",households:542,subscribers:1199,active_rate:162.9,status:"-",channel:"-"},
+  {name:"상동스카이뷰자이",region:"서남권",type:"중소단지",age:"준신축",households:405,subscribers:767,active_rate:162.7,status:"준비",channel:"IN"},
+  {name:"더샵남천프레스티지",region:"기타",type:"중대단지",age:"신축",households:975,subscribers:2209,active_rate:162.7,status:"-",channel:"-"},
+  {name:"인창칸타빌더헤리티지",region:"기타",type:"중소단지",age:"신축",households:375,subscribers:798,active_rate:162.7,status:"-",channel:"-"},
+  {name:"다산진건데시앙",region:"서남권",type:"중대단지",age:"신축",households:651,subscribers:1533,active_rate:162.4,status:"진행",channel:"IN"},
+  {name:"신사이랜드타운",region:"기타",type:"중소단지",age:"구축",households:228,subscribers:377,active_rate:162.3,status:"-",channel:"-"},
+  {name:"더샵천안레이크마크",region:"기타",type:"중소단지",age:"신축",households:411,subscribers:668,active_rate:161.8,status:"-",channel:"-"},
+  {name:"보문파크뷰자이아파트",region:"기타",type:"대단지",age:"-",households:1186,subscribers:2141,active_rate:161.2,status:"-",channel:"-"},
+  {name:"래미안트리베라1차",region:"서북권",type:"대단지",age:"준신축",households:1247,subscribers:2461,active_rate:161.1,status:"진행",channel:"IN"},
+  {name:"힐스테이트 몬테로이 2단지",region:"서남권",type:"대단지",age:"-",households:1318,subscribers:2183,active_rate:160.4,status:"진행",channel:"IN"},
+  {name:"봉담자이라피네",region:"서남권",type:"중대단지",age:"신축",households:750,subscribers:1576,active_rate:160.1,status:"진행",channel:"미확인"},
+  {name:"안양어반포레자연앤e편한세상3단지",region:"서남권",type:"대단지",age:"-",households:1676,subscribers:2683,active_rate:159.8,status:"진행",channel:"IN"},
+  {name:"디아크리온강남",region:"기타",type:"중대단지",age:"-",households:597,subscribers:1078,active_rate:159.6,status:"-",channel:"-"},
+  {name:"잠실아이스페이스",region:"기타",type:"소단지",age:"구축",households:84,subscribers:139,active_rate:159.5,status:"-",channel:"-"},
+  {name:"DMC한강호반써밋",region:"기타",type:"중대단지",age:"신축",households:560,subscribers:1063,active_rate:159.3,status:"-",channel:"-"},
+  {name:"펜타포트1블럭",region:"기타",type:"중소단지",age:"-",households:479,subscribers:961,active_rate:158.9,status:"-",channel:"-"},
+  {name:"미사강변푸르지오",region:"기타",type:"대단지",age:"준신축",households:1188,subscribers:2274,active_rate:158.8,status:"-",channel:"-"},
+  {name:"고덕그라시움",region:"기타",type:"대단지",age:"준신축",households:4932,subscribers:10638,active_rate:158.7,status:"종료",channel:"미확인"},
+  {name:"신안인스빌엘센트로",region:"기타",type:"중대단지",age:"준신축",households:576,subscribers:1090,active_rate:158.7,status:"-",channel:"-"},
+  {name:"동탄레이크자연앤푸르지오",region:"서남권",type:"중대단지",age:"신축",households:704,subscribers:1387,active_rate:158.4,status:"진행",channel:"미확인"},
+  {name:"송도더샵마스터뷰1단지",region:"서북권",type:"중대단지",age:"준신축",households:692,subscribers:1108,active_rate:158.2,status:"진행",channel:"OUT"},
+  {name:"운정신도시제일풍경채그랑퍼스트",region:"기타",type:"대단지",age:"-",households:1926,subscribers:3605,active_rate:158.2,status:"-",channel:"-"},
+  {name:"힐스테이트 아티움시티",region:"기타",type:"대단지",age:"-",households:1132,subscribers:2538,active_rate:158.1,status:"진행",channel:"IN"},
+  {name:"한들물빛도시지웰시티센트럴푸르지오1단지",region:"기타",type:"중대단지",age:"신축",households:685,subscribers:1411,active_rate:157.7,status:"-",channel:"-"},
+  {name:"e편한세상옥수파크힐스",region:"기타",type:"중대단지",age:"준신축",households:758,subscribers:1199,active_rate:157.5,status:"-",channel:"-"},
+  {name:"코오롱스카이타워",region:"기타",type:"중대단지",age:"준신축",households:513,subscribers:807,active_rate:157.3,status:"-",channel:"-"},
+  {name:"해운대롯데캐슬스타",region:"기타",type:"중대단지",age:"신축",households:828,subscribers:1499,active_rate:156.6,status:"-",channel:"-"},
+  {name:"대연양우내안애퍼스트",region:"기타",type:"중대단지",age:"신축",households:560,subscribers:1234,active_rate:156.2,status:"-",channel:"-"},
+  {name:"죽전역코아루더리브오피스텔",region:"기타",type:"중소단지",age:"신축",households:102,subscribers:182,active_rate:155.9,status:"-",channel:"-"},
+  {name:"경희궁자이2단지",region:"기타",type:"대단지",age:"-",households:1148,subscribers:2853,active_rate:155.8,status:"진행",channel:"B2B"},
+  {name:"e편한세상 영종국제도시 센텀베뉴",region:"서남권",type:"대단지",age:"신축",households:1409,subscribers:2978,active_rate:155.8,status:"진행",channel:"미확인"},
+  {name:"중랑숲시티프라디움 아파트",region:"기타",type:"중소단지",age:"-",households:403,subscribers:728,active_rate:155.8,status:"-",channel:"-"},
+  {name:"산성역자이푸르지오1단지",region:"서남권",type:"대단지",age:"신축",households:1852,subscribers:3612,active_rate:155.6,status:"진행",channel:"미확인"},
+  {name:"오산SKVIEW2차",region:"동북권",type:"중소단지",age:"-",households:380,subscribers:651,active_rate:155.0,status:"진행",channel:"IN"},
+  {name:"광교중흥S클래스아파트",region:"기타",type:"대단지",age:"-",households:2231,subscribers:4675,active_rate:155.0,status:"-",channel:"-"},
+  {name:"구포동원로얄듀크비스타",region:"기타",type:"대단지",age:"준신축",households:1079,subscribers:2080,active_rate:155.0,status:"-",channel:"-"},
+  {name:"백운호수해링턴플레이스4단지",region:"기타",type:"중소단지",age:"준신축",households:220,subscribers:394,active_rate:155.0,status:"-",channel:"-"},
+  {name:"원당역롯데캐슬스카이엘",region:"동남권",type:"대단지",age:"-",households:1236,subscribers:1919,active_rate:154.8,status:"진행",channel:"IN"},
+  {name:"물푸레마을휴먼시아7단지",region:"기타",type:"중소단지",age:"구축",households:398,subscribers:620,active_rate:154.3,status:"-",channel:"-"},
+  {name:"탕정호반써밋그랜드마크6차",region:"동북권",type:"중소단지",age:"신축",households:303,subscribers:619,active_rate:154.1,status:"진행",channel:"미확인"},
+  {name:"롯데캐슬클라시아",region:"기타",type:"대단지",age:"신축",households:2029,subscribers:4023,active_rate:154.0,status:"진행",channel:"미확인"},
+  {name:"서면아이파크",region:"기타",type:"대단지",age:"-",households:2144,subscribers:4098,active_rate:153.9,status:"-",channel:"-"},
+  {name:"더샵송도아크베이",region:"기타",type:"중대단지",age:"-",households:775,subscribers:1206,active_rate:153.9,status:"-",channel:"-"},
+  {name:"신도림SK뷰",region:"기타",type:"중소단지",age:"구축",households:304,subscribers:470,active_rate:153.9,status:"-",channel:"-"},
+  {name:"시흥능곡역모아미래도에듀포레",region:"서남권",type:"중대단지",age:"신축",households:928,subscribers:2140,active_rate:153.8,status:"진행",channel:"미확인"},
+  {name:"드파인센텀",region:"기타",type:"중대단지",age:"-",households:750,subscribers:1366,active_rate:153.7,status:"-",channel:"-"},
+  {name:"힐스테이트오룡1단지",region:"동남권",type:"중소단지",age:"신축",households:482,subscribers:750,active_rate:153.3,status:"진행",channel:"IN"},
+  {name:"검단신도시우미린더시그니처",region:"기타",type:"대단지",age:"-",households:1268,subscribers:2323,active_rate:153.3,status:"-",channel:"-"},
+  {name:"그랑시티자이2차아파트",region:"기타",type:"대단지",age:"-",households:2872,subscribers:6451,active_rate:153.2,status:"종료",channel:"IN"},
+  {name:"e편한세상탕정퍼스트드림",region:"기타",type:"중대단지",age:"-",households:893,subscribers:1379,active_rate:153.1,status:"-",channel:"-"},
+  {name:"e편한세상 강동에코포레 아파트",region:"서북권",type:"중소단지",age:"신축",households:366,subscribers:792,active_rate:153.0,status:"진행",channel:"IN"},
+  {name:"광교자연앤자이3단지",region:"기타",type:"중소단지",age:"-",households:378,subscribers:809,active_rate:152.9,status:"-",channel:"-"},
+  {name:"동탄파크자이",region:"기타",type:"중대단지",age:"준신축",households:979,subscribers:2374,active_rate:152.8,status:"-",channel:"-"},
+  {name:"파주운정우미린파크힐스",region:"기타",type:"중대단지",age:"신축",households:522,subscribers:824,active_rate:152.7,status:"-",channel:"-"},
+  {name:"마포자이 더 센트리지 아파트",region:"기타",type:"중대단지",age:"-",households:927,subscribers:1534,active_rate:152.4,status:"-",channel:"-"},
+  {name:"대치포스코더샵",region:"기타",type:"중소단지",age:"구축",households:276,subscribers:427,active_rate:152.2,status:"-",channel:"-"},
+  {name:"초롱꽃마을1단지 경남아너스빌운정",region:"서북권",type:"중소단지",age:"-",households:457,subscribers:696,active_rate:152.1,status:"진행",channel:"OUT"},
+  {name:"구서쌍용예가2단지",region:"기타",type:"중대단지",age:"준신축",households:809,subscribers:1332,active_rate:151.9,status:"-",channel:"-"},
+  {name:"고덕풍경채어바니티",region:"서남권",type:"중대단지",age:"신축",households:780,subscribers:1611,active_rate:151.8,status:"진행",channel:"IN"},
+  {name:"더샵판교퍼스트파크",region:"서남권",type:"대단지",age:"-",households:1223,subscribers:2700,active_rate:151.8,status:"진행",channel:"미확인"},
+  {name:"김포마송대방엘리움센트럴파크",region:"기타",type:"중대단지",age:"신축",households:841,subscribers:2010,active_rate:151.8,status:"-",channel:"-"},
+  {name:"반포래미안아이파크",region:"기타",type:"중대단지",age:"준신축",households:829,subscribers:1684,active_rate:151.8,status:"-",channel:"-"},
+  {name:"우성캐릭터199아파트",region:"기타",type:"중소단지",age:"구축",households:199,subscribers:387,active_rate:151.8,status:"-",channel:"-"},
+  {name:"S클래스 더제니스",region:"동남권",type:"대단지",age:"신축",households:2240,subscribers:3931,active_rate:151.6,status:"진행",channel:"OUT"},
+  {name:"탕정호반써밋그랜드마크5차",region:"동북권",type:"중소단지",age:"신축",households:489,subscribers:968,active_rate:151.5,status:"진행",channel:"미확인"},
+  {name:"평내화성파크힐즈",region:"기타",type:"중소단지",age:"구축",households:328,subscribers:629,active_rate:151.5,status:"-",channel:"-"},
+  {name:"광교센트럴뷰",region:"기타",type:"중대단지",age:"준신축",households:701,subscribers:1507,active_rate:151.4,status:"-",channel:"-"},
+  {name:"중동센트럴파크푸르지오",region:"기타",type:"중대단지",age:"-",households:999,subscribers:2256,active_rate:151.4,status:"진행",channel:"IN"},
+  {name:"힐스테이트 봉담 프라이드시티",region:"서남권",type:"대단지",age:"-",households:2333,subscribers:3988,active_rate:151.4,status:"진행",channel:"IN"},
+  {name:"더샵그린워크2차",region:"서북권",type:"중대단지",age:"준신축",households:665,subscribers:1022,active_rate:151.3,status:"진행",channel:"OUT"},
+  {name:"더샵하남에디피스",region:"동남권",type:"중대단지",age:"신축",households:980,subscribers:1655,active_rate:151.3,status:"진행",channel:"IN"},
+  {name:"힐스테이트용인고진역1단지",region:"기타",type:"대단지",age:"신축",households:1345,subscribers:2424,active_rate:151.2,status:"-",channel:"-"},
+  {name:"서초자이르네",region:"동남권",type:"소단지",age:"신축",households:67,subscribers:122,active_rate:150.8,status:"진행",channel:"IN"},
+  {name:"양주회천신도시디에트르센트럴시티",region:"기타",type:"중대단지",age:"신축",households:860,subscribers:1850,active_rate:150.8,status:"-",channel:"-"},
+  {name:"DMC 디에트르 한강",region:"동남권",type:"중대단지",age:"-",households:622,subscribers:1290,active_rate:150.6,status:"진행",channel:"IN"},
+  {name:"더샵센트럴파크2차",region:"서남권",type:"중대단지",age:"준신축",households:632,subscribers:1033,active_rate:150.6,status:"진행",channel:"OUT"},
+  {name:"DMC센트럴자이",region:"기타",type:"대단지",age:"신축",households:1256,subscribers:2431,active_rate:150.3,status:"-",channel:"-"},
+  {name:"천안성성비스타동원",region:"동북권",type:"대단지",age:"신축",households:1195,subscribers:2291,active_rate:150.0,status:"진행",channel:"IN"},
+  {name:"일산자이더헤리티지",region:"기타",type:"대단지",age:"신축",households:1333,subscribers:2000,active_rate:149.7,status:"-",channel:"-"},
+  {name:"서창청광플러스원",region:"기타",type:"중대단지",age:"준신축",households:582,subscribers:878,active_rate:149.7,status:"-",channel:"-"},
+  {name:"과천푸르지오라비엔오",region:"동남권",type:"중대단지",age:"신축",households:679,subscribers:1391,active_rate:149.5,status:"진행",channel:"B2B"},
+  {name:"일산위시티자이 주상복합",region:"기타",type:"중소단지",age:"-",households:176,subscribers:366,active_rate:149.4,status:"-",channel:"-"},
+  {name:"이진젠시티개금",region:"경상권",type:"중대단지",age:"신축",households:736,subscribers:1662,active_rate:149.3,status:"진행",channel:"IN"},
+  {name:"광명역센트럴자이",region:"기타",type:"대단지",age:"준신축",households:1005,subscribers:2651,active_rate:149.3,status:"-",channel:"-"},
+  {name:"양주옥정신도시디에트르프레스티지",region:"서남권",type:"대단지",age:"신축",households:1859,subscribers:4213,active_rate:148.9,status:"진행",channel:"미확인"},
+  {name:"배곧호반베르디움더프라임",region:"기타",type:"대단지",age:"준신축",households:1206,subscribers:1796,active_rate:148.9,status:"-",channel:"-"},
+  {name:"동천센트럴자이",region:"기타",type:"대단지",age:"준신축",households:1057,subscribers:2374,active_rate:148.6,status:"진행",channel:"미확인"},
+  {name:"길음뉴타운8단지",region:"서남권",type:"대단지",age:"-",households:1497,subscribers:3015,active_rate:148.6,status:"진행",channel:"IN"},
+  {name:"청라한양수자인레이크블루",region:"기타",type:"대단지",age:"준신축",households:1507,subscribers:2242,active_rate:148.6,status:"-",channel:"-"},
+  {name:"한라비발디캠퍼스3차",region:"기타",type:"대단지",age:"준신축",households:1304,subscribers:2582,active_rate:148.5,status:"-",channel:"-"},
+  {name:"문수마을동문굿모닝힐",region:"기타",type:"중소단지",age:"준신축",households:472,subscribers:701,active_rate:148.5,status:"-",channel:"-"},
+  {name:"고덕아르테온",region:"기타",type:"대단지",age:"신축",households:4066,subscribers:8881,active_rate:148.4,status:"-",channel:"-"},
+  {name:"송도더샵센트럴시티",region:"기타",type:"대단지",age:"준신축",households:2610,subscribers:5042,active_rate:148.2,status:"-",channel:"-"}
+];
+DATA.tableData = rawTableData;
+
+/* ─── Chart.js 전역 설정 ─────────────────── */
+Chart.defaults.font.family = 'Pretendard';
+Chart.defaults.font.size   = 11;
+Chart.defaults.color       = '#888888';
+
+const PALETTE = ['#9B8FE8','#5EC8E8','#FF7056','#FFC654','#F48FB1','#8B80D4','#52C41A'];
+const charts = {};
+
+function renderChart(id, config) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  charts[id] = new Chart(ctx, config);
+}
+
+const barOpts = (stacked=false) => ({
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { stacked, grid:{ display:false } },
+    y: { stacked, grid:{ color:'#F0F0F0' }, ticks:{ maxTicksLimit:5 } }
+  }
+});
+
+const lineOpts = (yLabel='') => ({
+  responsive: true, maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid:{ display:false } },
+    y: { grid:{ color:'#F0F0F0' }, ticks:{ maxTicksLimit:5,
+      callback: v => yLabel === 'M' ? (v/10000).toFixed(0)+'만' : v >= 10000 ? (v/10000).toFixed(1)+'만' : v
+    }}
+  },
+  elements: { line:{ tension:.35 }, point:{ radius:4, hoverRadius:6 } }
+});
+
+const pieOpts = (cutout='0%') => ({
+  responsive: true, maintainAspectRatio: false,
+  cutout,
+  plugins: { legend: { position:'right', labels:{ boxWidth:12, padding:10, font:{size:11} } } }
+});
+
+/* ─── 탭 전환 ─────────────────────────────── */
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btn.classList.add('active');
+  // 해당 탭 차트 렌더링
+  if (name === 'overview')  renderOverview();
+  if (name === 'service')   renderService();
+  if (name === 'complex')   renderComplex();
+  if (name === 'table')     renderTable();
+}
+
+/* ─── 개요 차트 ───────────────────────────── */
+function renderOverview() {
+  renderChart('chartMAU', {
+    type: 'line',
+    data: {
+      labels: DATA.mauLabels,
+      datasets: [{
+        label: 'MAU',
+        data: DATA.mauValues,
+        borderColor: '#9B8FE8', backgroundColor: 'rgba(155,143,232,.12)',
+        fill: true, tension: .35, pointRadius: 5, pointHoverRadius: 7
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{ display:false },
+        tooltip:{ callbacks:{ label: ctx => ' MAU: ' + ctx.raw.toLocaleString() } }
+      },
+      scales: {
+        x: { grid:{ display:false } },
+        y: { grid:{ color:'#F0F0F0' }, ticks:{ maxTicksLimit:5, callback: v => (v/10000).toFixed(0)+'만' } }
+      },
+      elements: { line:{tension:.35} }
+    }
+  });
+
+  renderChart('chartOpenStatus', {
+    type: 'doughnut',
+    data: {
+      labels: DATA.openStatusLabels,
+      datasets: [{ data: DATA.openStatusValues, backgroundColor: ['#9B8FE8','#FFC654','#5EC8E8','#EF5350','#FF7043'], hoverOffset:4 }]
+    },
+    options: pieOpts('55%')
+  });
+
+  renderChart('chartVoteOverview', {
+    type: 'bar',
+    data: {
+      labels: DATA.voteLabels,
+      datasets: [{
+        data: DATA.voteValues,
+        backgroundColor: PALETTE.map(c => c + '99'),
+        borderColor: PALETTE,
+        borderWidth: 1.5
+      }]
+    },
+    options: { ...barOpts(),
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ' ' + ctx.raw.toLocaleString() + '건' } } },
+      scales: { x:{grid:{display:false}}, y:{grid:{color:'#F0F0F0'}, ticks:{maxTicksLimit:4, callback:v=>(v/10000).toFixed(0)+'만'}} }
+    }
+  });
+
+  renderChart('chartNotifyOverview', {
+    type: 'bar',
+    data: {
+      labels: DATA.notifyLabels,
+      datasets: [{
+        data: DATA.notifyValues,
+        backgroundColor: '#5EC8E899', borderColor: '#5EC8E8', borderWidth: 1.5
+      }]
+    },
+    options: { ...barOpts(),
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ' ' + ctx.raw.toLocaleString() + '건' } } },
+      scales: { x:{grid:{display:false}}, y:{grid:{color:'#F0F0F0'}, ticks:{maxTicksLimit:4}} }
+    }
+  });
+
+  renderChart('chartSurveyOverview', {
+    type: 'bar',
+    data: {
+      labels: DATA.surveyLabels,
+      datasets: [{
+        data: DATA.surveyValues,
+        backgroundColor: '#FF705699', borderColor: '#FF7056', borderWidth: 1.5
+      }]
+    },
+    options: { ...barOpts(),
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => ' ' + ctx.raw.toLocaleString() + '건' } } },
+      scales: { x:{grid:{display:false}}, y:{grid:{color:'#F0F0F0'}, ticks:{maxTicksLimit:4}} }
+    }
+  });
+}
+
+/* ─── 서비스 차트 ─────────────────────────── */
+function renderService() {
+  renderChart('chartVote', {
+    type: 'bar',
+    data: {
+      labels: DATA.voteLabels,
+      datasets: [{
+        label: '전자투표 건수',
+        data: DATA.voteValues,
+        backgroundColor: '#9B8FE899', borderColor: '#9B8FE8', borderWidth: 2, borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip:{callbacks:{label:ctx=>' '+ctx.raw.toLocaleString()+'건'}} },
+      scales: { x:{grid:{display:false}}, y:{grid:{color:'#F0F0F0'}, ticks:{maxTicksLimit:5, callback:v=>(v/10000).toFixed(0)+'만'}} }
+    }
+  });
+
+  renderChart('chartNotify', {
+    type: 'line',
+    data: {
+      labels: DATA.notifyLabels,
+      datasets: [{
+        label: '알림 건수',
+        data: DATA.notifyValues,
+        borderColor: '#5EC8E8', backgroundColor: 'rgba(94,200,232,.12)',
+        fill: true, tension:.35, pointRadius:5
+      }]
+    },
+    options: lineOpts()
+  });
+
+  renderChart('chartNotifyMeans', {
+    type: 'doughnut',
+    data: {
+      labels: DATA.notifyMeansLabels,
+      datasets: [{ data: DATA.notifyMeansValues, backgroundColor: PALETTE, hoverOffset:4 }]
+    },
+    options: pieOpts('50%')
+  });
+
+  renderChart('chartSurvey', {
+    type: 'bar',
+    data: {
+      labels: DATA.surveyLabels,
+      datasets: [{
+        label: '설문 건수',
+        data: DATA.surveyValues,
+        backgroundColor: '#FF705699', borderColor: '#FF7056', borderWidth:2, borderRadius:4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip:{callbacks:{label:ctx=>' '+ctx.raw.toLocaleString()+'건'}} },
+      scales: { x:{grid:{display:false}}, y:{grid:{color:'#F0F0F0'}, ticks:{maxTicksLimit:5}} }
+    }
+  });
+
+  renderChart('chartSettle', {
+    type: 'bar',
+    data: {
+      labels: DATA.settleBySvcLabels,
+      datasets: [{
+        label: '청구금액(만원)',
+        data: DATA.settleBySvcValues,
+        backgroundColor: ['#9B8FE899','#5EC8E899','#FF705699'],
+        borderColor: ['#9B8FE8','#5EC8E8','#FF7056'], borderWidth:2, borderRadius:4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend:{display:false}, tooltip:{callbacks:{label:ctx=>' '+ctx.raw.toLocaleString()+'만원'}} },
+      scales: { x:{grid:{display:false}}, y:{grid:{color:'#F0F0F0'}, ticks:{maxTicksLimit:5, callback:v=>v+'만'}} }
+    }
+  });
+}
+
+/* ─── 단지 분석 차트 ──────────────────────── */
+function renderComplex() {
+  renderChart('chartRegion', {
+    type: 'pie',
+    data: {
+      labels: DATA.regionLabels,
+      datasets: [{ data: DATA.regionValues, backgroundColor: PALETTE, hoverOffset:4 }]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right', labels:{boxWidth:12, padding:8, font:{size:11}} } } }
+  });
+
+  renderChart('chartType', {
+    type: 'bar',
+    data: {
+      labels: ['중대단지\n(500~999)','중소단지\n(100~499)','대단지\n(1000+)','소단지\n(~100)'],
+      datasets: [{
+        data: DATA.typeValues,
+        backgroundColor: PALETTE.map(c => c + 'BB'), borderColor: PALETTE, borderWidth:1.5, borderRadius:6
+      }]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{display:false}}, y:{grid:{color:'#F0F0F0'}, ticks:{maxTicksLimit:5}}}
+    }
+  });
+
+  renderChart('chartAge', {
+    type: 'doughnut',
+    data: {
+      labels: DATA.ageLabels,
+      datasets: [{ data: DATA.ageValues, backgroundColor:['#5EC8E8','#FF7056','#9B8FE8'], hoverOffset:4 }]
+    },
+    options: pieOpts('50%')
+  });
+
+  renderChart('chartSolution', {
+    type: 'bar',
+    data: {
+      labels: DATA.solutionLabels,
+      datasets: [{
+        data: DATA.solutionValues,
+        backgroundColor: ['#9B8FE8BB','#5EC8E8BB','#FF7056BB','#FFC654BB'],
+        borderColor: ['#9B8FE8','#5EC8E8','#FF7056','#FFC654'], borderWidth:1.5, borderRadius:6
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'#F0F0F0'}, ticks:{maxTicksLimit:5}}, y:{grid:{display:false}}}
+    }
+  });
+
+  renderChart('chartChannel', {
+    type: 'doughnut',
+    data: {
+      labels: DATA.channelLabels,
+      datasets: [{ data: DATA.channelValues, backgroundColor:['#9B8FE8','#5EC8E8','#FF7056'], hoverOffset:4 }]
+    },
+    options: pieOpts('55%')
+  });
+
+  // 활성율 TOP 15
+  const left = document.getElementById('rankListLeft');
+  const right = document.getElementById('rankListRight');
+  left.innerHTML = ''; right.innerHTML = '';
+  const maxRate = DATA.topActive[0].rate;
+  DATA.topActive.forEach((item, idx) => {
+    const el = document.createElement('div');
+    el.className = 'rank-item';
+    el.innerHTML = `
+      <div class="rank-num">${idx+1}</div>
+      <div class="rank-name" title="${item.name}">${item.name}</div>
+      <div class="rank-bar-wrap"><div class="rank-bar-fill" style="width:${Math.min(100,(item.rate/maxRate*100)).toFixed(0)}%"></div></div>
+      <div class="rank-pct" style="color:var(--c-purple)">${item.rate.toFixed(1)}%</div>
+    `;
+    if (idx < 8) left.appendChild(el);
+    else right.appendChild(el);
+  });
+}
+
+/* ─── 테이블 렌더링 ───────────────────────── */
+let allTableData = rawTableData;
+function renderTable() {
+  filterTable();
+}
+
+function filterTable() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const region = document.getElementById('filterRegion').value;
+  const status = document.getElementById('filterStatus').value;
+  const age    = document.getElementById('filterAge').value;
+
+  const filtered = allTableData.filter(d => {
+    if (search && !d.name.toLowerCase().includes(search)) return false;
+    if (region && d.region !== region) return false;
+    if (status && d.status !== status) return false;
+    if (age    && d.age    !== age)    return false;
+    return true;
+  });
+
+  document.getElementById('filterCount').textContent = `${filtered.length}개 단지`;
+
+  const statusBadge = s => {
+    const map = {'진행':'badge-success','준비':'badge-warn','종료':'badge-danger','취소':'badge-danger','보류':'badge-info','-':'badge-neutral'};
+    return `<span class="badge ${map[s]||'badge-neutral'}">${s}</span>`;
+  };
+
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = filtered.map((d, i) => `
+    <tr>
+      <td style="color:var(--text-sub)">${i+1}</td>
+      <td style="font-weight:600">${d.name}</td>
+      <td><span class="badge badge-neutral">${d.region}</span></td>
+      <td style="color:var(--text-sub);font-size:12px">${d.type}</td>
+      <td>${d.age !== '-' ? `<span class="badge" style="background:${d.age==='신축'?'rgba(155,143,232,.15)':d.age==='준신축'?'rgba(94,200,232,.15)':'rgba(255,112,86,.15)'};color:var(--text-main)">${d.age}</span>` : '-'}</td>
+      <td style="text-align:right">${d.households.toLocaleString()}</td>
+      <td style="text-align:right">${d.subscribers.toLocaleString()}</td>
+      <td style="text-align:right;font-weight:600;color:${d.active_rate>=200?'var(--c-purple)':d.active_rate>=100?'var(--c-green)':'var(--text-main)'}">${d.active_rate.toFixed(1)}%</td>
+      <td style="color:var(--text-sub)">${d.channel}</td>
+      <td>${statusBadge(d.status)}</td>
+    </tr>
+  `).join('');
+}
+
+document.getElementById('searchInput').addEventListener('input', filterTable);
+document.getElementById('filterRegion').addEventListener('change', filterTable);
+document.getElementById('filterStatus').addEventListener('change', filterTable);
+document.getElementById('filterAge').addEventListener('change', filterTable);
+
+/* ─── 초기 렌더 ───────────────────────────── */
+renderOverview();
+renderTable();
+</script>
+</body>
+</html>

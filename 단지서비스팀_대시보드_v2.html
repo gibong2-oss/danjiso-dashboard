@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>단지서비스팀 대시보드 v2</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<style>
+:root{
+  --bg:#F5F5F5;--card:#FFF;--border:#EEE;
+  --tm:#333;--ts:#888;
+  --cp:#8B80D4;--cg:#52C41A;--ck:#F06292;--ca:#FFC107;--co:#FF7043;--cr:#EF5350;--cs:#5EC8E8;
+  --s1:#9B8FE8;--s2:#5EC8E8;--s3:#FF7056;--s4:#FFC654;--s5:#F48FB1;
+  --r:12px;--sh:0 2px 8px rgba(0,0,0,.06);--p:20px;--g:16px;
+}
+*{box-sizing:border-box}
+body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--tm);margin:0;font-size:14px}
+/* ── Header ── */
+.hdr{background:var(--card);box-shadow:var(--sh);padding:0 24px;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between}
+.logo{font-size:17px;font-weight:700;color:var(--cp);white-space:nowrap;padding:14px 0;margin-right:8px}
+.tabs{display:flex}
+.tb{background:none;border:none;padding:14px 13px;font-size:13px;font-weight:600;color:var(--ts);cursor:pointer;border-bottom:3px solid transparent;font-family:'Pretendard',sans-serif;white-space:nowrap;transition:all .15s}
+.tb.on{color:var(--cp);border-bottom-color:var(--cp)}
+.tb:hover{color:var(--tm)}
+.hdr-r{font-size:11px;color:var(--ts);white-space:nowrap}
+/* ── Pages ── */
+.pg{padding:24px;display:none}.pg.on{display:block}
+/* ── Grids ── */
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--g)}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--g)}
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--g)}
+.g1{display:grid;grid-template-columns:1fr;gap:var(--g)}
+.ga{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--g)}
+.sp2{grid-column:span 2}.sp3{grid-column:span 3}.sp4{grid-column:span 4}
+/* ── Card ── */
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:var(--p)}
+.ch{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.ct{font-size:14px;font-weight:600}.cs{font-size:11px;color:var(--ts)}
+/* ── KPI ── */
+.kpi{text-align:center;padding:22px 16px}
+.ki{font-size:22px;margin-bottom:6px}
+.kv{font-size:28px;font-weight:700;color:var(--cp);line-height:1.1}
+.ku{font-size:15px;font-weight:600;color:var(--cp)}
+.kl{font-size:12px;color:var(--ts);margin-top:5px;line-height:1.4}
+.kc{font-size:12px;font-weight:600;margin-top:5px}
+.up{color:var(--cg)}.dn{color:var(--cr)}.nu{color:var(--ts)}
+/* ── Badges ── */
+.b{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.bs{background:var(--cg);color:#fff}.bw{background:var(--ca);color:#fff}
+.bd{background:var(--cr);color:#fff}.bi{background:var(--cs);color:#fff}
+.bn{background:var(--border);color:var(--ts)}.bp{background:var(--cp);color:#fff}
+/* ── Toggle ── */
+.tg{display:flex;background:var(--bg);border-radius:8px;padding:3px;gap:2px}
+.tgb{padding:5px 14px;border:none;background:none;border-radius:6px;font-size:12px;font-weight:600;color:var(--ts);cursor:pointer;font-family:'Pretendard',sans-serif;white-space:nowrap;transition:all .2s}
+.tgb.on{background:var(--card);color:var(--cp);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+/* ── Tags (MAU selector) ── */
+.tag-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tag{padding:4px 12px;border:1.5px solid var(--border);border-radius:20px;font-size:11px;font-weight:600;color:var(--ts);cursor:pointer;background:var(--card);transition:all .2s;user-select:none}
+.tag.on{border-color:var(--cp);color:var(--cp);background:rgba(139,128,212,.08)}
+/* ── Section title ── */
+.st{font-size:15px;font-weight:700;margin:20px 0 10px;color:var(--tm)}
+/* ── Notice ── */
+.notice{font-size:11px;color:var(--ts);margin-top:8px;padding:7px 12px;background:rgba(139,128,212,.07);border-radius:6px;border-left:3px solid var(--cp)}
+/* ── Growth items ── */
+.gi-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.gi{background:var(--bg);border-radius:10px;padding:10px 16px;text-align:center;min-width:90px;flex:1}
+.gip{font-size:10px;color:var(--ts);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.giv{font-size:20px;font-weight:700;margin-top:4px}
+.gid{font-size:10px;color:var(--ts);margin-top:2px}
+/* ── Chart wrap ── */
+.cw{position:relative}
+/* ── Activity status pills ── */
+.ast{display:inline-block;padding:2px 9px;border-radius:12px;font-size:11px;font-weight:600}
+/* ── Table ── */
+table{width:100%;border-collapse:collapse}
+th,td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+th{font-size:11px;font-weight:600;color:var(--ts);text-transform:uppercase;background:#fafafa;position:sticky;top:0}
+td{font-size:12px}
+tr:hover td{background:rgba(139,128,212,.04)}
+/* ── Filter ── */
+.fr{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center}
+select,input[type=text]{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;font-family:'Pretendard',sans-serif;color:var(--tm);outline:none}
+select:focus,input:focus{border-color:var(--cp)}
+/* ── Activity status summary cards ── */
+.act-sum{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.act-sum-item{flex:1;min-width:100px;background:var(--card);border-radius:10px;padding:12px 14px;box-shadow:var(--sh);border-top:3px solid #ccc;text-align:center}
+.act-cnt{font-size:22px;font-weight:700}
+.act-lbl{font-size:11px;color:var(--ts);margin-top:3px}
+.act-pct{font-size:11px;font-weight:600;margin-top:2px}
+/* ── Divider ── */
+.div{height:1px;background:var(--border);margin:20px 0}
+/* ── Responsive ── */
+@media(max-width:1000px){.g4{grid-template-columns:repeat(2,1fr)}.sp2,.sp3,.sp4{grid-column:span 1}}
+@media(max-width:650px){.g3,.g2{grid-template-columns:1fr}.g4{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div style="display:flex;align-items:center">
+    <div class="logo">🏢 단지서비스팀</div>
+    <nav class="tabs">
+      <button class="tb on" onclick="sw('overview',this)">📊 개요</button>
+      <button class="tb" onclick="sw('service',this)">🔧 서비스 현황</button>
+      <button class="tb" onclick="sw('complex',this)">🏠 단지 분석</button>
+      <button class="tb" onclick="sw('growth',this)">📈 성장 지표</button>
+      <button class="tb" onclick="sw('table',this)">📋 상세 테이블</button>
+    </nav>
+  </div>
+  <div class="hdr-r">기준일 2026-04-23</div>
+</div>
+
+<!-- ══════════════════════════════════════
+     TAB 1: 개요
+══════════════════════════════════════ -->
+<div id="pg-overview" class="pg on">
+
+  <!-- KPI Cards -->
+  <div class="g4" style="margin-bottom:var(--g)">
+    <div class="card kpi">
+      <div class="ki">🏘️</div>
+      <div class="kv">3,474</div>
+      <div class="kl">총 단지 수</div>
+    </div>
+    <div class="card kpi">
+      <div class="ki">👥</div>
+      <div class="kv">286<span class="ku">만</span></div>
+      <div class="kl">총 세대수</div>
+    </div>
+    <div class="card kpi">
+      <div class="ki">⚡</div>
+      <div class="kv">579</div>
+      <div class="kl">매우 활성화 단지<br><span style="font-size:10px">(MAU/세대수 ≥ 100%)</span></div>
+      <div class="kc" style="color:#52C41A">전체의 16.7%</div>
+    </div>
+    <div class="card kpi">
+      <div class="ki">💰</div>
+      <div class="kv">4,820<span class="ku" style="font-size:13px">만</span></div>
+      <div class="kl">최근 정산 청구액<br><span style="font-size:10px">(2026-03 실제 정산)</span></div>
+    </div>
+  </div>
+
+  <!-- Revenue Chart + Activity Donut -->
+  <div class="g2" style="margin-bottom:var(--g)">
+    <div class="card">
+      <div class="ch">
+        <div>
+          <div class="ct">📊 월별 매출 트렌드</div>
+          <div class="cs" id="rev-sub">정산 기반: 2026-03부터 실제 정산 데이터</div>
+        </div>
+        <div class="tg">
+          <button class="tgb on" id="rbtn-s" onclick="swRev('settled')">정산 현황</button>
+          <button class="tgb" id="rbtn-e" onclick="swRev('estimate')">건수 추정</button>
+        </div>
+      </div>
+      <div class="cw" style="height:220px"><canvas id="cRevenue"></canvas></div>
+      <div class="notice" id="rev-note">✅ <b>정산 현황</b>: 2026-03부터 실제 정산 | 이전은 건수 기반 추정치로 표기</div>
+    </div>
+    <div class="card">
+      <div class="ch">
+        <div class="ct">🎯 단지 활성도 현황</div>
+        <div class="cs">MAU / 세대수 × 100%</div>
+      </div>
+      <div class="cw" style="height:220px"><canvas id="cActDist"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Growth Summary -->
+  <div class="st">📉 성장률 요약 (전자투표 참조ID 기준)</div>
+  <div class="gi-row">
+    <div class="gi">
+      <div class="gip">WoW</div>
+      <div class="giv nu">—</div>
+      <div class="gid">주별 데이터 미수집</div>
+    </div>
+    <div class="gi">
+      <div class="gip">MoM</div>
+      <div class="giv up">+32.6%</div>
+      <div class="gid">2026-02 → 03</div>
+    </div>
+    <div class="gi">
+      <div class="gip">QoQ</div>
+      <div class="giv up">+14.1%</div>
+      <div class="gid">Q4'25 → Q1'26</div>
+    </div>
+    <div class="gi">
+      <div class="gip">YoY</div>
+      <div class="giv up">+13.0%</div>
+      <div class="gid">2025-03 → 2026-03</div>
+    </div>
+  </div>
+
+  <!-- Service snapshot -->
+  <div class="st">🔢 서비스별 최근 현황</div>
+  <div class="g3">
+    <div class="card" style="text-align:center;padding:18px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">🗳️ 전자투표 <span class="b bp" style="font-size:10px">2026-03</span></div>
+      <div style="font-size:30px;font-weight:700;color:var(--s1)">680</div>
+      <div style="font-size:11px;color:var(--ts)">이용 건수 (참조ID)</div>
+      <div style="font-size:16px;font-weight:600;margin-top:8px">1,475,433</div>
+      <div style="font-size:11px;color:var(--ts)">총 참여 건수</div>
+    </div>
+    <div class="card" style="text-align:center;padding:18px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">📋 설문조사 <span class="b bi" style="font-size:10px">2026-04</span></div>
+      <div style="font-size:30px;font-weight:700;color:var(--s2)">35</div>
+      <div style="font-size:11px;color:var(--ts)">이용 건수 (참조ID)</div>
+      <div style="font-size:12px;color:var(--ts);margin-top:8px">참여 집계 진행 중</div>
+    </div>
+    <div class="card" style="text-align:center;padding:18px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">📢 알림서비스 <span class="b bw" style="font-size:10px">2026-04</span></div>
+      <div style="font-size:30px;font-weight:700;color:var(--s3)">224</div>
+      <div style="font-size:11px;color:var(--ts)">발송 이벤트 수</div>
+      <div style="font-size:16px;font-weight:600;margin-top:8px">21,183</div>
+      <div style="font-size:11px;color:var(--ts)">총 발송 건수</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     TAB 2: 서비스 현황
+══════════════════════════════════════ -->
+<div id="pg-service" class="pg">
+
+  <div class="st">🗳️ 전자투표</div>
+  <div class="g2">
+    <div class="card">
+      <div class="ch"><div><div class="ct">이용 건수 (참조ID 고유)</div><div class="cs">고유 투표 안건 기준</div></div></div>
+      <div class="cw" style="height:240px"><canvas id="cVoteIds"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ch"><div><div class="ct">참여 건수</div><div class="cs">전체 참여 행 기준 (중복 포함)</div></div></div>
+      <div class="cw" style="height:240px"><canvas id="cVoteCnt"></canvas></div>
+    </div>
+  </div>
+
+  <div class="div"></div>
+
+  <div class="st">📋 설문조사</div>
+  <div class="g2">
+    <div class="card">
+      <div class="ch"><div><div class="ct">이용 건수 (참조ID 고유)</div><div class="cs">고유 설문 안건 기준</div></div></div>
+      <div class="cw" style="height:220px"><canvas id="cSurveyIds"></canvas></div>
+      <div class="notice">※ 설문조사 서비스는 2025-11월부터 데이터 수집 시작</div>
+    </div>
+    <div class="card">
+      <div class="ch"><div><div class="ct">참여 건수</div><div class="cs">설문 응답 건수 기준</div></div></div>
+      <div class="cw" style="height:220px"><canvas id="cSurveyCnt"></canvas></div>
+      <div class="notice">※ 2026-04 참여 건수는 집계 진행 중</div>
+    </div>
+  </div>
+
+  <div class="div"></div>
+
+  <div class="st">📢 알림서비스</div>
+  <div class="g2">
+    <div class="card">
+      <div class="ch"><div><div class="ct">발송 이벤트 수</div><div class="cs">발송 캠페인 수 (발송일자 기준)</div></div></div>
+      <div class="cw" style="height:240px"><canvas id="cNotifyEv"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ch"><div><div class="ct">총 발송 건수</div><div class="cs">세대 발송 총량 기준</div></div></div>
+      <div class="cw" style="height:240px"><canvas id="cNotifySd"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     TAB 3: 단지 분석
+══════════════════════════════════════ -->
+<div id="pg-complex" class="pg">
+
+  <!-- Activity Summary Boxes -->
+  <div class="st">🎯 단지 활성도 현황 (MAU / 세대수)</div>
+  <div class="act-sum" id="act-sum-row"></div>
+
+  <!-- Monthly Trend Stacked -->
+  <div class="g2">
+    <div class="card" style="margin-bottom:var(--g)">
+      <div class="ch">
+        <div class="ct">📊 활성도 상태 월별 추이</div>
+        <div class="cs">단지 수 기준 (스택)</div>
+      </div>
+      <div class="cw" style="height:260px"><canvas id="cActTrend"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="ch">
+        <div class="ct">🍩 활성도 분포 (최신)</div>
+        <div class="cs">2026-04 기준</div>
+      </div>
+      <div class="cw" style="height:260px"><canvas id="cActDonut"></canvas></div>
+    </div>
+  </div>
+
+  <div class="notice" style="margin-bottom:16px">
+    📌 활성도 기준: <b>매우 활성화</b> ≥100% · <b>활성화</b> 70~100% · <b>사용</b> 40~70% · <b>비활성</b> 10~40% · <b>이탈</b> &lt;10%(MAU>0) · <b>미이용</b> MAU=0
+  </div>
+
+  <div class="div"></div>
+
+  <!-- MAU Trend by Complex -->
+  <div class="st">📱 단지별 MAU 트렌드 (상위 20개)</div>
+  <div class="card">
+    <div class="ch">
+      <div><div class="ct">단지 선택 (최대 5개 비교)</div><div class="cs">태그를 클릭하여 추가/제거</div></div>
+      <button class="tgb" style="border:1.5px solid var(--border);border-radius:8px" onclick="resetMAU()">↺ 초기화</button>
+    </div>
+    <div class="tag-row" id="mau-tags"></div>
+    <div class="cw" style="height:300px"><canvas id="cMAU"></canvas></div>
+    <div class="notice">※ 값이 1 이하인 데이터는 미사용(null 처리) | 헬리오시티 등 일부 단지 특정 월 데이터 누락 있음</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     TAB 4: 성장 지표
+══════════════════════════════════════ -->
+<div id="pg-growth" class="pg">
+
+  <div class="notice" style="margin-bottom:16px">
+    ⚠️ <b>WoW (주간 대비)</b>: 현재 데이터가 월 단위로만 제공되어 WoW 지표 산출 불가 | MoM · QoQ · YoY를 확인하세요
+  </div>
+
+  <div class="card" style="margin-bottom:var(--g)">
+    <div class="ch">
+      <div class="ct">📈 성장률 시계열 (전자투표 참조ID 기준)</div>
+      <div class="tg">
+        <button class="tgb on" id="gbtn-mom" onclick="swGrowth('mom')">MoM</button>
+        <button class="tgb" id="gbtn-qoq" onclick="swGrowth('qoq')">QoQ</button>
+        <button class="tgb" id="gbtn-yoy" onclick="swGrowth('yoy')">YoY</button>
+      </div>
+    </div>
+    <div class="cw" style="height:300px"><canvas id="cGrowth"></canvas></div>
+    <div class="notice" id="g-note">📌 MoM: 전월 대비 성장률 (2025-02 ~ 2026-03)</div>
+  </div>
+
+  <div class="card">
+    <div class="ch"><div class="ct">성장률 요약표</div></div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>기간</th><th>MoM</th><th>QoQ</th><th>YoY</th></tr></thead>
+        <tbody id="g-table"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     TAB 5: 상세 테이블
+══════════════════════════════════════ -->
+<div id="pg-table" class="pg">
+  <div class="st">📋 단지별 상세 현황 (활성 MAU 기준 정렬)</div>
+  <div class="card">
+    <div class="fr">
+      <input type="text" id="srch" placeholder="🔍 단지명 검색" oninput="filterT()" style="min-width:160px">
+      <select id="fSt" onchange="filterT()">
+        <option value="">전체 활성도</option>
+        <option>매우 활성화</option><option>활성화</option><option>사용</option>
+        <option>비활성</option><option>이탈</option><option>미이용</option>
+      </select>
+      <select id="fRg" onchange="filterT()">
+        <option value="">전체 권역</option>
+        <option>서울권</option><option>동남권</option><option>동북권</option>
+        <option>서북권</option><option>경기권</option><option>인천권</option>
+        <option>지방권</option>
+      </select>
+      <select id="fAg" onchange="filterT()">
+        <option value="">전체 연식</option>
+        <option>신축</option><option>준신축</option><option>구축</option>
+      </select>
+      <span id="t-cnt" style="font-size:12px;color:var(--ts);margin-left:auto"></span>
+    </div>
+    <div style="max-height:520px;overflow-y:auto">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>단지명</th><th>권역</th><th>세대수</th>
+            <th>MAU</th><th>활성도비율</th><th>활성도상태</th><th>연식</th><th>유형</th><th>기준월</th>
+          </tr>
+        </thead>
+        <tbody id="t-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════
+     SCRIPTS
+══════════════════════════════════════ -->
+<script>
+Chart.register(ChartDataLabels);
+Chart.defaults.font.family = 'Pretendard';
+Chart.defaults.font.size   = 11;
+Chart.defaults.color       = '#888';
+
+const D  = {"months":["2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04"],"top20_mau":[{"name":"헬리오시티","data":[1,14935,14634,14839,1,1,3,1,14632,1,1,14926,1,14987,15166,13673]},{"name":"e편한세상 부평 그랑힐스","data":[1601,1733,6419,6991,6870,7248,7600,7707,7672,7965,8030,8236,8205,8188,8205,7802]},{"name":"고덕그라시움","data":[7916,7746,7842,7729,7875,7766,7766,7675,7566,7807,7542,7694,7674,7703,7777,6969]},{"name":"수원SK스카이뷰아파트","data":[6781,6737,6779,6626,6619,6651,6814,6735,6592,6789,6675,6702,6677,6710,6626,6071]},{"name":"동래래미안아이파크","data":[4022,4169,3958,3713,3750,5361,6172,6126,6237,6649,6898,6670,6730,6616,6598,5946]},{"name":"고덕아르테온","data":[6454,6434,6499,6306,6419,6482,6524,6532,6480,6682,6476,6567,6521,6648,6525,5966]},{"name":"잠실파크리오","data":[5560,5472,5666,5470,5729,5637,5659,5621,5269,5267,4920,5373,5543,5767,6563,5565]},{"name":"인천SK스카이뷰","data":[30,34,19,14,27,24,18,27,41,1153,5522,6766,6337,6357,6096,5623]},{"name":"수원역푸르지오자이","data":[5702,5737,5877,5848,5985,5900,5935,5989,5910,5919,5812,6059,6016,5967,6053,5484]},{"name":"래미안안양메가트리아","data":[4903,4905,4920,4878,5001,4977,5144,5202,5239,5294,5267,5278,5404,5470,5386,4972]},{"name":"한강센트럴자이1단지","data":[5254,5361,5276,5125,5124,5087,5185,5220,5265,5209,5054,5164,5167,5174,5125,4641]},{"name":"트리지움","data":[3,8,15,6,283,4802,5075,4796,4945,5772,5298,4859,4769,4665,4901,4378]},{"name":"더샵송도마리나베이아파트","data":[4783,4691,4667,4569,4661,4682,4815,4820,4747,4828,4742,4803,4831,4822,4765,4390]},{"name":"인덕원자이SKVIEW","data":[0,0,0,0,0,33,56,58,42,28,26,32,59,80,5102,4041]},{"name":"산성역포레스티아","data":[2,3,3,0,5,6,7,7,3,5,3,911,4838,4869,4750,4253]},{"name":"LG메트로시티아파트","data":[3817,5358,5843,5719,5628,5372,5306,5131,5283,5280,5048,5169,5075,5277,4980,3960]},{"name":"e편한세상송도","data":[3887,3895,3849,3954,4125,4276,4782,4724,4654,4603,4505,4522,4459,4459,4457,4188]},{"name":"그랑시티자이2차아파트","data":[4660,4563,4508,4496,4545,4584,4594,4559,4535,4614,4564,4689,4673,4636,4514,4131]},{"name":"마포래미안푸르지오","data":[8,6,8,9,35,9,7,5,7,5,8,20,2515,4765,4557,4073]},{"name":"운정신도시아이파크","data":[4322,4312,4321,4254,4228,4295,4369,4347,4342,4367,4540,4469,4466,4459,4453,4157]}],"vote_ids_labels":["2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03"],"vote_ids_values":[503,503,602,716,519,485,431,456,553,550,611,596,456,513,680],"vote_cnt_values":[645285,760220,1082835,1261357,738685,754902,877087,995233,872523,822010,1202593,1350243,1002716,821216,1475433],"survey_labels":["2025-11","2025-12","2026-02","2026-03","2026-04"],"survey_ids_values":[2,1,4,11,35],"survey_cnt_values":[8942,839,1982,4739,35],"notify_labels":["2025-04","2025-05","2025-06","2025-07","2025-08","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04"],"notify_events":[14,9,29,41,44,12,62,77,82,116,125,224],"notify_sends":[6071,4518,18170,49965,33010,2018,12627,35473,20043,26780,21819,21183],"revenue_estimate_labels":["2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04"],"revenue_estimate_values":[2581.1,3040.9,4331.3,5063.6,2968.3,3074.1,3658.2,4080.0,3490.1,3294.1,4848.3,5507.4,4071.0,3365.2,5967.2,63.5],"revenue_settled_values":[2581.1,3040.9,4331.3,5063.6,2968.3,3074.1,3658.2,4080.0,3490.1,3294.1,4848.3,5507.4,4071.0,3365.2,4820.3,3439.8],"revenue_settled_types":["estimate","estimate","estimate","estimate","estimate","estimate","estimate","estimate","estimate","estimate","estimate","estimate","estimate","estimate","actual","actual"],"growth_labels":["2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03"],"mom_vote":[null,0.0,19.7,18.9,-27.5,-6.6,-11.1,5.8,21.3,-0.5,11.1,-2.5,-23.5,12.5,32.6],"qoq_vote":[null,null,null,42.3,3.2,-19.4,-39.8,-12.1,14.0,27.6,34.0,7.8,-17.1,-16.0,14.1],"yoy_vote":[null,null,null,null,null,null,null,null,null,null,null,null,-9.3,2.0,13.0]};
+const AD = {"activity_dist_labels":["매우 활성화","활성화","사용","비활성","이탈","미이용"],"activity_dist_values":[579,353,300,478,1308,454],"activity_dist_colors":["#52C41A","#9B8FE8","#5EC8E8","#FFC654","#FF7056","#CCCCCC"],"activity_monthly_months":["2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","2025-07","2025-08","2025-09","2025-10","2025-11","2025-12","2026-01","2026-02","2026-03","2026-04"],"activity_monthly_series":{"매우 활성화":[433,443,469,479,498,523,572,587,589,611,603,631,649,661,682,578],"활성화":[277,272,269,269,270,269,278,284,284,285,293,288,299,307,319,353],"사용":[295,298,310,305,309,312,303,316,307,295,297,289,289,281,280,300],"비활성":[531,537,514,532,513,501,503,488,477,478,476,483,492,488,494,478],"이탈":[979,988,1021,970,1000,1002,1026,1001,1001,994,1033,1041,1034,1016,1057,1000],"미이용":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]},"status_order":["매우 활성화","활성화","사용","비활성","이탈","미이용"],"status_colors":{"매우 활성화":"#52C41A","활성화":"#9B8FE8","사용":"#5EC8E8","비활성":"#FFC654","이탈":"#FF7056","미이용":"#CCCCCC"}};
+const TD = [{"code":"C11710107","name":"헬리오시티","hh":9510,"mau":13673,"ratio":143.8,"status":"매우 활성화","latest_ym":"2026-04","region":"동남권","age":"준신축","type":"기존단지","sol":"커뮤니티","ch":"B2B","svc_status":"진행","act_raw":194.35},{"code":"C28237100","name":"e편한세상 부평 그랑힐스","hh":5050,"mau":7802,"ratio":154.5,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"","type":"기존단지","sol":"App","ch":"IN","svc_status":"취소","act_raw":141.72},{"code":"C11740102","name":"고덕그라시움","hh":4932,"mau":6969,"ratio":141.3,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"준신축","type":"미확인","sol":"커뮤니티","ch":"미확인","svc_status":"종료","act_raw":158.66},{"code":"A44030005","name":"수원SK스카이뷰아파트","hh":3498,"mau":6071,"ratio":173.6,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"","type":"기존단지","sol":"커뮤니티","ch":"IN","svc_status":"진행","act_raw":180.87},{"code":"C11740104","name":"고덕아르테온","hh":4066,"mau":5966,"ratio":146.7,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":148.43},{"code":"A10023975","name":"동래래미안아이파크","hh":3853,"mau":5946,"ratio":154.3,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":164.83},{"code":"A10027496","name":"인천SK스카이뷰","hh":3971,"mau":5623,"ratio":141.6,"status":"매우 활성화","latest_ym":"2026-04","region":"동북권","age":"준신축","type":"기존단지","sol":"App","ch":"OUT","svc_status":"진행","act_raw":194.64},{"code":"A10024429","name":"수원역푸르지오자이","hh":4086,"mau":5484,"ratio":134.2,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":144.71},{"code":"A10027199","name":"한강센트럴자이1단지","hh":3481,"mau":4641,"ratio":133.3,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":147.26},{"code":"A10024779","name":"더샵송도마리나베이아파트","hh":3100,"mau":4390,"ratio":141.6,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"신축","type":"기존단지","sol":"커뮤니티","ch":"IN","svc_status":"진행","act_raw":146.81},{"code":"A10025886","name":"e편한세상송도","hh":2708,"mau":4188,"ratio":154.7,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"준신축","type":"기존단지","sol":"공동현관","ch":"IN","svc_status":"진행","act_raw":141.54},{"code":"A10024716","name":"운정신도시아이파크","hh":3042,"mau":4157,"ratio":136.7,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":130.74},{"code":"C41271104","name":"그랑시티자이2차아파트","hh":2872,"mau":4131,"ratio":143.8,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"","type":"기존단지","sol":"커뮤니티","ch":"IN","svc_status":"종료","act_raw":153.2},{"code":"C41430107","name":"인덕원자이SKVIEW","hh":2633,"mau":4041,"ratio":153.5,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":194.49},{"code":"A10024170","name":"화서역파크푸르지오","hh":2355,"mau":3947,"ratio":167.6,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"신축","type":"미확인","sol":"커뮤니티","ch":"미확인","svc_status":"종료","act_raw":173.5},{"code":"A15701007","name":"강서힐스테이트","hh":2603,"mau":3926,"ratio":150.8,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"준신축","type":"미확인","sol":"커뮤니티","ch":"B2B","svc_status":"진행","act_raw":174.22},{"code":"A10026165","name":"김포풍무센트럴푸르지오","hh":2467,"mau":3739,"ratio":151.6,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"","type":"기존단지","sol":"공동현관","ch":"IN","svc_status":"진행","act_raw":136.24},{"code":"A10026038","name":"송도더샵센트럴시티","hh":2610,"mau":3669,"ratio":140.6,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":148.16},{"code":"C20241202","name":"병점역아이파크캐슬","hh":2666,"mau":3594,"ratio":134.8,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":134.28},{"code":"A10024564","name":"개포래미안포레스트","hh":2296,"mau":3581,"ratio":156.0,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"신축","type":"기존단지","sol":"커뮤니티","ch":"OUT","svc_status":"진행","act_raw":145.99},{"code":"A10022844","name":"롯데캐슬라센트","hh":2195,"mau":3539,"ratio":161.2,"status":"매우 활성화","latest_ym":"2026-04","region":"경상권","age":"","type":"신규단지","sol":"공동현관","ch":"OUT","svc_status":"진행","act_raw":184.24},{"code":"A10023127","name":"검암역로열파크씨티푸르지오2단지","hh":2426,"mau":3366,"ratio":138.7,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"","type":"미확인","sol":"주차관제","ch":"미확인","svc_status":"진행","act_raw":131.49},{"code":"C41370105","name":"오산롯데캐슬스카이파크","hh":2339,"mau":3342,"ratio":142.9,"status":"매우 활성화","latest_ym":"2026-04","region":"동남권","age":"신축","type":"기존단지","sol":"주차관제","ch":"B2B","svc_status":"진행","act_raw":139.76},{"code":"A10025483","name":"광교중흥S클래스아파트","hh":2231,"mau":3327,"ratio":149.1,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":155.04},{"code":"A10024710","name":"송도랜드마크시티센트럴더샵","hh":2230,"mau":3275,"ratio":146.9,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"신축","type":"미확인","sol":"커뮤니티","ch":"미확인","svc_status":"종료","act_raw":168.43},{"code":"C41590252","name":"힐스테이트 봉담 프라이드시티","hh":2333,"mau":3167,"ratio":135.7,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"","type":"기존단지","sol":"주차관제","ch":"IN","svc_status":"진행","act_raw":151.44},{"code":"A10024845","name":"시흥센트럴푸르지오","hh":2003,"mau":3152,"ratio":157.4,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":146.98},{"code":"A10022688","name":"한화포레나포항","hh":2192,"mau":2924,"ratio":133.4,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":144.98},{"code":"A10022845","name":"산성역자이푸르지오1단지","hh":1852,"mau":2907,"ratio":157.0,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"신축","type":"미확인","sol":"주차관제","ch":"미확인","svc_status":"진행","act_raw":155.62},{"code":"C20240913","name":"운정신도시제일풍경채그랑퍼스트","hh":1926,"mau":2889,"ratio":150.0,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":158.2},{"code":"A10025188","name":"인덕원푸르지오엘센트로","hh":1774,"mau":2885,"ratio":162.6,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"준신축","type":"기존단지","sol":"커뮤니티","ch":"IN","svc_status":"진행","act_raw":179.65},{"code":"A10023519","name":"양주옥정신도시디에트르프레스티지","hh":1859,"mau":2851,"ratio":153.4,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"신축","type":"미확인","sol":"공동현관","ch":"미확인","svc_status":"진행","act_raw":148.95},{"code":"A13880806","name":"가락쌍용1차","hh":2064,"mau":2775,"ratio":134.4,"status":"매우 활성화","latest_ym":"2026-04","region":"서북권","age":"구축","type":"기존단지","sol":"App","ch":"IN","svc_status":"진행","act_raw":173.59},{"code":"C11440109","name":"마포프레스티지자이","hh":1694,"mau":2677,"ratio":158.0,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":164.11},{"code":"A10026230","name":"호매실한양수자인파크원","hh":1394,"mau":2659,"ratio":190.7,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"준신축","type":"기존단지","sol":"공동현관","ch":"B2B","svc_status":"진행","act_raw":180.2},{"code":"C20241103","name":"트리마제순천1단지","hh":1314,"mau":2637,"ratio":200.7,"status":"매우 활성화","latest_ym":"2026-04","region":"동남권","age":"신축","type":"기존단지","sol":"공동현관","ch":"IN","svc_status":"진행","act_raw":203.73},{"code":"A10023972","name":"삼계한라비발디센텀시티","hh":1936,"mau":2620,"ratio":135.3,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":129.29},{"code":"A10025608","name":"e편한옥정더퍼스트","hh":1566,"mau":2569,"ratio":164.0,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":184.74},{"code":"C20250109","name":"신검단중앙역풍경채어바니티","hh":1425,"mau":2543,"ratio":178.5,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"신축","type":"신규단지","sol":"App","ch":"OUT","svc_status":"진행","act_raw":235.72},{"code":"A10023646","name":"계림아이파크SK뷰","hh":1715,"mau":2496,"ratio":145.5,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":218.48},{"code":"A10023361","name":"호반써밋송도아파트","hh":1820,"mau":2474,"ratio":135.9,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":120.99},{"code":"C26290109","name":"더비치푸르지오써밋","hh":1384,"mau":2462,"ratio":177.9,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"","type":"기존단지","sol":"공동현관","ch":"B2B","svc_status":"진행","act_raw":180.85},{"code":"C41480109","name":"운정신도시푸르지오파르세나","hh":1745,"mau":2454,"ratio":140.6,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"신축","type":"기존단지","sol":"App","ch":"IN","svc_status":"진행","act_raw":130.95},{"code":"C11740103","name":"고덕센트럴아이파크","hh":1745,"mau":2405,"ratio":137.8,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"","type":"기존단지","sol":"커뮤니티","ch":"OUT","svc_status":"진행","act_raw":146.02},{"code":"C20241006","name":"봉담자이프라이드시티","hh":1701,"mau":2384,"ratio":140.2,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":179.66},{"code":"A10022826","name":"쌍용더플래티넘프리미어","hh":1696,"mau":2325,"ratio":137.1,"status":"매우 활성화","latest_ym":"2026-04","region":"동북권","age":"신축","type":"기존단지","sol":"App","ch":"B2B","svc_status":"진행","act_raw":167.1},{"code":"C11560132","name":"보라매SK뷰","hh":1546,"mau":2303,"ratio":149.0,"status":"매우 활성화","latest_ym":"2026-04","region":"동북권","age":"신축","type":"기존단지","sol":"공동현관","ch":"B2B","svc_status":"진행","act_raw":138.94},{"code":"A28237101","name":"부평SK뷰해모로","hh":1559,"mau":2275,"ratio":145.9,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"신축","type":"기존단지","sol":"App","ch":"OUT","svc_status":"진행","act_raw":183.45},{"code":"A10026408","name":"청라제일풍경채2차에듀앤파크","hh":1581,"mau":2267,"ratio":143.4,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"준신축","type":"미확인","sol":"주차관제","ch":"미확인","svc_status":"종료","act_raw":133.08},{"code":"A40673901","name":"송도더샵엑스포아파트","hh":1337,"mau":2249,"ratio":168.2,"status":"매우 활성화","latest_ym":"2026-04","region":"서북권","age":"구축","type":"신규단지","sol":"App","ch":"OUT","svc_status":"진행","act_raw":230.52},{"code":"A10024163","name":"검단신도시푸르지오더베뉴","hh":1540,"mau":2234,"ratio":145.1,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":141.82},{"code":"A13611008","name":"길음뉴타운8단지","hh":1497,"mau":2206,"ratio":147.4,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"","type":"기존단지","sol":"공동현관","ch":"IN","svc_status":"진행","act_raw":148.56},{"code":"C29170130","name":"힐스테이트 신용 더리버","hh":1647,"mau":2191,"ratio":133.0,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":166.24},{"code":"Z00008756","name":"주안더월드스테이트","hh":961,"mau":2168,"ratio":225.6,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"구축","type":"","sol":"","ch":"","svc_status":"","act_raw":368.16},{"code":"C43111127","name":"방서동중흥S클래스","hh":1595,"mau":2168,"ratio":135.9,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":128.28},{"code":"A10024274","name":"더샵판교퍼스트파크","hh":1223,"mau":2121,"ratio":173.4,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"","type":"미확인","sol":"공동현관","ch":"미확인","svc_status":"진행","act_raw":151.84},{"code":"Z00015294","name":"청라한양수자인레이크블루","hh":1507,"mau":2069,"ratio":137.3,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":148.64},{"code":"A10021053","name":"힐스테이트 몬테로이3단지","hh":1370,"mau":2064,"ratio":150.7,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":183.87},{"code":"C28185113","name":"힐스테이트레이크송도4차","hh":1319,"mau":2059,"ratio":156.1,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":181.43},{"code":"A10027180","name":"미사강변스타힐스","hh":1389,"mau":2054,"ratio":147.9,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":134.92},{"code":"A10023624","name":"검단신도시디에트르더힐아파트","hh":1417,"mau":2017,"ratio":142.3,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"신축","type":"미확인","sol":"커뮤니티","ch":"미확인","svc_status":"진행","act_raw":143.12},{"code":"C28185011","name":"힐스테이트 송도 더스카이","hh":1205,"mau":2005,"ratio":166.4,"status":"매우 활성화","latest_ym":"2026-04","region":"동남권","age":"","type":"기존단지","sol":"App","ch":"IN","svc_status":"진행","act_raw":199.92},{"code":"A10023140","name":"루원 린스트라우스 더 린시티","hh":1412,"mau":2002,"ratio":141.8,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"","type":"미확인","sol":"커뮤니티","ch":"B2B","svc_status":"진행","act_raw":136.26},{"code":"A10023306","name":"e편한세상 영종국제도시 센텀베뉴","hh":1409,"mau":1981,"ratio":140.6,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"신축","type":"미확인","sol":"주차관제","ch":"미확인","svc_status":"진행","act_raw":155.78},{"code":"C41370106","name":"오산세교중흥S클래스에듀파크","hh":1245,"mau":1978,"ratio":158.9,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"신축","type":"신규단지","sol":"App","ch":"OUT","svc_status":"진행","act_raw":189.64},{"code":"C20140906","name":"힐스테이트용인고진역1단지","hh":1345,"mau":1964,"ratio":146.0,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":151.23},{"code":"A10022705","name":"시티오씨엘 1단지","hh":1131,"mau":1957,"ratio":173.0,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":139.43},{"code":"A10024234","name":"검단금호어울림센트럴","hh":1452,"mau":1929,"ratio":132.9,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":123.55},{"code":"C41113137","name":"수원하늘채 더 퍼스트 1단지","hh":1403,"mau":1916,"ratio":136.6,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"","type":"기존단지","sol":"App","ch":"OUT","svc_status":"진행","act_raw":173.56},{"code":"A10022989","name":"장현더포레마제","hh":1232,"mau":1900,"ratio":154.2,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":136.77},{"code":"C96818032","name":"태릉해링턴플레이스","hh":1308,"mau":1869,"ratio":142.9,"status":"매우 활성화","latest_ym":"2026-04","region":"동북권","age":"신축","type":"기존단지","sol":"커뮤니티","ch":"IN","svc_status":"진행","act_raw":133.26},{"code":"A10021127","name":"힐스테이트 몬테로이 2단지","hh":1318,"mau":1858,"ratio":141.0,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"","type":"신규단지","sol":"App","ch":"IN","svc_status":"진행","act_raw":160.39},{"code":"A10023287","name":"호반써밋그랜드파크 1BL","hh":1059,"mau":1856,"ratio":175.3,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":164.97},{"code":"A44174611","name":"호매실역 서희스타힐스","hh":1318,"mau":1813,"ratio":137.6,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":128.91},{"code":"C20241025","name":"판교해링턴플레이스","hh":1123,"mau":1803,"ratio":160.6,"status":"매우 활성화","latest_ym":"2026-04","region":"동남권","age":"신축","type":"신규단지","sol":"App","ch":"OUT","svc_status":"진행","act_raw":177.92},{"code":"A10025266","name":"더샵지제역센트럴파크3BL","hh":1280,"mau":1803,"ratio":140.9,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":143.05},{"code":"C48121129","name":"힐스테이트 아티움시티","hh":1132,"mau":1797,"ratio":158.7,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"","type":"기존단지","sol":"App","ch":"IN","svc_status":"진행","act_raw":158.13},{"code":"C28185100","name":"힐스테이트 레이크송도3차","hh":1100,"mau":1763,"ratio":160.3,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":163.45},{"code":"A10022451","name":"천안성성비스타동원","hh":1195,"mau":1733,"ratio":145.0,"status":"매우 활성화","latest_ym":"2026-04","region":"동북권","age":"신축","type":"신규단지","sol":"App","ch":"IN","svc_status":"진행","act_raw":150.04},{"code":"A10024152","name":"포레나 송파","hh":1282,"mau":1733,"ratio":135.2,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"신축","type":"미확인","sol":"주차관제","ch":"미확인","svc_status":"진행","act_raw":127.22},{"code":"Z00013244","name":"미사강변푸르지오","hh":1188,"mau":1726,"ratio":145.3,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":158.75},{"code":"C11710108","name":"힐스테이트e편한세상문정","hh":1265,"mau":1720,"ratio":136.0,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":190.28},{"code":"A10023947","name":"검단신도시우미린더시그니처","hh":1268,"mau":1705,"ratio":134.5,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":153.31},{"code":"A10025715","name":"영통아이파크캐슬2단지","hh":1162,"mau":1662,"ratio":143.0,"status":"매우 활성화","latest_ym":"2026-04","region":"동남권","age":"준신축","type":"미확인","sol":"App","ch":"미확인","svc_status":"진행","act_raw":142.43},{"code":"A10024040","name":"광주역자연앤자이","hh":1031,"mau":1634,"ratio":158.5,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":146.56},{"code":"Z00014172","name":"호반베르디움더센트럴","hh":1100,"mau":1619,"ratio":147.2,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":147.27},{"code":"A13778204","name":"서초힐스","hh":1082,"mau":1558,"ratio":144.0,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":134.94},{"code":"A10025029","name":"중동센트럴파크푸르지오","hh":999,"mau":1533,"ratio":153.5,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"","type":"기존단지","sol":"공동현관","ch":"IN","svc_status":"진행","act_raw":151.45},{"code":"A10023209","name":"김포마송대방엘리움센트럴파크","hh":841,"mau":1525,"ratio":181.3,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":151.84},{"code":"A10023061","name":"봉담2중흥S클래스에듀파크","hh":1050,"mau":1525,"ratio":145.2,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"신축","type":"미확인","sol":"주차관제","ch":"미확인","svc_status":"진행","act_raw":119.33},{"code":"C41465104","name":"동천센트럴자이","hh":1057,"mau":1520,"ratio":143.8,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"준신축","type":"미확인","sol":"주차관제","ch":"미확인","svc_status":"진행","act_raw":148.63},{"code":"C41390130","name":"시흥능곡역모아미래도에듀포레","hh":928,"mau":1486,"ratio":160.1,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"신축","type":"미확인","sol":"App","ch":"미확인","svc_status":"진행","act_raw":153.77},{"code":"C20201201","name":"더샵동천이스트포레","hh":980,"mau":1479,"ratio":150.9,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":147.24},{"code":"C41190108","name":"힐스테이트 중동","hh":999,"mau":1472,"ratio":147.3,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"","type":"미확인","sol":"주차관제","ch":"미확인","svc_status":"진행","act_raw":141.84},{"code":"A10023973","name":"한들물빛도시지웰시티센트럴 푸르지오3단지","hh":852,"mau":1467,"ratio":172.2,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":185.09},{"code":"C41360117","name":"다산자이아이비플레이스","hh":967,"mau":1455,"ratio":150.5,"status":"매우 활성화","latest_ym":"2026-04","region":"동북권","age":"신축","type":"미확인","sol":"주차관제","ch":"B2B","svc_status":"진행","act_raw":180.14},{"code":"A61609002","name":"구포동원로얄듀크비스타","hh":1079,"mau":1443,"ratio":133.7,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":154.96},{"code":"A10025627","name":"백운호수해링턴플레이스1단지","hh":958,"mau":1424,"ratio":148.6,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":131.73},{"code":"A10023607","name":"더샵남천프레스티지","hh":975,"mau":1409,"ratio":144.5,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":162.67},{"code":"A10023483","name":"양주회천신도시디에트르센트럴시티","hh":860,"mau":1380,"ratio":160.5,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":150.81},{"code":"A10028157","name":"미사강변한신휴플러스","hh":763,"mau":1370,"ratio":179.6,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"준신축","type":"미확인","sol":"App","ch":"미확인","svc_status":"진행","act_raw":177.33},{"code":"C29170113","name":"각화센트럴파크서희스타힐스","hh":888,"mau":1358,"ratio":152.9,"status":"매우 활성화","latest_ym":"2026-04","region":"동남권","age":"신축","type":"기존단지","sol":"App","ch":"OUT","svc_status":"진행","act_raw":200.23},{"code":"C20241201","name":"트리마제순천2단지","hh":705,"mau":1345,"ratio":190.8,"status":"매우 활성화","latest_ym":"2026-04","region":"동남권","age":"신축","type":"기존단지","sol":"공동현관","ch":"OUT","svc_status":"진행","act_raw":203.83},{"code":"A10023041","name":"e편한세상고천파크루체","hh":870,"mau":1345,"ratio":154.6,"status":"매우 활성화","latest_ym":"2026-04","region":"동북권","age":"신축","type":"미확인","sol":"주차관제","ch":"미확인","svc_status":"종료","act_raw":138.97},{"code":"A10022939","name":"엘리프의왕역","hh":981,"mau":1320,"ratio":134.6,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"신축","type":"미확인","sol":"App","ch":"미확인","svc_status":"진행","act_raw":126.81},{"code":"A10026256","name":"힐스테이트 광교","hh":928,"mau":1309,"ratio":141.1,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":173.28},{"code":"A10023326","name":"판교퍼스트힐푸르지오","hh":974,"mau":1308,"ratio":134.3,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":147.33},{"code":"Z00031100","name":"대방노블랜드연리지2차3차아파트","hh":680,"mau":1292,"ratio":190.0,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":297.35},{"code":"C11200114","name":"서울숲아이파크리버포레1차","hh":825,"mau":1286,"ratio":155.9,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":180.61},{"code":"A10024365","name":"상도역롯데캐슬파크엘","hh":950,"mau":1270,"ratio":133.7,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"신축","type":"미확인","sol":"커뮤니티","ch":"B2B","svc_status":"진행","act_raw":144.32},{"code":"A10024211","name":"미사역파라곤","hh":925,"mau":1266,"ratio":136.9,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":128.54},{"code":"A10023780","name":"검단파라곤보타닉파크","hh":887,"mau":1264,"ratio":142.5,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":131.68},{"code":"A10024901","name":"고산대광로제비앙더퍼스트","hh":722,"mau":1255,"ratio":173.8,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":169.39},{"code":"A10023951","name":"e편한세상광진그랜드파크","hh":730,"mau":1246,"ratio":170.7,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"신축","type":"기존단지","sol":"App","ch":"IN","svc_status":"진행","act_raw":167.53},{"code":"A10025823","name":"래미안개포루체하임","hh":850,"mau":1240,"ratio":145.9,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":164.0},{"code":"A10023120","name":"오산호반써밋라포레","hh":867,"mau":1227,"ratio":141.5,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"신축","type":"미확인","sol":"주차관제","ch":"미확인","svc_status":"진행","act_raw":118.45},{"code":"C41610118","name":"오포자이디오브","hh":448,"mau":1226,"ratio":273.7,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":273.44},{"code":"C28185110","name":"힐스테이트레이크송도2차","hh":889,"mau":1222,"ratio":137.5,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"신축","type":"기존단지","sol":"커뮤니티","ch":"IN","svc_status":"종료","act_raw":139.6},{"code":"A10023409","name":"이진젠시티개금","hh":736,"mau":1206,"ratio":163.9,"status":"매우 활성화","latest_ym":"2026-04","region":"경상권","age":"신축","type":"기존단지","sol":"커뮤니티","ch":"IN","svc_status":"진행","act_raw":149.32},{"code":"C20250206","name":"e편한세상탕정퍼스트드림","hh":893,"mau":1205,"ratio":134.9,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":153.08},{"code":"C20240912","name":"과천린파밀리에","hh":659,"mau":1204,"ratio":182.7,"status":"매우 활성화","latest_ym":"2026-04","region":"동남권","age":"","type":"기존단지","sol":"공동현관","ch":"IN","svc_status":"진행","act_raw":142.64},{"code":"A10023053","name":"봉담2지구중흥S클래스더센트럴","hh":824,"mau":1201,"ratio":145.8,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":118.2},{"code":"A10025798","name":"호수공원역 센트리체","hh":868,"mau":1195,"ratio":137.7,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":148.16},{"code":"A10023289","name":"위례자이더시티","hh":800,"mau":1192,"ratio":149.0,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":146.25},{"code":"A44670701","name":"신동백롯데캐슬에코2단지","hh":868,"mau":1176,"ratio":135.5,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":132.26},{"code":"A10025469","name":"미사역호반써밋","hh":846,"mau":1175,"ratio":138.9,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"준신축","type":"기존단지","sol":"커뮤니티","ch":"IN","svc_status":"진행","act_raw":137.35},{"code":"A10027439","name":"래미안신반포팰리스","hh":843,"mau":1173,"ratio":139.1,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"준신축","type":"기존단지","sol":"주차관제","ch":"B2B","svc_status":"진행","act_raw":144.01},{"code":"C11650109","name":"반포센트럴자이","hh":757,"mau":1172,"ratio":154.8,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":148.22},{"code":"A10026051","name":"반포래미안아이파크","hh":829,"mau":1159,"ratio":139.8,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":151.75},{"code":"A10023105","name":"탕정 호반써밋그랜드마크 1차","hh":756,"mau":1154,"ratio":152.6,"status":"매우 활성화","latest_ym":"2026-04","region":"동북권","age":"신축","type":"미확인","sol":"주차관제","ch":"미확인","svc_status":"진행","act_raw":137.83},{"code":"A10027732","name":"동탄역대원칸타빌포레지움","hh":714,"mau":1153,"ratio":161.5,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"준신축","type":"기존단지","sol":"커뮤니티","ch":"IN","svc_status":"종료","act_raw":175.49},{"code":"A44376014","name":"광교센트럴뷰","hh":701,"mau":1147,"ratio":163.6,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":151.36},{"code":"A10023723","name":"호반써밋 고덕국제신도시 에듀파크","hh":766,"mau":1109,"ratio":144.8,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":143.21},{"code":"A10023528","name":"시흥장현유승한내들퍼스트파크","hh":676,"mau":1108,"ratio":163.9,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"신축","type":"미확인","sol":"주차관제","ch":"B2B","svc_status":"진행","act_raw":174.26},{"code":"C41590138","name":"한화 포레나 동탄호수","hh":800,"mau":1101,"ratio":137.6,"status":"매우 활성화","latest_ym":"2026-04","region":"동북권","age":"신축","type":"미확인","sol":"주차관제","ch":"미확인","svc_status":"진행","act_raw":113.5},{"code":"Z00025939","name":"푸른마을","hh":804,"mau":1095,"ratio":136.2,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"구축","type":"","sol":"","ch":"","svc_status":"","act_raw":407.71},{"code":"C44200330","name":"한들물빛도시지웰시티센트럴 푸르지오2단지","hh":669,"mau":1055,"ratio":157.7,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"신축","type":"기존단지","sol":"커뮤니티","ch":"B2B","svc_status":"진행","act_raw":178.77},{"code":"A10025622","name":"동탄2신도시 동원로얄듀크2차","hh":761,"mau":1052,"ratio":138.2,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"","type":"기존단지","sol":"주차관제","ch":"IN","svc_status":"진행","act_raw":128.12},{"code":"A10025244","name":"군포송정금강펜테리움센트럴파크3차","hh":750,"mau":1049,"ratio":139.9,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":163.2},{"code":"A10025020","name":"동탄레이크자연앤푸르지오","hh":704,"mau":1047,"ratio":148.7,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"신축","type":"미확인","sol":"공동현관","ch":"미확인","svc_status":"진행","act_raw":158.38},{"code":"A10027714","name":"래미안웰스트림","hh":773,"mau":1047,"ratio":135.4,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":126.0},{"code":"A10023119","name":"탕정 호반써밋그랜드마크3차","hh":662,"mau":1028,"ratio":155.3,"status":"매우 활성화","latest_ym":"2026-04","region":"동북권","age":"신축","type":"미확인","sol":"주차관제","ch":"미확인","svc_status":"진행","act_raw":134.89},{"code":"A10025463","name":"동래효성해링턴플레이스","hh":762,"mau":1020,"ratio":133.9,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":133.99},{"code":"A10022951","name":"봉담자이라피네","hh":750,"mau":1015,"ratio":135.3,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"신축","type":"미확인","sol":"App","ch":"미확인","svc_status":"진행","act_raw":160.13},{"code":"A10020867","name":"영종국제도시화성파크드림오션브릿지","hh":675,"mau":1014,"ratio":150.2,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"","type":"신규단지","sol":"App","ch":"IN","svc_status":"진행","act_raw":174.67},{"code":"C41550251","name":"안성공도우방아이유쉘아파트","hh":715,"mau":998,"ratio":139.6,"status":"매우 활성화","latest_ym":"2026-04","region":"동남권","age":"신축","type":"기존단지","sol":"주차관제","ch":"IN","svc_status":"진행","act_raw":115.66},{"code":"A10023922","name":"송파레이크파크호반써밋2차","hh":700,"mau":996,"ratio":142.3,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":167.29},{"code":"C41281131","name":"DMC 디에트르 한강","hh":622,"mau":993,"ratio":159.6,"status":"매우 활성화","latest_ym":"2026-04","region":"동남권","age":"","type":"기존단지","sol":"App","ch":"IN","svc_status":"진행","act_raw":150.64},{"code":"A13677101","name":"정릉2차e편한세상","hh":527,"mau":981,"ratio":186.1,"status":"매우 활성화","latest_ym":"2026-04","region":"동북권","age":"","type":"기존단지","sol":"공동현관","ch":"B2B","svc_status":"진행","act_raw":182.54},{"code":"A10024002","name":"과천푸르지오라비엔오","hh":679,"mau":966,"ratio":142.3,"status":"매우 활성화","latest_ym":"2026-04","region":"동남권","age":"신축","type":"기존단지","sol":"주차관제","ch":"B2B","svc_status":"진행","act_raw":149.48},{"code":"A10023135","name":"수원당수 라 포리엘아파트","hh":610,"mau":961,"ratio":157.5,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"","type":"미확인","sol":"커뮤니티","ch":"B2B","svc_status":"진행","act_raw":135.9},{"code":"A10022760","name":"천안 직산역 서희스타힐스","hh":653,"mau":949,"ratio":145.3,"status":"매우 활성화","latest_ym":"2026-04","region":"동남권","age":"","type":"기존단지","sol":"공동현관","ch":"IN","svc_status":"진행","act_raw":145.33},{"code":"A48093307","name":"송산푸르지오","hh":706,"mau":938,"ratio":132.9,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"구축","type":"","sol":"","ch":"","svc_status":"","act_raw":130.45},{"code":"A10023427","name":"영통롯데캐슬엘클래스1단지","hh":642,"mau":936,"ratio":145.8,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":132.09},{"code":"A10024576","name":"고덕어울림스퀘어","hh":660,"mau":931,"ratio":141.1,"status":"매우 활성화","latest_ym":"2026-04","region":"동북권","age":"신축","type":"미확인","sol":"공동현관","ch":"미확인","svc_status":"진행","act_raw":113.94},{"code":"A10023429","name":"영통롯데캐슬엘클래스2단지","hh":609,"mau":919,"ratio":150.9,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"신축","type":"기존단지","sol":"주차관제","ch":"IN","svc_status":"진행","act_raw":127.59},{"code":"A10026076","name":"광교더샵","hh":686,"mau":913,"ratio":133.1,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":175.66},{"code":"Z00014277","name":"광명역푸르지오","hh":640,"mau":890,"ratio":139.1,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":170.47},{"code":"Z00014869","name":"불당파크푸르지오2단지","hh":270,"mau":886,"ratio":328.1,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":421.85},{"code":"A10022831","name":"운서역금강펜테리움","hh":600,"mau":880,"ratio":146.7,"status":"매우 활성화","latest_ym":"2026-04","region":"동북권","age":"신축","type":"신규단지","sol":"App","ch":"IN","svc_status":"진행","act_raw":180.67},{"code":"A10023311","name":"화성우미린센트포레1단지","hh":650,"mau":873,"ratio":134.3,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"","type":"기존단지","sol":"주차관제","ch":"IN","svc_status":"진행","act_raw":113.23},{"code":"A10023250","name":"화성우미린센트포레2단지","hh":650,"mau":871,"ratio":134.0,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":110.77},{"code":"C48250127","name":"장유자이더파크","hh":587,"mau":859,"ratio":146.3,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":173.94},{"code":"A44370702","name":"그대가 프리미어","hh":602,"mau":856,"ratio":142.2,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":128.24},{"code":"A10023872","name":"대연양우내안애퍼스트","hh":560,"mau":845,"ratio":150.9,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":156.25},{"code":"A10023100","name":"지축역수피움","hh":583,"mau":827,"ratio":141.9,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":129.33},{"code":"A10024048","name":"판교풍경채어바니티5단지","hh":589,"mau":827,"ratio":140.4,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":137.52},{"code":"C41450119","name":"위례포레자이","hh":558,"mau":823,"ratio":147.5,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":147.13},{"code":"A10024264","name":"더샵판교포레스트12단지","hh":542,"mau":813,"ratio":150.0,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":162.92},{"code":"A66084105","name":"경남혁신도시LH5단지아파트","hh":600,"mau":810,"ratio":135.0,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"준신축","type":"기존단지","sol":"공동현관","ch":"IN","svc_status":"취소","act_raw":123.0},{"code":"C27230118","name":"화성파크드림 구수산공원","hh":520,"mau":787,"ratio":151.3,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":211.15},{"code":"A10023086","name":"탕정호반써밋그랜드마크5차","hh":489,"mau":759,"ratio":155.2,"status":"매우 활성화","latest_ym":"2026-04","region":"동북권","age":"신축","type":"미확인","sol":"주차관제","ch":"미확인","svc_status":"진행","act_raw":151.53},{"code":"C41290102","name":"리오포레데시앙","hh":547,"mau":749,"ratio":136.9,"status":"매우 활성화","latest_ym":"2026-04","region":"동남권","age":"","type":"기존단지","sol":"주차관제","ch":"IN","svc_status":"진행","act_raw":145.34},{"code":"A10024951","name":"제일풍경채더숲","hh":429,"mau":743,"ratio":173.2,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"신축","type":"미확인","sol":"공동현관","ch":"미확인","svc_status":"진행","act_raw":143.59},{"code":"C41480108","name":"파주운정신도시 디에트르 에듀타운","hh":489,"mau":718,"ratio":146.8,"status":"매우 활성화","latest_ym":"2026-04","region":"동남권","age":"신축","type":"기존단지","sol":"App","ch":"OUT","svc_status":"진행","act_raw":203.07},{"code":"A10023171","name":"과천그랑레브데시앙","hh":472,"mau":711,"ratio":150.6,"status":"매우 활성화","latest_ym":"2026-04","region":"서남권","age":"신축","type":"기존단지","sol":"주차관제","ch":"B2B","svc_status":"진행","act_raw":123.94},{"code":"A10023672","name":"감일한라비발디2차","hh":510,"mau":681,"ratio":133.5,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"신축","type":"기존단지","sol":"커뮤니티","ch":"IN","svc_status":"진행","act_raw":136.86},{"code":"A10023180","name":"과천푸르지오오르투스","hh":435,"mau":675,"ratio":155.2,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"신축","type":"미확인","sol":"커뮤니티","ch":"미확인","svc_status":"종료","act_raw":172.18},{"code":"A10024068","name":"판교풍경채어바니티7단지","hh":444,"mau":659,"ratio":148.4,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":140.77},{"code":"A10023589","name":"엘크루루엘리안","hh":456,"mau":644,"ratio":141.2,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":120.61},{"code":"Z00013659","name":"광주역e편한세상센트럴","hh":289,"mau":641,"ratio":221.8,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":378.2},{"code":"A10024932","name":"e편한세상 강동에코포레 아파트","hh":366,"mau":594,"ratio":162.3,"status":"매우 활성화","latest_ym":"2026-04","region":"서북권","age":"신축","type":"기존단지","sol":"공동현관","ch":"IN","svc_status":"진행","act_raw":153.01},{"code":"Z00012832","name":"금정역호계푸르지오","hh":410,"mau":573,"ratio":139.8,"status":"매우 활성화","latest_ym":"2026-04","region":"동남권","age":"준신축","type":"신규단지","sol":"App","ch":"IN","svc_status":"진행","act_raw":194.63},{"code":"A10025055","name":"의왕푸르지오포레움2블럭","hh":416,"mau":556,"ratio":133.7,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":117.31},{"code":"A13379001","name":"금호자이2차","hh":403,"mau":549,"ratio":136.2,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":201.74},{"code":"A44376011","name":"광교자연앤자이3단지","hh":378,"mau":541,"ratio":143.1,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":152.91},{"code":"C41310103","name":"인창칸타빌더헤리티지","hh":375,"mau":530,"ratio":141.3,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":162.67},{"code":"A13528007","name":"래미안대치하이스턴","hh":354,"mau":476,"ratio":134.5,"status":"매우 활성화","latest_ym":"2026-04","region":"동남권","age":"구축","type":"기존단지","sol":"주차관제","ch":"IN","svc_status":"진행","act_raw":131.92},{"code":"A10023107","name":"탕정호반써밋그랜드마크6차","hh":303,"mau":433,"ratio":142.9,"status":"매우 활성화","latest_ym":"2026-04","region":"동북권","age":"신축","type":"미확인","sol":"주차관제","ch":"미확인","svc_status":"진행","act_raw":154.13},{"code":"A10024076","name":"동탄역유림노르웨이숲","hh":312,"mau":433,"ratio":138.8,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":122.44},{"code":"A10026282","name":"천안불당파크푸르지오1단지","hh":240,"mau":425,"ratio":177.1,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"준신축","type":"","sol":"","ch":"","svc_status":"","act_raw":274.17},{"code":"C41135115","name":"힐스테이트 판교 모비우스","hh":280,"mau":418,"ratio":149.3,"status":"매우 활성화","latest_ym":"2026-04","region":"기타","age":"","type":"기존단지","sol":"커뮤니티","ch":"IN","svc_status":"진행","act_raw":142.5},{"code":"C20250116","name":"오산SKVIEW1차","hh":264,"mau":376,"ratio":142.4,"status":"매우 활성화","latest_ym":"2026-04","region":"동북권","age":"신축","type":"신규단지","sol":"App","ch":"IN","svc_status":"진행","act_raw":106.82},{"code":"A10022906","name":"죽전역코아루더리브아파트","hh":274,"mau":373,"ratio":136.1,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":170.07},{"code":"A13527003","name":"우성캐릭터199아파트","hh":199,"mau":272,"ratio":136.7,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"구축","type":"","sol":"","ch":"","svc_status":"","act_raw":151.76},{"code":"C11140136","name":"힐스테이트 남산","hh":141,"mau":265,"ratio":187.9,"status":"매우 활성화","latest_ym":"2026-04","region":"동북권","age":"신축","type":"미확인","sol":"App","ch":"미확인","svc_status":"진행","act_raw":214.18},{"code":"A10022830","name":"안락스위첸","hh":40,"mau":235,"ratio":587.5,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":762.5},{"code":"C41590142","name":"송산그린시티리안비채테라스하우스2단지","hh":128,"mau":193,"ratio":150.8,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"신축","type":"","sol":"","ch":"","svc_status":"","act_raw":164.84},{"code":"V22222225","name":"두꺼비세상 데모","hh":11,"mau":37,"ratio":336.4,"status":"매우 활성화","latest_ym":"2026-04","region":"","age":"","type":"","sol":"","ch":"","svc_status":"","act_raw":172.73}];
+
+const CHARTS = {};
+function mkC(id, cfg) {
+  if (CHARTS[id]) CHARTS[id].destroy();
+  CHARTS[id] = new Chart(document.getElementById(id), cfg);
+  return CHARTS[id];
+}
+
+const STATUS_COLORS = AD.status_colors;
+
+// ── Tab switch ──
+function sw(name, el) {
+  document.querySelectorAll('.pg').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.tb').forEach(b => b.classList.remove('on'));
+  document.getElementById('pg-' + name).classList.add('on');
+  el.classList.add('on');
+  const inits = {overview: initOv, service: initSv, complex: initCx, growth: initGr};
+  if (inits[name] && !CHARTS['_' + name]) { inits[name](); CHARTS['_' + name] = true; }
+  if (name === 'table') initTb();
+}
+
+// ── Helpers ──
+const fmtN = v => v == null ? '' : v >= 10000 ? (v/10000).toFixed(1)+'만' : v >= 1000 ? v.toLocaleString() : String(v);
+const fmtP = v => v == null ? '' : (v > 0 ? '+' : '') + v.toFixed(1) + '%';
+
+function barCfg(labels, values, color, yFmt) {
+  return {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: values,
+        backgroundColor: color + 'B3',
+        borderColor: color,
+        borderWidth: 1.5,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        datalabels: {
+          display: true, anchor: 'end', align: 'end',
+          color: '#555', font: { size: 9, weight: '600' },
+          formatter: v => v == null ? '' : (yFmt ? yFmt(v) : fmtN(v))
+        }
+      },
+      scales: {
+        x: { grid:{display:false}, ticks:{font:{size:10}} },
+        y: { grid:{color:'#F0F0F0'}, ticks:{maxTicksLimit:5, callback: yFmt || (v => fmtN(v))} }
+      }
+    }
+  };
+}
+
+// ══════════════════════════════════════
+// TAB 1: 개요
+// ══════════════════════════════════════
+let revMode = 'settled';
+
+function swRev(mode) {
+  revMode = mode;
+  document.getElementById('rbtn-s').classList.toggle('on', mode==='settled');
+  document.getElementById('rbtn-e').classList.toggle('on', mode==='estimate');
+  document.getElementById('rev-sub').textContent = mode==='settled'
+    ? '정산 기반: 2026-03부터 실제 정산 데이터'
+    : '건수 기반 추정치 (정산 미적용, 참고용)';
+  document.getElementById('rev-note').innerHTML = mode==='settled'
+    ? '✅ <b>정산 현황</b>: 2026-03 이후 실제 정산 | 이전은 건수 기반 추정치로 표기'
+    : '📊 <b>건수 기반 추정</b>: 순수 이용 건수 × 단가 추정치 (참고용) | 2026-04는 집계 미완료로 과소 표시';
+  renderRev();
+}
+
+function renderRev() {
+  const lbl = D.revenue_estimate_labels;
+  const vals = revMode==='settled' ? D.revenue_settled_values : D.revenue_estimate_values;
+  const isSettled = revMode==='settled';
+  const bgColors = lbl.map((m,i) => {
+    if (isSettled) return D.revenue_settled_types[i]==='actual' ? 'rgba(94,200,232,.75)' : 'rgba(155,143,232,.6)';
+    return m >= '2026-03' ? 'rgba(255,112,86,.4)' : 'rgba(155,143,232,.6)';
+  });
+  const bdColors = lbl.map((m,i) => {
+    if (isSettled) return D.revenue_settled_types[i]==='actual' ? '#5EC8E8' : '#9B8FE8';
+    return m >= '2026-03' ? '#FF7056' : '#9B8FE8';
+  });
+  mkC('cRevenue', {
+    type: 'bar',
+    data: {
+      labels: lbl,
+      datasets: [{
+        data: vals,
+        backgroundColor: bgColors,
+        borderColor: bdColors,
+        borderWidth: 1.5,
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        datalabels: {
+          display: true, anchor:'end', align:'end',
+          color: '#555', font:{size:9,weight:'600'},
+          formatter: v => v == null ? '' : v.toFixed(0)+'만'
+        }
+      },
+      scales: {
+        x: { grid:{display:false}, ticks:{font:{size:10}} },
+        y: { grid:{color:'#F0F0F0'}, ticks:{maxTicksLimit:5, callback: v => v+'만'} }
+      }
+    }
+  });
+}
+
+function renderActDist() {
+  mkC('cActDist', {
+    type: 'doughnut',
+    data: {
+      labels: AD.activity_dist_labels,
+      datasets: [{
+        data: AD.activity_dist_values,
+        backgroundColor: AD.activity_dist_colors,
+        borderWidth: 2,
+        borderColor: '#fff'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      cutout: '55%',
+      plugins: {
+        legend: { position:'right', labels:{font:{size:11},padding:10,boxWidth:12} },
+        datalabels: {
+          display: true,
+          color: '#fff',
+          font: { size: 10, weight: '700' },
+          formatter: (v, ctx) => {
+            const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+            const pct = (v/total*100).toFixed(0);
+            return pct >= 5 ? pct+'%' : '';
+          }
+        }
+      }
+    }
+  });
+}
+
+function initOv() {
+  renderRev();
+  renderActDist();
+}
+
+// ══════════════════════════════════════
+// TAB 2: 서비스 현황
+// ══════════════════════════════════════
+function initSv() {
+  // Vote IDs
+  mkC('cVoteIds', barCfg(D.vote_ids_labels, D.vote_ids_values, '#9B8FE8'));
+  // Vote Cnt
+  mkC('cVoteCnt', {
+    type:'bar',
+    data:{labels:D.vote_ids_labels,datasets:[{data:D.vote_cnt_values,backgroundColor:'rgba(155,143,232,.5)',borderColor:'#9B8FE8',borderWidth:1.5,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:true,anchor:'end',align:'end',color:'#555',font:{size:9,weight:'600'},formatter:v=>v==null?'':(v/10000).toFixed(1)+'만'}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'#F0F0F0'},ticks:{maxTicksLimit:5,callback:v=>(v/10000).toFixed(0)+'만'}}}}
+  });
+  // Survey IDs
+  mkC('cSurveyIds', barCfg(D.survey_labels, D.survey_ids_values, '#5EC8E8'));
+  // Survey Cnt
+  mkC('cSurveyCnt', barCfg(D.survey_labels, D.survey_cnt_values, '#5EC8E8', v=>v>=1000?v.toLocaleString():String(v)));
+  // Notify Events
+  mkC('cNotifyEv', barCfg(D.notify_labels, D.notify_events, '#FF7056'));
+  // Notify Sends
+  mkC('cNotifySd', {
+    type:'bar',
+    data:{labels:D.notify_labels,datasets:[{data:D.notify_sends,backgroundColor:'rgba(255,198,84,.75)',borderColor:'#FFC654',borderWidth:1.5,borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},datalabels:{display:true,anchor:'end',align:'end',color:'#555',font:{size:9,weight:'600'},formatter:v=>v==null?'':v.toLocaleString()}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'#F0F0F0'},ticks:{maxTicksLimit:5,callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}}}}
+  });
+}
+
+// ══════════════════════════════════════
+// TAB 3: 단지 분석
+// ══════════════════════════════════════
+function initCx() {
+  // Activity summary boxes
+  const row = document.getElementById('act-sum-row');
+  const total = AD.activity_dist_values.reduce((a,b)=>a+b,0);
+  AD.activity_dist_labels.forEach((lbl,i) => {
+    const cnt = AD.activity_dist_values[i];
+    const pct = (cnt/total*100).toFixed(1);
+    const el = document.createElement('div');
+    el.className = 'act-sum-item';
+    el.style.borderTopColor = AD.activity_dist_colors[i];
+    el.innerHTML =
+      '<div class="act-cnt" style="color:'+AD.activity_dist_colors[i]+'">'+cnt.toLocaleString()+'</div>' +
+      '<div class="act-lbl">'+lbl+'</div>' +
+      '<div class="act-pct" style="color:'+AD.activity_dist_colors[i]+'">'+pct+'%</div>';
+    row.appendChild(el);
+  });
+
+  // Stacked bar: monthly activity trend
+  const months = AD.activity_monthly_months;
+  const datasets = AD.status_order.map((s,i) => ({
+    label: s,
+    data: AD.activity_monthly_series[s],
+    backgroundColor: STATUS_COLORS[s] + 'CC',
+    borderColor: STATUS_COLORS[s],
+    borderWidth: 1,
+    stack: 'a'
+  }));
+  mkC('cActTrend', {
+    type:'bar',
+    data:{labels:months, datasets},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'top',labels:{font:{size:10},padding:10,boxWidth:10}},
+        datalabels:{display:false}
+      },
+      scales:{
+        x:{stacked:true,grid:{display:false},ticks:{font:{size:10}}},
+        y:{stacked:true,grid:{color:'#F0F0F0'},ticks:{maxTicksLimit:5}}
+      }
+    }
+  });
+
+  // Donut (same as overview but bigger)
+  mkC('cActDonut', {
+    type:'doughnut',
+    data:{
+      labels:AD.activity_dist_labels,
+      datasets:[{data:AD.activity_dist_values,backgroundColor:AD.activity_dist_colors,borderWidth:2,borderColor:'#fff'}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,cutout:'50%',
+      plugins:{
+        legend:{position:'right',labels:{font:{size:11},padding:10,boxWidth:12}},
+        datalabels:{
+          display:true,color:'#fff',font:{size:11,weight:'700'},
+          formatter:(v,ctx)=>{
+            const tot=ctx.dataset.data.reduce((a,b)=>a+b,0);
+            const p=(v/tot*100).toFixed(1);
+            return p>=4?p+'%':'';
+          }
+        }
+      }
+    }
+  });
+
+  // MAU trend tags
+  const tagsEl = document.getElementById('mau-tags');
+  D.top20_mau.forEach((c,i) => {
+    const el = document.createElement('span');
+    el.className = 'tag' + (i<5?' on':'');
+    el.textContent = c.name;
+    el.dataset.i = i;
+    el.onclick = function() {
+      const idx = parseInt(this.dataset.i);
+      const pos = mauSel.indexOf(idx);
+      if (pos>=0) { if(mauSel.length>1){mauSel.splice(pos,1);this.classList.remove('on');} }
+      else { if(mauSel.length>=5){alert('최대 5개까지 비교 가능합니다');return;} mauSel.push(idx);this.classList.add('on'); }
+      renderMAU();
+    };
+    tagsEl.appendChild(el);
+  });
+  renderMAU();
+}
+
+let mauSel = [0,1,2,3,4];
+function resetMAU() {
+  mauSel=[0,1,2,3,4];
+  document.querySelectorAll('#mau-tags .tag').forEach((el,i)=>el.classList.toggle('on',i<5));
+  renderMAU();
+}
+const PAL=['#9B8FE8','#5EC8E8','#FF7056','#FFC654','#F48FB1','#8B80D4','#52C41A','#FF9800','#E91E63','#00BCD4'];
+function renderMAU() {
+  const ds = mauSel.map((idx,ci)=>{
+    const c=D.top20_mau[idx];
+    return {label:c.name,data:c.data.map(v=>v<=1?null:v),borderColor:PAL[ci%PAL.length],backgroundColor:PAL[ci%PAL.length]+'18',borderWidth:2,tension:.3,pointRadius:3,fill:false};
+  });
+  mkC('cMAU',{type:'line',data:{labels:D.months,datasets:ds},options:{responsive:true,maintainAspectRatio:false,spanGaps:true,plugins:{legend:{position:'top',labels:{font:{size:11},padding:10}},datalabels:{display:false}},scales:{x:{grid:{display:false},ticks:{font:{size:10}}},y:{grid:{color:'#F0F0F0'},ticks:{maxTicksLimit:5,callback:v=>v>=1000?(v/1000).toFixed(0)+'k':v}}}}});
+}
+
+// ══════════════════════════════════════
+// TAB 4: 성장 지표
+// ══════════════════════════════════════
+let gMode = 'mom';
+const gNotes = {
+  mom:'📌 MoM: 전월 대비 성장률 (2025-02 ~ 2026-03)',
+  qoq:'📌 QoQ: 전분기 대비 성장률 (2025-Q2 ~ 2026-Q1)',
+  yoy:'📌 YoY: 전년 동월 대비 성장률 (2026-01 ~ 2026-03)'
+};
+function swGrowth(m) {
+  gMode=m;
+  ['mom','qoq','yoy'].forEach(k=>document.getElementById('gbtn-'+k).classList.toggle('on',k===m));
+  document.getElementById('g-note').textContent=gNotes[m];
+  renderGrowth();
+}
+function renderGrowth() {
+  const raw={'mom':D.mom_vote,'qoq':D.qoq_vote,'yoy':D.yoy_vote}[gMode];
+  const lbl=D.growth_labels;
+  mkC('cGrowth',{
+    type:'bar',
+    data:{labels:lbl,datasets:[{data:raw,
+      backgroundColor:raw.map(v=>v==null?'rgba(200,200,200,.4)':v>=0?'rgba(82,196,26,.65)':'rgba(239,83,80,.65)'),
+      borderColor:raw.map(v=>v==null?'#ccc':v>=0?'#52C41A':'#EF5350'),
+      borderWidth:1.5,borderRadius:4}]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        datalabels:{
+          display:true,
+          anchor:ctx=>(ctx.dataset.data[ctx.dataIndex]||0)>=0?'end':'start',
+          align:ctx=>(ctx.dataset.data[ctx.dataIndex]||0)>=0?'end':'start',
+          color:ctx=>(ctx.dataset.data[ctx.dataIndex]||0)>=0?'#52C41A':'#EF5350',
+          font:{size:10,weight:'600'},
+          formatter:v=>v==null?'':fmtP(v)
+        }
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:10}}},
+        y:{grid:{color:'#F0F0F0'},ticks:{maxTicksLimit:5,callback:v=>v+'%'}}
+      }
+    }
+  });
+  // Table
+  const body=document.getElementById('g-table');
+  body.innerHTML='';
+  lbl.slice().reverse().forEach((l,ri)=>{
+    const i=lbl.length-1-ri;
+    const fmt=v=>v==null?'<span style="color:#ccc">—</span>':'<span style="color:'+(v>=0?'#52C41A':'#EF5350')+';font-weight:600">'+(v>0?'+':'')+v.toFixed(1)+'%</span>';
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td>'+l+'</td><td>'+fmt(D.mom_vote[i])+'</td><td>'+fmt(D.qoq_vote[i])+'</td><td>'+fmt(D.yoy_vote[i])+'</td>';
+    body.appendChild(tr);
+  });
+}
+function initGr() { renderGrowth(); }
+
+// ══════════════════════════════════════
+// TAB 5: 상세 테이블
+// ══════════════════════════════════════
+let filteredTD = TD;
+function filterT() {
+  const q=document.getElementById('srch').value.toLowerCase();
+  const st=document.getElementById('fSt').value;
+  const rg=document.getElementById('fRg').value;
+  const ag=document.getElementById('fAg').value;
+  filteredTD=TD.filter(d=>{
+    if(q && !d.name.toLowerCase().includes(q)) return false;
+    if(st && d.status!==st) return false;
+    if(rg && d.region!==rg) return false;
+    if(ag && d.age!==ag) return false;
+    return true;
+  });
+  renderT();
+}
+const ACT_BG = {
+  '매우 활성화':'rgba(82,196,26,.15)','활성화':'rgba(139,128,212,.15)',
+  '사용':'rgba(94,200,232,.15)','비활성':'rgba(255,198,84,.15)',
+  '이탈':'rgba(255,112,86,.15)','미이용':'rgba(200,200,200,.15)'
+};
+const ACT_TXT = {
+  '매우 활성화':'#52C41A','활성화':'#8B80D4','사용':'#5EC8E8',
+  '비활성':'#e6a800','이탈':'#FF7056','미이용':'#aaa'
+};
+function renderT() {
+  const body=document.getElementById('t-body');
+  body.innerHTML='';
+  document.getElementById('t-cnt').textContent=filteredTD.length+'개 단지';
+  filteredTD.forEach((d,i)=>{
+    const c=ACT_TXT[d.status]||'#888';
+    const bg=ACT_BG[d.status]||'#eee';
+    const tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td style="color:var(--ts)">'+(i+1)+'</td>'+
+      '<td style="font-weight:600">'+d.name+'</td>'+
+      '<td>'+d.region+'</td>'+
+      '<td>'+d.hh.toLocaleString()+'</td>'+
+      '<td style="font-weight:600">'+d.mau.toLocaleString()+'</td>'+
+      '<td style="font-weight:700;color:'+c+'">'+d.ratio+'%</td>'+
+      '<td><span class="ast" style="background:'+bg+';color:'+c+'">'+d.status+'</span></td>'+
+      '<td>'+d.age+'</td>'+
+      '<td>'+d.type+'</td>'+
+      '<td style="color:var(--ts)">'+d.latest_ym+'</td>';
+    body.appendChild(tr);
+  });
+}
+function initTb() { filterT(); }
+
+// ── Boot ──
+document.addEventListener('DOMContentLoaded', ()=>{ initOv(); });
+</script>
+</body>
+</html>
