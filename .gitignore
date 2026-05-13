@@ -14,3 +14,10 @@ service_account.json
 
 # 기타
 .DS_Store
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
