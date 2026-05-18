@@ -216,7 +216,7 @@ td{font-size:12px}tr:hover td{background:rgba(139,128,212,.04)}
   <div class="g3" id="ovSvcTier" style="margin-bottom:14px"></div>
   <div class="st">전체 매출 현황</div>
   <div class="g4" style="margin-bottom:10px" id="ovTotalRevKpi"></div>
-  <div class="g2" style="margin-bottom:14px"><div class="card"><div class="ch"><span class="ct">월별 전체 매출 추정 (원)</span><span class="cs">전자투표 + 알림서비스 + 설문조사</span></div><canvas id="cTotalRev" height="90"></canvas></div><div class="card"><div class="ch"><span class="ct">월별 전체 이용 건수 현황</span><span class="cs">전자투표 + 알림서비스 + 설문조사</span></div><canvas id="cTotalCnt" height="90"></canvas></div></div>
+  <div class="card" style="margin-bottom:14px"><div class="ch"><span class="ct">월별 전체 매출 추정 (원)</span><span class="cs">전자투표 + 알림서비스 + 설문조사</span></div><canvas id="cTotalRev" height="90"></canvas></div>
   <div class="st">서비스별 현황 <span id="ovPeriodLabel" style="font-size:12px;color:var(--ts);font-weight:400"></span></div>
   <div class="g3" style="margin-bottom:14px">
     <div class="card kpi-clickable" id="card-vote" onclick="showKpiModal('vote')" title="클릭하면 상세 보기" style="cursor:pointer"><div class="ch"><span class="ct">🗳 전자투표</span><span class="cs" style="font-size:11px;color:var(--cp)">▶ 상세보기</span></div><div class="svc-stat-grid" id="ovVoteStat"></div></div>
@@ -1207,32 +1207,6 @@ function initOv(){
       {label:"전자투표",data:vD,backgroundColor:"rgba(139,128,212,.85)",stack:"rev",borderRadius:2},
       {label:"알림서비스",data:nD,backgroundColor:"rgba(94,200,232,.8)",stack:"rev",borderRadius:2},
       {label:"설문조사",data:sD,backgroundColor:"rgba(255,193,7,.8)",stack:"rev",borderRadius:2},
-      {label:"평균",data:mos.map(function(){return Math.round(avgTotal);}),type:"line",borderColor:"#888",borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false,order:0}
-    ]},options:{responsive:true,maintainAspectRatio:true,
-      plugins:{legend:{position:"top",labels:{boxWidth:10,font:{size:10}}},datalabels:{display:false}},
-      scales:{x:{stacked:true,ticks:{font:{size:9},maxRotation:45}},y:{stacked:true,ticks:{font:{size:9},callback:function(v){return v>=10000?(v/10000).toFixed(0)+"만":v;}}}}}});
-  })();
-
-  // 월별 전체 이용 건수 차트
-  (function(){
-    var vLabels=D.vote_ids_labels||D.months||[]; var vVals=D.vote_ids_values||[];
-    var nLabels=D.notify_labels||[]; var nVals=D.notify_sends||[];
-    var sLabels=D.survey_labels||D.months||[]; var sVals=D.survey_ids_values||[];
-    var allMo={}; vLabels.forEach(function(m){allMo[m]=1;}); nLabels.forEach(function(m){allMo[m]=1;}); sLabels.forEach(function(m){allMo[m]=1;});
-    var mos=Object.keys(allMo).sort();
-    var fStart=gFilt.start||mos[0]||""; var fEnd=gFilt.end||mos[mos.length-1]||"";
-    mos=mos.filter(function(m){return m>=fStart&&m<=fEnd;});
-    function lkp(lbls,vals,m){var i=lbls.indexOf(m);return i>=0?(vals[i]||0):0;}
-    var vD=mos.map(function(m){return lkp(vLabels,vVals,m)||0;});
-    var nD=mos.map(function(m){return lkp(nLabels,nVals,m)||0;});
-    var sD=mos.map(function(m){return lkp(sLabels,sVals,m)||0;});
-    var total=mos.map(function(m,i){return vD[i]+nD[i]+sD[i];});
-    var avgTotal=total.length?total.reduce(function(a,b){return a+b;},0)/total.length:0;
-    var ctx=document.getElementById("cTotalCnt"); if(!ctx)return;
-    new Chart(ctx,{type:"bar",data:{labels:mos,datasets:[
-      {label:"전자투표",data:vD,backgroundColor:"rgba(139,128,212,.85)",stack:"cnt",borderRadius:2},
-      {label:"알림서비스",data:nD,backgroundColor:"rgba(94,200,232,.8)",stack:"cnt",borderRadius:2},
-      {label:"설문조사",data:sD,backgroundColor:"rgba(255,193,7,.8)",stack:"cnt",borderRadius:2},
       {label:"평균",data:mos.map(function(){return Math.round(avgTotal);}),type:"line",borderColor:"#888",borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false,order:0}
     ]},options:{responsive:true,maintainAspectRatio:true,
       plugins:{legend:{position:"top",labels:{boxWidth:10,font:{size:10}}},datalabels:{display:false}},
