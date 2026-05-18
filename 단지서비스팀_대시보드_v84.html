@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+<script>if(location.hostname==="gibong2-oss.github.io"){location.replace("https://danjiso-dashboard.gibong2.workers.dev"+location.pathname+location.search);}</script>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>단지서비스팀 대시보드 v4</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
@@ -125,57 +126,13 @@ td{font-size:12px}tr:hover td{background:rgba(139,128,212,.04)}
 @media(max-width:900px){.growth-pair{grid-template-columns:1fr}.svc-stat-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:1000px){.g4{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:680px){.g3,.g2{grid-template-columns:1fr}}
-/* ── 비밀번호 잠금 화면 ── */
-#pw-overlay{position:fixed;inset:0;background:#1a1a2e;z-index:9999;display:flex;align-items:center;justify-content:center}
-#pw-box{background:#fff;border-radius:16px;padding:40px 36px;width:320px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,.4)}
-#pw-logo{font-size:32px;margin-bottom:8px}
-#pw-title{font-size:18px;font-weight:700;color:#333;margin-bottom:4px}
-#pw-sub{font-size:12px;color:#888;margin-bottom:24px}
-#pw-input{width:100%;padding:11px 14px;border:1.5px solid #ddd;border-radius:8px;font-size:15px;font-family:'Pretendard',sans-serif;outline:none;text-align:center;letter-spacing:4px;box-sizing:border-box}
-#pw-input:focus{border-color:#8B80D4}
-#pw-btn{width:100%;margin-top:12px;padding:12px;background:#8B80D4;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Pretendard',sans-serif}
 #pw-btn:hover{background:#7b70c4}
 #pw-err{color:#EF5350;font-size:12px;margin-top:8px;min-height:18px}
 </style>
 </head>
 <body>
 <!-- 비밀번호 잠금 화면 -->
-<div id="pw-overlay">
-  <div id="pw-box">
-    <div id="pw-logo">🏢</div>
-    <div id="pw-title">단지서비스팀 대시보드</div>
-    <div id="pw-sub">접근 비밀번호를 입력하세요</div>
-    <input id="pw-input" type="password" placeholder="●●●●" maxlength="20"
-           onkeydown="if(event.key==='Enter')checkPw()">
-    <button id="pw-btn" onclick="checkPw()">확인</button>
-    <div id="pw-err"></div>
-  </div>
-</div>
-<script>
-(function(){
-  const HASH='6c25c8f454fea8dd5cd0b201b4f739993aebfc454de7b410ee9457c553699a85';
-  const KEY='ds_auth';
-  async function sha256(str){
-    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
-    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-  }
-  window.checkPw=async function(){
-    const val=document.getElementById('pw-input').value;
-    const h=await sha256(val);
-    if(h===HASH){
-      sessionStorage.setItem(KEY,'1');
-      document.getElementById('pw-overlay').style.display='none';
-    } else {
-      document.getElementById('pw-err').textContent='비밀번호가 올바르지 않습니다.';
-      document.getElementById('pw-input').value='';
-      document.getElementById('pw-input').focus();
-    }
-  };
-  if(sessionStorage.getItem(KEY)==='1'){
-    document.getElementById('pw-overlay').style.display='none';
-  }
-})();
-</script>
+
 <div class="gnb">
   <div class="logo">🏢 단지서비스팀</div>
   <nav class="tabs">
@@ -1207,9 +1164,9 @@ function initOv(){
       {label:"전자투표",data:vD,backgroundColor:"rgba(139,128,212,.85)",stack:"rev",borderRadius:2},
       {label:"알림서비스",data:nD,backgroundColor:"rgba(94,200,232,.8)",stack:"rev",borderRadius:2},
       {label:"설문조사",data:sD,backgroundColor:"rgba(255,193,7,.8)",stack:"rev",borderRadius:2},
-      {label:"평균",data:mos.map(function(){return Math.round(avgTotal);}),type:"line",borderColor:"#888",borderWidth:1.5,borderDash:[4,3],pointRadius:0,fill:false,order:0}
+      {label:"평균",data:mos.map(function(){return Math.round(avgTotal);}),type:"line",borderColor:"#888",borderWidth:1.5,borderDash:[4,3],pointRadius:0,pointHoverRadius:5,hitRadius:20,fill:false,order:0}
     ]},options:{responsive:true,maintainAspectRatio:true,
-      plugins:{legend:{position:"top",labels:{boxWidth:10,font:{size:10}}},datalabels:{display:false}},
+      plugins:{legend:{position:"top",labels:{boxWidth:10,font:{size:10}}},datalabels:{display:false},tooltip:{callbacks:{label:function(ctx){var v=ctx.parsed.y;return ctx.dataset.label+": "+v.toLocaleString()+"건";}}}},
       scales:{x:{stacked:true,ticks:{font:{size:9},maxRotation:45}},y:{stacked:true,ticks:{font:{size:9},callback:function(v){return v>=10000?(v/10000).toFixed(0)+"만":v;}}}}}});
   })();
 
