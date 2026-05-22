@@ -362,6 +362,91 @@ function openModal(title, html){
   document.getElementById("modalBg").classList.add("open");
 }
 function closeModal(){ document.getElementById("modalBg").classList.remove("open"); }
+// ── 차트 모달 헬퍼 ──
+var _MDATA = {};
+function showChartModal(key){
+  var d = _MDATA[key]; if(!d) return;
+  if(d.type==='tabbed'||d.type==='growth'){
+    _showTabbedModal(key, d);
+  } else {
+    _showSimpleModal(key, d);
+  }
+}
+function _buildTbl(tId, cols, rows, totals){
+  var h='<table id="'+tId+'" style="width:100%;border-collapse:collapse;font-size:12px">';
+  h+='<thead><tr>';
+  cols.forEach(function(col,ci){ h+='<th style="padding:6px 10px;border-bottom:2px solid var(--bdr);font-weight:700;white-space:nowrap;position:sticky;top:0;background:var(--card);text-align:'+(ci===0?'left':'right')+'">'+col+'</th>'; });
+  h+='</tr></thead><tbody>';
+  (rows||[]).forEach(function(r,ri){
+    h+='<tr style="background:'+(ri%2===0?'transparent':'rgba(0,0,0,.025)')+'\">';
+    r.forEach(function(v,i){ h+='<td style="padding:5px 10px;border-bottom:1px solid var(--bdr);text-align:'+(i===0?'left':'right')+';white-space:nowrap">'+(v!=null?v:'-')+'</td>'; });
+    h+='</tr>';
+  });
+  if(totals){
+    h+='<tr style="font-weight:700;background:rgba(139,128,212,.1)">';
+    totals.forEach(function(v,i){ h+='<td style="padding:6px 10px;border-top:2px solid var(--bdr);text-align:'+(i===0?'left':'right')+';white-space:nowrap">'+(v!=null?v:'-')+'</td>'; });
+    h+='</tr>';
+  }
+  h+='</tbody></table>';
+  return h;
+}
+function _showSimpleModal(key, d){
+  var tId='modal-tbl-'+key;
+  var dlBtn='<button class="btn-q modal-dl-btn" onclick="_tblXls(\''+tId+'\',\''+(d.fname||'data')+'.csv\')" style="font-size:11px;padding:4px 14px">&#x2B07; 엑셀 다운로드</button>';
+  var h='<div style="margin-bottom:8px;display:flex;justify-content:flex-end">'+dlBtn+'</div>';
+  h+='<div style="overflow-x:auto;max-height:430px;overflow-y:auto">'+_buildTbl(tId,d.cols,d.rows,d.totals)+'</div>';
+  openModal(d.title, h);
+}
+function _showTabbedModal(key, d){
+  var activeTab = d.tabs[0].key;
+  var tabBtns = d.tabs.map(function(t){
+    var on = t.key===activeTab;
+    return '<button id="mtab-'+key+'-'+t.key+'" onclick="_switchTab(\''+key+'\',\''+t.key+'\')" style="padding:5px 14px;font-size:12px;font-weight:'+(on?'700':'500')+';border:none;border-bottom:3px solid '+(on?'var(--cp)':'transparent')+';background:transparent;cursor:pointer;color:'+(on?'var(--cp)':'var(--ts)')+'">'+t.label+'</button>';
+  }).join('');
+  var dlBtn='<button id="mtab-dl-'+key+'" class="btn-q modal-dl-btn" onclick="_dlTab(\''+key+'\')" style="font-size:11px;padding:4px 14px">&#x2B07; 엑셀 다운로드</button>';
+  var h='<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--bdr);margin-bottom:10px;padding-bottom:4px">';
+  h+='<div>'+tabBtns+'</div>'+dlBtn+'</div>';
+  h+='<div id="mtab-body-'+key+'" style="overflow-x:auto;max-height:400px;overflow-y:auto">';
+  h+=_buildTbl('modal-tbl-'+key+'-'+activeTab, d.tabs[0].cols, d.tabs[0].rows, d.tabs[0].totals);
+  h+='</div>';
+  openModal(d.title, h);
+  _MDATA[key]._activeTab = activeTab;
+}
+function _switchTab(key, tabKey){
+  var d=_MDATA[key]; if(!d||!d.tabs) return;
+  var tab=null; d.tabs.forEach(function(t){ if(t.key===tabKey) tab=t; });
+  if(!tab) return;
+  d._activeTab = tabKey;
+  var body=document.getElementById('mtab-body-'+key);
+  if(body) body.innerHTML=_buildTbl('modal-tbl-'+key+'-'+tabKey, tab.cols, tab.rows, tab.totals);
+  d.tabs.forEach(function(t){
+    var btn=document.getElementById('mtab-'+key+'-'+t.key); if(!btn) return;
+    var on=t.key===tabKey;
+    btn.style.fontWeight=on?'700':'500';
+    btn.style.borderBottom=on?'3px solid var(--cp)':'3px solid transparent';
+    btn.style.color=on?'var(--cp)':'var(--ts)';
+  });
+}
+function _dlTab(key){
+  var d=_MDATA[key]; if(!d||!d.tabs) return;
+  var activeKey=d._activeTab||d.tabs[0].key;
+  var tab=null; d.tabs.forEach(function(t){ if(t.key===activeKey) tab=t; });
+  if(!tab) return;
+  _tblXls('modal-tbl-'+key+'-'+activeKey, (d.fname_base||'data')+'_'+activeKey+'.csv');
+}
+function _tblXls(tblId, fname){
+  var tbl = document.getElementById(tblId); if(!tbl) return;
+  var rows = tbl.querySelectorAll('tr'), csv = [];
+  rows.forEach(function(r){
+    var cells = r.querySelectorAll('th,td'), row = [];
+    cells.forEach(function(cc){ row.push('"' + cc.textContent.replace(/"/g,'""') + '"'); });
+    csv.push(row.join(','));
+  });
+  var blob = new Blob(['﻿' + csv.join('\n')], {type:'text/csv;charset=utf-8'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = fname; a.click();
+}
+
 document.getElementById("modalBg").addEventListener("click", function(e){
   if(e.target === this) closeModal();
 });
@@ -1146,7 +1231,7 @@ function initOv(){
   }
   // 월별 전체 매출 차트
   (function(){
-    var vLabels=D.revenue_estimate_labels||[]; var vVals=D.revenue_estimate_values||[];
+    var vLabels=D.revenue_estimate_labels||[]; var vVals=D.vote_rev_est_values||D.revenue_estimate_values||[];
     var nLabels=GR.notify_rev_months||[]; var nVals=GR.notify_rev_vals||[];
     var sLabels=GR.survey_rev_months||[]; var sVals=GR.survey_rev_vals||[];
     var allMo={}; vLabels.forEach(function(m){allMo[m]=1;}); nLabels.forEach(function(m){allMo[m]=1;}); sLabels.forEach(function(m){allMo[m]=1;});
@@ -1952,6 +2037,201 @@ function bootApp(){
       var _ed = D.data_as_of || (_allM[_allM.length-1] + "-01");
       _noteEl.textContent = "\u5e74\ub370\uc774\ud130 \uae30\uac04: " + _sd + " ~ " + _ed;
     }
+  })();
+
+  // ══ _MDATA 차트 모달 데이터 등록 ══
+  (function(){
+    function n(v){ return (v!=null && !isNaN(v)) ? Math.round(v).toLocaleString() : '-'; }
+    function pn(v){ return (v!=null && !isNaN(v)) ? v.toFixed(1)+'%' : '-'; }
+    function lkp(lbls,vals,m){ var i=lbls.indexOf(m); return i>=0?(vals[i]||0):0; }
+
+    // cTotalRev — 월별 전체 매출 추정
+    (function(){
+      var vL=D.revenue_estimate_labels||[], vV=D.vote_rev_est_values||D.revenue_estimate_values||[];
+      var nL=GR.notify_rev_months||[], nV=GR.notify_rev_vals||[];
+      var sL=GR.survey_rev_months||[], sV=GR.survey_rev_vals||[];
+      var allMo={};
+      vL.forEach(function(m){allMo[m]=1;}); nL.forEach(function(m){allMo[m]=1;}); sL.forEach(function(m){allMo[m]=1;});
+      var mos=Object.keys(allMo).sort();
+      var rows=[], sv=0, sn=0, ss=0;
+      mos.forEach(function(m){
+        var v=Math.round(lkp(vL,vV,m)*10000), nn=Math.round(lkp(nL,nV,m)*10000), s=Math.round(lkp(sL,sV,m)*10000);
+        sv+=v; sn+=nn; ss+=s;
+        rows.push([m, n(v), n(nn), n(s), n(v+nn+s)]);
+      });
+      _MDATA['cTotalRev']={title:'월별 전체 매출 추정 (원)', fname:'월별전체매출',
+        cols:['월','전자투표(원)','알림서비스(원)','설문조사(원)','합계(원)'],
+        rows:rows, totals:['합계', n(sv), n(sn), n(ss), n(sv+sn+ss)]};
+    })();
+
+    // cTotalCnt — 월별 전체 이용건수
+    (function(){
+      var vL=D.vote_ids_labels||D.months||[], vV=D.vote_ids_values||[];
+      var nL=D.notify_labels||[], nV=D.notify_sends||[];
+      var sL=D.survey_labels||D.months||[], sV=D.survey_ids_values||[];
+      var allMo={};
+      vL.forEach(function(m){allMo[m]=1;}); nL.forEach(function(m){allMo[m]=1;}); sL.forEach(function(m){allMo[m]=1;});
+      var mos=Object.keys(allMo).sort();
+      var rows=[], sv=0, sn=0, ss=0;
+      mos.forEach(function(m){
+        var v=lkp(vL,vV,m)||0, nn=lkp(nL,nV,m)||0, s=lkp(sL,sV,m)||0;
+        sv+=v; sn+=nn; ss+=s;
+        rows.push([m, n(v), n(nn), n(s), n(v+nn+s)]);
+      });
+      _MDATA['cTotalCnt']={title:'월별 전체 이용건수', fname:'월별전체이용건수',
+        cols:['월','전자투표(건)','알림서비스(건)','설문조사(건)','합계(건)'],
+        rows:rows, totals:['합계', n(sv), n(sn), n(ss), n(sv+sn+ss)]};
+    })();
+
+    // KPI 블록 → cTotalRev 재사용
+    _MDATA['totalRevKpi'] = _MDATA['cTotalRev'];
+
+    // ── 집계 헬퍼 ──
+    function aggQtr(L, V){
+      var map={}; (L||[]).forEach(function(m,i){
+        var yr=m.substring(0,4), mo=parseInt(m.substring(5,7));
+        var q=Math.ceil(mo/3), key=yr+'-Q'+q;
+        map[key]=(map[key]||0)+(V[i]||0);
+      });
+      var keys=Object.keys(map).sort();
+      return {labels:keys, vals:keys.map(function(k){return map[k];})};
+    }
+    function aggYr(L, V){
+      var map={}; (L||[]).forEach(function(m,i){
+        var yr=m.substring(0,4); map[yr]=(map[yr]||0)+(V[i]||0);
+      });
+      var keys=Object.keys(map).sort();
+      return {labels:keys, vals:keys.map(function(k){return map[k];})};
+    }
+    function mkUsageTabs(dayL,dayV, wkL,wkV, moL,moV, unitLabel, fname){
+      var qtr=aggQtr(moL,moV), yr=aggYr(moL,moV);
+      function rows(L,V,mult){ return (L||[]).map(function(l,i){ return [l, n((V[i]||0)*mult)]; }); }
+      function tot(V,mult){ return ['합계', n((V||[]).reduce(function(a,b){return a+(b||0);},0)*mult)]; }
+      function cols(per){ return [per, unitLabel]; }
+      return {type:'tabbed', title:null, fname_base:fname, tabs:[
+        {key:'day',  label:'일간',  cols:cols('날짜'),  rows:rows(dayL,dayV,1),  totals:tot(dayV,1)},
+        {key:'wk',   label:'주간',  cols:cols('주'),    rows:rows(wkL,wkV,1),   totals:tot(wkV,1)},
+        {key:'mo',   label:'월간',  cols:cols('월'),    rows:rows(moL,moV,1),   totals:tot(moV,1)},
+        {key:'qtr',  label:'분기',  cols:cols('분기'),  rows:rows(qtr.labels,qtr.vals,1), totals:tot(qtr.vals,1)},
+        {key:'yr',   label:'연간',  cols:cols('연도'),  rows:rows(yr.labels,yr.vals,1),   totals:tot(yr.vals,1)},
+      ]};
+    }
+    function mkRevTabs(dayL,dayV, wkL,wkV, moL,moV, fname){
+      var qtr=aggQtr(moL,moV), yr=aggYr(moL,moV);
+      var mult=10000;
+      function rows(L,V){ return (L||[]).map(function(l,i){ return [l, n((V[i]||0)*mult)]; }); }
+      function tot(V){ return ['합계', n((V||[]).reduce(function(a,b){return a+(b||0);},0)*mult)]; }
+      return {type:'tabbed', title:null, fname_base:fname, tabs:[
+        {key:'day',  label:'일간',  cols:['날짜','매출추정(원)'],  rows:rows(dayL,dayV),  totals:tot(dayV)},
+        {key:'wk',   label:'주간',  cols:['주','매출추정(원)'],   rows:rows(wkL,wkV),   totals:tot(wkV)},
+        {key:'mo',   label:'월간',  cols:['월','매출추정(원)'],   rows:rows(moL,moV),   totals:tot(moV)},
+        {key:'qtr',  label:'분기',  cols:['분기','매출추정(원)'], rows:rows(qtr.labels,qtr.vals), totals:tot(qtr.vals)},
+        {key:'yr',   label:'연간',  cols:['연도','매출추정(원)'], rows:rows(yr.labels,yr.vals),   totals:tot(yr.vals)},
+      ]};
+    }
+    function mkGrowthTabs(wkL,wkWow, moL,moV, fname){
+      var gr=calcGrowthRates(moL,moV);
+      function gRows(L,V){ return (L||[]).map(function(l,i){ return [l, pn(V[i])]; }); }
+      return {type:'growth', title:null, fname_base:fname, tabs:[
+        {key:'wow', label:'WoW', cols:['주','WoW(%)'],  rows:gRows(wkL,wkWow)},
+        {key:'mom', label:'MoM', cols:['월','MoM(%)'],  rows:gRows(moL,gr.mom)},
+        {key:'qoq', label:'QoQ', cols:['월','QoQ(%)'],  rows:gRows(moL,gr.qoq)},
+        {key:'yoy', label:'YoY', cols:['월','YoY(%)'],  rows:gRows(moL,gr.yoy)},
+      ]};
+    }
+    function mkRevGrowthTabs(wkL,wkWow, moL,moV, fname){
+      var gr=calcGrowthRates(moL,moV);
+      function gRows(L,V){ return (L||[]).map(function(l,i){ return [l, pn(V[i])]; }); }
+      return {type:'growth', title:null, fname_base:fname, tabs:[
+        {key:'wow', label:'WoW', cols:['주','WoW(%)'],  rows:gRows(wkL,wkWow)},
+        {key:'mom', label:'MoM', cols:['월','MoM(%)'],  rows:gRows(moL,gr.mom)},
+        {key:'qoq', label:'QoQ', cols:['월','QoQ(%)'],  rows:gRows(moL,gr.qoq)},
+        {key:'yoy', label:'YoY', cols:['월','YoY(%)'],  rows:gRows(moL,gr.yoy)},
+      ]};
+    }
+
+    // ── 전자투표 ──
+    var _cVI=mkUsageTabs(GR.vote_day_labels||[],GR.vote_day_vals||[],GR.vote_wk_labels||[],GR.vote_wk_vals||[],D.vote_ids_labels||D.months||[],D.vote_ids_values||[],'이용건수(건)','전자투표_이용건수');
+    _cVI.title='전자투표 이용건수 현황'; _MDATA['cVI']=_cVI;
+
+    var _cVR=mkRevTabs(GR.vote_day_labels||[],GR.vote_rev_day_vals||[],GR.vote_rev_wk_labels||[],GR.vote_rev_wk_vals||[],D.revenue_estimate_labels||[],D.vote_rev_est_values||D.revenue_estimate_values||[],'전자투표_매출');
+    _cVR.title='전자투표 매출 현황'; _MDATA['cVR']=_cVR;
+
+    var _cVGc=mkGrowthTabs(GR.vote_wk_labels||[],GR.vote_wk_wow||[],D.vote_ids_labels||[],D.vote_ids_values||[],'전자투표_성장률_이용건수');
+    _cVGc.title='전자투표 성장률 — 이용건수'; _MDATA['cVG_cnt']=_cVGc;
+
+    var _cVGr=mkRevGrowthTabs(GR.vote_rev_wk_labels||[],GR.vote_rev_wk_wow||[],D.revenue_estimate_labels||[],D.vote_rev_est_values||D.revenue_estimate_values||[],'전자투표_성장률_매출');
+    _cVGr.title='전자투표 성장률 — 매출'; _MDATA['cVG_rev']=_cVGr;
+
+    // ── 알림서비스 ──
+    var _cNE=mkUsageTabs(GR.notify_day_labels||[],GR.notify_day_vals||[],GR.notify_wk_labels||[],GR.notify_wk_vals||[],D.notify_labels||[],D.notify_sends||[],'발송건수(건)','알림서비스_이용건수');
+    _cNE.title='알림서비스 이용건수 현황'; _MDATA['cNE']=_cNE;
+
+    var _cNS=mkRevTabs(GR.notify_day_labels||[],GR.notify_rev_day_vals||[],GR.notify_rev_wk_labels||[],GR.notify_rev_wk_vals||[],GR.notify_rev_months||[],GR.notify_rev_vals||[],'알림서비스_매출');
+    _cNS.title='알림서비스 매출 현황'; _MDATA['cNS']=_cNS;
+
+    var _cNGc=mkGrowthTabs(GR.notify_wk_labels||[],GR.notify_wk_wow||[],D.notify_labels||[],D.notify_sends||[],'알림서비스_성장률_이용건수');
+    _cNGc.title='알림서비스 성장률 — 이용건수'; _MDATA['cNG_cnt']=_cNGc;
+
+    var _cNGr=mkRevGrowthTabs(GR.notify_rev_wk_labels||[],GR.notify_rev_wk_wow||[],GR.notify_rev_months||[],GR.notify_rev_vals||[],'알림서비스_성장률_매출');
+    _cNGr.title='알림서비스 성장률 — 매출'; _MDATA['cNG_rev']=_cNGr;
+
+    // ── 설문조사 ──
+    var _cSI=mkUsageTabs(GR.survey_day_labels||[],GR.survey_day_vals||[],GR.survey_wk_labels||[],GR.survey_wk_vals||[],D.survey_labels||D.months||[],D.survey_ids_values||[],'이용건수(건)','설문조사_이용건수');
+    _cSI.title='설문조사 이용건수 현황'; _MDATA['cSI']=_cSI;
+
+    var _cSR=mkRevTabs(GR.survey_day_labels||[],GR.survey_rev_day_vals||GR.survey_day_vals||[],GR.survey_wk_labels||[],GR.survey_rev_wk_vals||GR.survey_wk_vals||[],GR.survey_rev_months||[],GR.survey_rev_vals||[],'설문조사_매출');
+    _cSR.title='설문조사 매출 현황'; _MDATA['cSR']=_cSR;
+
+    var _cSGc=mkGrowthTabs(GR.survey_wk_labels||[],GR.survey_wk_wow||[],D.survey_labels||D.months||[],D.survey_ids_values||[],'설문조사_성장률_이용건수');
+    _cSGc.title='설문조사 성장률 — 이용건수'; _MDATA['cSG_cnt']=_cSGc;
+
+    var _cSGr=mkRevGrowthTabs(GR.survey_rev_wk_labels||GR.survey_wk_labels||[],GR.survey_rev_wk_wow||GR.survey_wk_wow||[],GR.survey_rev_months||[],GR.survey_rev_vals||[],'설문조사_성장률_매출');
+    _cSGr.title='설문조사 성장률 — 매출'; _MDATA['cSG_rev']=_cSGr;
+
+    // ── 차트 카드 클릭 이벤트 ──
+    ['cTotalRev','cTotalCnt','cVI','cVR','cVG_cnt','cVG_rev',
+     'cNE','cNS','cNG_cnt','cNG_rev','cSI','cSR','cSG_cnt','cSG_rev'].forEach(function(id){
+      var el=document.getElementById(id); if(!el) return;
+      var card=el.closest('.card'); if(!card) return;
+      card.style.cursor='pointer';
+      card.classList.add('kpi-clickable');
+      card.addEventListener('click',function(e){
+        if(e.target.closest('button')) return;
+        showChartModal(id);
+      });
+    });
+
+    // ── 전체 매출 KPI 블록 클릭 등록 ──
+    var kpiEl=document.getElementById('ovTotalRevKpi');
+    if(kpiEl){
+      kpiEl.querySelectorAll('.kpi').forEach(function(card){
+        card.style.cursor='pointer';
+        card.classList.add('kpi-clickable');
+        card.addEventListener('click',function(){ showChartModal('cTotalRev'); });
+      });
+    }
+
+    // ── 단지별 상세정보(cxTbl) 엑셀 버튼 — cxCount 옆 ──
+    var cxCountEl=document.getElementById('cxCount');
+    if(cxCountEl){
+      var cxBtn=document.createElement('button');
+      cxBtn.className='btn-q'; cxBtn.style.cssText='font-size:11px;padding:3px 12px;margin-left:10px;vertical-align:middle';
+      cxBtn.innerHTML='&#x2B07; 엑셀 다운로드';
+      cxBtn.onclick=function(){ _tblXls('cxTbl','단지별상세정보.csv'); };
+      cxCountEl.parentNode.insertBefore(cxBtn, cxCountEl.nextSibling);
+    }
+
+    // ── 상세 테이블(detTbl) 엑셀 버튼 — tbCount 옆 ──
+    var tbCountEl=document.getElementById('tbCount');
+    if(tbCountEl){
+      var detBtn=document.createElement('button');
+      detBtn.className='btn-q'; detBtn.style.cssText='font-size:11px;padding:3px 12px;margin-left:10px;vertical-align:middle';
+      detBtn.innerHTML='&#x2B07; 엑셀 다운로드';
+      detBtn.onclick=function(){ _tblXls('detTbl','상세테이블.csv'); };
+      tbCountEl.parentNode.insertBefore(detBtn, tbCountEl.nextSibling);
+    }
+
   })();
   initOv();
 }

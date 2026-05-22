@@ -1,0 +1,237 @@
+=== 단지서비스팀 대시보드 HTML 생성 시작 ===
+[1/6] 참조 탭 읽기...
+  무료 174개 / 직방전환 22개단지·65건(기준월) / 프로모션 479개 / 정산 vote=3개월 survey=2개월 notify=3개월
+[2/6] 원본 탭 집계...
+  vote 15,974,318건 / survey 19,075건 / notify 262,850건
+  일간 vote 491일 / survey 29일 / notify 208일
+[3/6] 단지별 MAU 로드...
+  11442개 단지, 17개월 기준 top20 생성
+[4/6] Rawdata → table / autocomplete / svc_usage ...
+  단지 3473개 / autocomplete 3473개 / svc_matrix 3471개
+[4b/6] D.gr 계산 (일/주/월/분기/연간)...
+  gr 필드 104개 (서비스별 시계열 102개 + 제외현황 포함)
+[5/6] 기존 HTML → 안정 필드 추출...
+  소스: 단지서비스팀_대시보드_v76.html (v76)
+[6/6] HTML 파일 생성...
+  저장: 단지서비스팀_대시보드_v77.html  (D=3731 KB)
+  저장: index.html
+Traceback (most recent call last):
+  File "C:\Users\admin\운영\단지서비스팀 대시보드\generate_html.py", line 1129, in <module>
+    print(f"\n\u2714 완료 \u2014 v{new_ver} 생성")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'cp949' codec can't encode character '\u2714' in position 2: illegal multibyte sequence
+=== 단지서비스팀 대시보드 HTML 생성 시작 ===
+[1/6] 참조 탭 읽기...
+  무료 174개 / 직방전환 22개단지·65건(기준월) / 프로모션 479개 / 정산 vote=3개월 survey=2개월 notify=3개월
+[2/6] 원본 탭 집계...
+  vote 15,974,318건 / survey 19,075건 / notify 262,850건
+  일간 vote 491일 / survey 29일 / notify 208일
+[3/6] 단지별 MAU 로드...
+  11442개 단지, 17개월 기준 top20 생성
+[4/6] Rawdata → table / autocomplete / svc_usage ...
+  단지 3473개 / autocomplete 3473개 / svc_matrix 3471개
+[4b/6] D.gr 계산 (일/주/월/분기/연간)...
+  gr 필드 104개 (서비스별 시계열 102개 + 제외현황 포함)
+[5/6] 기존 HTML → 안정 필드 추출...
+  소스: 단지서비스팀_대시보드_v77.html (v77)
+[6/6] HTML 파일 생성...
+  저장: 단지서비스팀_대시보드_v78.html  (D=3731 KB)
+  저장: index.html
+
+[완료] v78 생성
+  다음: python deploy.py 로 배포
+=== GitHub Pages 배포 시작 ===
+Traceback (most recent call last):
+  File "C:\Users\admin\운영\단지서비스팀 대시보드\deploy.py", line 37, in <module>
+    print("[배포] index.html 변경 감지 \u2014 커밋 진행")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'cp949' codec can't encode character '\u2014' in position 22: illegal multibyte sequence
+=== 단지서비스팀 대시보드 HTML 생성 시작 ===
+[1/6] 참조 탭 읽기...
+  무료 174개 / 직방전환 22개단지·65건(기준월) / 프로모션 479개 / 정산 vote=3개월 survey=2개월 notify=3개월
+[2/6] 원본 탭 집계...
+  vote 15,974,318건 / survey 19,075건 / notify 262,850건
+  일간 vote 491일 / survey 29일 / notify 208일
+[3/6] 단지별 MAU 로드...
+  11442개 단지, 17개월 기준 top20 생성
+[4/6] Rawdata → table / autocomplete / svc_usage ...
+  단지 3473개 / autocomplete 3473개 / svc_matrix 3471개
+[4b/6] D.gr 계산 (일/주/월/분기/연간)...
+  gr 필드 104개 (서비스별 시계열 102개 + 제외현황 포함)
+[5/6] 기존 HTML → 안정 필드 추출...
+  소스: 단지서비스팀_대시보드_v78.html (v78)
+[6/6] HTML 파일 생성...
+  저장: 단지서비스팀_대시보드_v79.html  (D=3731 KB)
+  저장: index.html
+
+[완료] v79 생성
+  다음: python deploy.py 로 배포
+=== GitHub Pages 배포 시작 ===
+Traceback (most recent call last):
+  File "C:\Users\admin\운영\단지서비스팀 대시보드\deploy.py", line 37, in <module>
+    print("[배포] index.html 변경 감지 \u2014 커밋 진행")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'cp949' codec can't encode character '\u2014' in position 22: illegal multibyte sequence
+=== 단지서비스팀 대시보드 HTML 생성 시작 ===
+[1/6] 참조 탭 읽기...
+  무료 174개 / 직방전환 22개단지·65건(기준월) / 프로모션 479개 / 정산 vote=3개월 survey=2개월 notify=3개월
+[2/6] 원본 탭 집계...
+  vote 15,974,318건 / survey 19,075건 / notify 262,850건
+  일간 vote 491일 / survey 29일 / notify 208일
+[3/6] 단지별 MAU 로드...
+  11442개 단지, 17개월 기준 top20 생성
+[4/6] Rawdata → table / autocomplete / svc_usage ...
+  단지 3473개 / autocomplete 3473개 / svc_matrix 3471개
+[4b/6] D.gr 계산 (일/주/월/분기/연간)...
+  gr 필드 104개 (서비스별 시계열 102개 + 제외현황 포함)
+[5/6] 기존 HTML → 안정 필드 추출...
+  소스: 단지서비스팀_대시보드_v79.html (v79)
+[6/6] HTML 파일 생성...
+  저장: 단지서비스팀_대시보드_v80.html  (D=3731 KB)
+  저장: index.html
+
+[완료] v80 생성
+  다음: python deploy.py 로 배포
+To https://github.com/gibong2-oss/danjiso-dashboard.git
+   a47dc0d..c8d9fbe  main -> main
+=== GitHub Pages 배포 시작 ===
+[배포] index.html 변경 감지 - 커밋 진행
+[추가] 단지서비스팀_대시보드_v80.html
+[커밋] auto update 2026-05-13
+[푸시] git push origin main ...
+=== 배포 완료: 2026-05-13 ===
+=== 단지서비스팀 대시보드 HTML 생성 시작 ===
+[1/6] 참조 탭 읽기...
+  무료 174개 / 직방전환 22개단지·65건(기준월) / 프로모션 479개 / 정산 vote=3개월 survey=2개월 notify=3개월
+[2/6] 원본 탭 집계...
+  vote 15,974,318건 / survey 19,075건 / notify 262,850건
+  일간 vote 491일 / survey 29일 / notify 208일
+[3/6] 단지별 MAU 로드...
+  11442개 단지, 17개월 기준 top20 생성
+[4/6] Rawdata → table / autocomplete / svc_usage ...
+  단지 3473개 / autocomplete 3473개 / svc_matrix 3471개
+[4b/6] D.gr 계산 (일/주/월/분기/연간)...
+  gr 필드 104개 (서비스별 시계열 102개 + 제외현황 포함)
+[5/6] 기존 HTML → 안정 필드 추출...
+  소스: 단지서비스팀_대시보드_v80.html (v80)
+[6/6] HTML 파일 생성...
+  저장: 단지서비스팀_대시보드_v81.html  (D=3731 KB)
+  저장: index.html
+
+[완료] v81 생성
+  다음: python deploy.py 로 배포
+To https://github.com/gibong2-oss/danjiso-dashboard.git
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to 'https://github.com/gibong2-oss/danjiso-dashboard.git'
+hint: Updates were rejected because the remote contains work that you do not
+hint: have locally. This is usually caused by another repository pushing to
+hint: the same ref. If you want to integrate the remote changes, use
+hint: 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+=== GitHub Pages 배포 시작 ===
+[배포] index.html 변경 감지 - 커밋 진행
+[추가] 단지서비스팀_대시보드_v81.html
+[커밋] auto update 2026-05-14
+[푸시] git push origin main ...
+Traceback (most recent call last):
+  File "C:\Users\admin\운영\단지서비스팀 대시보드\deploy.py", line 71, in <module>
+    print("[오류] git push 실패 \u2014 네트워크 또는 인증을 확인하세요.")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'cp949' codec can't encode character '\u2014' in position 17: illegal multibyte sequence
+=== 단지서비스팀 대시보드 HTML 생성 시작 ===
+[1/6] 참조 탭 읽기...
+  무료 174개 / 직방전환 22개단지·65건(기준월) / 프로모션 479개 / 정산 vote=3개월 survey=2개월 notify=3개월
+[2/6] 원본 탭 집계...
+  vote 15,974,318건 / survey 19,075건 / notify 262,850건
+  일간 vote 491일 / survey 29일 / notify 208일
+[3/6] 단지별 MAU 로드...
+  11442개 단지, 17개월 기준 top20 생성
+[4/6] Rawdata → table / autocomplete / svc_usage ...
+  단지 3473개 / autocomplete 3473개 / svc_matrix 3471개
+[4b/6] D.gr 계산 (일/주/월/분기/연간)...
+  gr 필드 104개 (서비스별 시계열 102개 + 제외현황 포함)
+[5/6] 기존 HTML → 안정 필드 추출...
+  소스: 단지서비스팀_대시보드_v81.html (v81)
+[6/6] HTML 파일 생성...
+  저장: 단지서비스팀_대시보드_v82.html  (D=3731 KB)
+  저장: index.html
+
+[완료] v82 생성
+  다음: python deploy.py 로 배포
+To https://github.com/gibong2-oss/danjiso-dashboard.git
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to 'https://github.com/gibong2-oss/danjiso-dashboard.git'
+hint: Updates were rejected because the remote contains work that you do not
+hint: have locally. This is usually caused by another repository pushing to
+hint: the same ref. If you want to integrate the remote changes, use
+hint: 'git pull' before pushing again.
+hint: See the 'Note about fast-forwards' in 'git push --help' for details.
+=== GitHub Pages 배포 시작 ===
+[배포] index.html 변경 감지 - 커밋 진행
+[추가] 단지서비스팀_대시보드_v82.html
+[커밋] auto update 2026-05-15
+[푸시] git push origin main ...
+Traceback (most recent call last):
+  File "C:\Users\admin\운영\단지서비스팀 대시보드\deploy.py", line 71, in <module>
+    print("[오류] git push 실패 \u2014 네트워크 또는 인증을 확인하세요.")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'cp949' codec can't encode character '\u2014' in position 17: illegal multibyte sequence
+=== 단지서비스팀 대시보드 HTML 생성 시작 ===
+[1/6] 참조 탭 읽기...
+  무료 174개 / 직방전환 22개단지·65건(기준월) / 프로모션 479개 / 정산 vote=3개월 survey=2개월 notify=3개월
+[2/6] 원본 탭 집계...
+  vote 15,976,165건 / survey 19,075건 / notify 271,371건
+  일간 vote 493일 / survey 29일 / notify 211일
+[3/6] 단지별 MAU 로드...
+  11442개 단지, 17개월 기준 top20 생성
+[4/6] Rawdata → table / autocomplete / svc_usage ...
+  단지 3473개 / autocomplete 3473개 / svc_matrix 3471개
+[4b/6] D.gr 계산 (일/주/월/분기/연간)...
+  gr 필드 104개 (서비스별 시계열 102개 + 제외현황 포함)
+[5/6] 기존 HTML → 안정 필드 추출...
+  소스: 단지서비스팀_대시보드_v83.html (v83)
+[6/6] HTML 파일 생성...
+  저장: 단지서비스팀_대시보드_v84.html  (D=3732 KB)
+  저장: index.html
+
+[완료] v84 생성
+  다음: python deploy.py 로 배포
+=== GitHub Pages 배포 시작 ===
+[배포] index.html 변경 감지 - 커밋 진행
+[추가] 단지서비스팀_대시보드_v84.html
+[오류] git commit 실패
+fatal: cannot lock ref 'HEAD': Unable to create 'C:/Users/admin/운영/단지서비스팀 대시보드/.git/HEAD.lock': File exists.
+
+Another git process seems to be running in this repository, e.g.
+an editor opened by 'git commit'. Please make sure all processes
+are terminated then try again. If it still fails, a git process
+may have crashed in this repository earlier:
+remove the file manually to continue.
+=== 단지서비스팀 대시보드 HTML 생성 시작 ===
+[1/6] 참조 탭 읽기...
+  무료 174개 / 직방전환 22개단지·65건(기준월) / 프로모션 479개 / 정산 vote=3개월 survey=2개월 notify=3개월
+[2/6] 원본 탭 집계...
+  vote 15,976,165건 / survey 19,075건 / notify 271,371건
+  일간 vote 493일 / survey 29일 / notify 211일
+[3/6] 단지별 MAU 로드...
+  11442개 단지, 17개월 기준 top20 생성
+[4/6] Rawdata → table / autocomplete / svc_usage ...
+  단지 3473개 / autocomplete 3473개 / svc_matrix 3471개
+[4b/6] D.gr 계산 (일/주/월/분기/연간)...
+  gr 필드 104개 (서비스별 시계열 102개 + 제외현황 포함)
+[5/6] 기존 HTML → 안정 필드 추출...
+  소스: 단지서비스팀_대시보드_v84.html (v84)
+[6/6] HTML 파일 생성...
+  저장: 단지서비스팀_대시보드_v85.html  (D=3732 KB)
+  저장: index.html
+
+[완료] v85 생성
+  다음: python deploy.py 로 배포
+To https://github.com/gibong2-oss/danjiso-dashboard.git
+   bf12da1..778bdb9  main -> main
+=== GitHub Pages 배포 시작 ===
+[배포] index.html 변경 감지 - 커밋 진행
+[추가] 단지서비스팀_대시보드_v85.html
+[커밋] auto update 2026-05-19
+[푸시] git push origin main ...
+=== 배포 완료: 2026-05-19 ===

@@ -785,7 +785,7 @@ function drawUsageRev(id, data_est, data_settle){
     var unitNote = document.createElement("div");
     unitNote.id = btnId + "_unit";
     unitNote.style.cssText = "font-size:10px;color:var(--ts);text-align:right;margin-bottom:4px;width:100%";
-    unitNote.textContent = "(단위: 만원, VAT 포함)";
+    unitNote.textContent = "(단위: 원, VAT 포함)";
     el.parentElement.insertBefore(unitNote, el);
   }
   var _abp=document.getElementById(btnId+"_per")?document.querySelector("#"+btnId+"_per button.on"):null;
@@ -810,15 +810,15 @@ function drawUsageRev(id, data_est, data_settle){
       return;
     }
     var colors=d.labels.map(function(){return "rgba(139,128,212,.8)";});
-    var revDs=[{label:"매출(만원, VAT포함)",data:d.vals,backgroundColor:colors,borderRadius:4,order:1}];
+    var revDs=[{label:"매출(원, VAT포함)",data:d.vals.map(function(v){return Math.round(v*10000);}),backgroundColor:colors,borderRadius:4,order:1}];
     var revAd=avgDataset(d.vals); if(revAd) revDs.push(revAd);
     mkC(id,{type:"bar",data:{labels:d.labels,datasets:revDs},
       options:{responsive:true,maintainAspectRatio:true,clip:false,layout:{padding:{top:20,right:8}},
         interaction:{mode:"index",intersect:false},
         plugins:{legend:{display:revAd!=null,labels:{boxWidth:20,font:{size:10},filter:function(li){return li.datasetIndex>0;}}},
           tooltip:{callbacks:{label:function(ctx){
-            if(ctx.dataset.type==="line") return "  평균: "+Math.round(ctx.parsed.y).toLocaleString()+" 만원";
-            return "  "+ctx.parsed.y.toLocaleString()+" 만원";
+            if(ctx.dataset.type==="line") return "  평균: "+Math.round(ctx.parsed.y).toLocaleString()+" 원";
+            return "  "+ctx.parsed.y.toLocaleString()+" 원";
           }}},
           datalabels:{display:true,anchor:"end",align:"end",font:{size:9,weight:"700"},
           formatter:function(v){return v?v.toLocaleString():"";},color:"#555"}},
@@ -1083,12 +1083,12 @@ function initOv(){
     {label: "평균 이용 횟수/월",            val: num(Math.round(vS.avg)),                               grp:1},
     {label: "누적 발송 건수",               val: num(vSend.sum),                                        grp:2},
     {label: "평균 발송 건수/월",            val: num(Math.round(vSend.avg)),                            grp:2},
-    {label: "누적 매출 추정(만원,VAT포함)", val: num(Math.round(vRev.sum)),                             grp:3},
-    {label: "평균 매출 추정/월(만원)",      val: num(Math.round(vRev.avg)),                             grp:3},
-    {label: "누적 매출 정산(만원,VAT포함)", val: num(Math.round(vRevS.sum)), sub: "2026-03 이후 기준",  grp:4, settleClick:"vote"},
-    {label: "평균 매출 정산/월(만원)",      val: num(Math.round(vRevS.avg)), sub: "2026-03 이후 기준",  grp:4, settleClick:"vote"},
-    {label: "단지당 월평균 매출 추정(원)",  val: num(vRevPerCplx * 10000),                              grp:5},
-    {label: "단지당 월평균 매출 정산(원)",  val: num(vRevSPerCplx * 10000), sub: "2026-03 이후 기준",  grp:5, settleClick:"vote"},
+    {label: "누적 매출 추정(원,VAT포함)", val: num(Math.round(vRev.sum * 10000)),                             grp:3},
+    {label: "평균 매출 추정/월(원)",        val: num(Math.round(vRev.avg * 10000)),                             grp:3},
+    {label: "누적 매출 정산(원,VAT포함)", val: num(Math.round(vRevS.sum * 10000)), sub: "2026-03 이후 기준",  grp:4, settleClick:"vote"},
+    {label: "평균 매출 정산/월(원)",        val: num(Math.round(vRevS.avg * 10000)), sub: "2026-03 이후 기준",  grp:4, settleClick:"vote"},
+    {label: "단지당 월평균 매출 추정(원)",  val: (typeof vRevPerCplx==="number" ? num(vRevPerCplx * 10000) : "-"),                              grp:5},
+    {label: "단지당 월평균 매출 정산(원)",  val: (typeof vRevSPerCplx==="number" ? num(vRevSPerCplx * 10000) : "-"), sub: "2026-03 이후 기준",  grp:5, settleClick:"vote"},
     {label: "누적 이용 단지수",             val: num(voteTotalCplx),                                    grp:6},
     {label: "평균 이용 단지수/월",          val: num(Math.round(voteCplxStat.avg)),                     grp:6},
     {label: "평균 이용 단지수/월(정산기준)",val: num(Math.round(voteCplxSettleStat.avg)), sub: "2026-03 이후 기준", grp:6, span:true, settleClick:"vote"},
@@ -1113,12 +1113,12 @@ function initOv(){
     {label: "평균 이용 횟수/월",            val: num(Math.round(nEv.avg)),                               grp:1},
     {label: "누적 발송 건수",               val: num(nS.sum),                                            grp:2},
     {label: "평균 발송 건수/월",            val: num(Math.round(nS.avg)),                                grp:2},
-    {label: "누적 매출 추정(만원,VAT포함)", val: num(Math.round(nRev.sum)),                              grp:3},
-    {label: "평균 매출 추정/월(만원)",      val: num(Math.round(nRev.avg)),                              grp:3},
-    {label: "누적 매출 정산(만원,VAT포함)", val: num(Math.round(nRevS.sum)), sub: "2026-03 이후 기준",   grp:4, settleClick:"notify"},
-    {label: "평균 매출 정산/월(만원)",      val: num(Math.round(nRevS.avg)), sub: "2026-03 이후 기준",   grp:4, settleClick:"notify"},
-    {label: "단지당 월평균 매출 추정(원)",  val: num(nRevPerCplx * 10000),                               grp:5},
-    {label: "단지당 월평균 매출 정산(원)",  val: num(nRevSPerCplx * 10000), sub: "2026-03 이후 기준",   grp:5, settleClick:"notify"},
+    {label: "누적 매출 추정(원,VAT포함)", val: num(Math.round(nRev.sum * 10000)),                              grp:3},
+    {label: "평균 매출 추정/월(원)",        val: num(Math.round(nRev.avg * 10000)),                              grp:3},
+    {label: "누적 매출 정산(원,VAT포함)", val: num(Math.round(nRevS.sum * 10000)), sub: "2026-03 이후 기준",   grp:4, settleClick:"notify"},
+    {label: "평균 매출 정산/월(원)",        val: num(Math.round(nRevS.avg * 10000)), sub: "2026-03 이후 기준",   grp:4, settleClick:"notify"},
+    {label: "단지당 월평균 매출 추정(원)",  val: (typeof nRevPerCplx==="number" ? num(nRevPerCplx * 10000) : "-"),                               grp:5},
+    {label: "단지당 월평균 매출 정산(원)",  val: (typeof nRevSPerCplx==="number" ? num(nRevSPerCplx * 10000) : "-"), sub: "2026-03 이후 기준",   grp:5, settleClick:"notify"},
     {label: "누적 이용 단지수",             val: num(notifyTotalCplx),                                   grp:6},
     {label: "평균 이용 단지수/월",          val: num(Math.round(notifyCplxStat.avg)),                    grp:6},
     {label: "평균 이용 단지수/월(정산기준)",val: num(Math.round(notifyCplxSettleStat.avg)), sub: "2026-03 이후 기준", grp:6, span:true, settleClick:"notify"},
@@ -1143,12 +1143,12 @@ function initOv(){
     {label: "평균 이용 횟수/월",            val: num(Math.round(sS.avg)),                                grp:1},
     {label: "누적 발송 건수",               val: num(sSend.sum),                                         grp:2},
     {label: "평균 발송 건수/월",            val: num(Math.round(sSend.avg)),                             grp:2},
-    {label: "누적 매출 추정(만원,VAT포함)", val: num(Math.round(sRev.sum)),                              grp:3},
-    {label: "평균 매출 추정/월(만원)",      val: num(Math.round(sRev.avg)),                              grp:3},
-    {label: "누적 매출 정산(만원,VAT포함)", val: num(Math.round(sRevS.sum)), sub: "2026-03 이후 기준",   grp:4, settleClick:"survey"},
-    {label: "평균 매출 정산/월(만원)",      val: num(Math.round(sRevS.avg)), sub: "2026-03 이후 기준",   grp:4, settleClick:"survey"},
-    {label: "단지당 월평균 매출 추정(원)",  val: num(sRevPerCplx * 10000),                               grp:5},
-    {label: "단지당 월평균 매출 정산(원)",  val: num(sRevSPerCplx * 10000), sub: "2026-03 이후 기준",   grp:5, settleClick:"survey"},
+    {label: "누적 매출 추정(원,VAT포함)", val: num(Math.round(sRev.sum * 10000)),                              grp:3},
+    {label: "평균 매출 추정/월(원)",        val: num(Math.round(sRev.avg * 10000)),                              grp:3},
+    {label: "누적 매출 정산(원,VAT포함)", val: num(Math.round(sRevS.sum * 10000)), sub: "2026-03 이후 기준",   grp:4, settleClick:"survey"},
+    {label: "평균 매출 정산/월(원)",        val: num(Math.round(sRevS.avg * 10000)), sub: "2026-03 이후 기준",   grp:4, settleClick:"survey"},
+    {label: "단지당 월평균 매출 추정(원)",  val: (typeof sRevPerCplx==="number" ? num(sRevPerCplx * 10000) : "-"),                               grp:5},
+    {label: "단지당 월평균 매출 정산(원)",  val: (typeof sRevSPerCplx==="number" ? num(sRevSPerCplx * 10000) : "-"), sub: "2026-03 이후 기준",   grp:5, settleClick:"survey"},
     {label: "누적 이용 단지수",             val: num(surveyTotalCplx),                                   grp:6},
     {label: "평균 이용 단지수/월",          val: num(Math.round(surveyCplxStat.avg)),                    grp:6},
     {label: "평균 이용 단지수/월(정산기준)",val: num(Math.round(surveyCplxSettleStat.avg)), sub: "2026-03 이후 기준", grp:6, span:true, settleClick:"survey"},
@@ -1202,7 +1202,7 @@ function drawVoteRev(){
     var t = types[idxArr[i]]; return t === "settled" ? "#52C41A" : "rgba(139,128,212,.8)";
   });
   mkC("cVR", {type: "bar",
-    data: {labels: sd.lbl, datasets: [{label: "매출(만원, VAT포함)", data: sd.d[0], backgroundColor: colors, borderRadius: 4, order: 1}]},
+    data: {labels: sd.lbl, datasets: [{label: "매출(원, VAT포함)", data: sd.d[0], backgroundColor: colors, borderRadius: 4, order: 1}]},
     options: {responsive: true, maintainAspectRatio: true,
       plugins: {legend: {display: false}, datalabels: {display: true, anchor: "end", align: "end",
         font: {size: 9, weight: "700"}, formatter: function(v){ return v ? v.toLocaleString() : ""; }, color: "#555"}},
@@ -1545,8 +1545,8 @@ function showKpiModal(type, settleOnly){
   Object.keys(_svcMx).forEach(function(k){ if((_svcMx[k][_cplxKey]||0) > 0) totalCplx++; });
 
   var rows = filtered.map(function(r){
-    var rEst = revEst[r.ym] ? num(Math.round(revEst[r.ym])) : "–";
-    var rSet = revSet[r.ym] ? num(Math.round(revSet[r.ym])) : "–";
+    var rEst = revEst[r.ym] ? num(Math.round(revEst[r.ym] * 10000)) : "–";
+    var rSet = revSet[r.ym] ? num(Math.round(revSet[r.ym] * 10000)) : "–";
     return "<tr>" +
       "<td>" + r.ym + "</td>" +
       "<td style='text-align:right'>" + (r.cplx ? num(r.cplx) : "–") + "</td>" +
@@ -1560,7 +1560,7 @@ function showKpiModal(type, settleOnly){
   var dlId = "kpiDlBtn_" + type;
   var bodyHtml =
     "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px'>" +
-      "<span style='font-size:12px;color:var(--ts)'>" + filtered.length + "개월 합계: <b>" + num(total1) + "</b> 안건 / <b>" + num(total2) + "</b> 건 / 매출추정 <b>" + num(Math.round(totalRevEst)) + "</b>만원</span>" +
+      "<span style='font-size:12px;color:var(--ts)'>" + filtered.length + "개월 합계: <b>" + num(total1) + "</b> 안건 / <b>" + num(total2) + "</b> 건 / 매출추정 <b>" + num(Math.round(totalRevEst * 10000)) + "</b>원</span>" +
       "<button id='" + dlId + "' class='modal-dl-btn'>📥 엑셀 다운로드</button>" +
     "</div>" +
     "<div style='overflow-y:auto;max-height:380px'>" +
@@ -1569,16 +1569,16 @@ function showKpiModal(type, settleOnly){
     "<th style='text-align:right'>이용 단지수</th>" +
     "<th style='text-align:right'>" + h2 + "</th>" +
     "<th style='text-align:right'>" + h3 + "</th>" +
-    "<th style='text-align:right'>매출 추정(만원)</th>" +
-    "<th style='text-align:right'>매출 정산(만원)</th>" +
+    "<th style='text-align:right'>매출 추정(원)</th>" +
+    "<th style='text-align:right'>매출 정산(원)</th>" +
     "</tr></thead>" +
     "<tbody>" + rows + "</tbody>" +
     "<tfoot><tr style='font-weight:700;border-top:2px solid var(--bdr)'>" +
     "<td>합계</td><td style='text-align:right'>" + num(totalCplx) + "<br><span style='font-size:9px;font-weight:400;color:var(--ts)'>(누적 고유)</span></td>" +
     "<td style='text-align:right'>" + num(total1) + "</td>" +
     "<td style='text-align:right'>" + num(total2) + "</td>" +
-    "<td style='text-align:right'>" + num(Math.round(totalRevEst)) + "</td>" +
-    "<td style='text-align:right'>" + num(Math.round(totalRevSet)) + "</td>" +
+    "<td style='text-align:right'>" + num(Math.round(totalRevEst * 10000)) + "</td>" +
+    "<td style='text-align:right'>" + num(Math.round(totalRevSet * 10000)) + "</td>" +
     "</tr></tfoot>" +
     "</table></div>";
 
@@ -1587,9 +1587,9 @@ function showKpiModal(type, settleOnly){
   setTimeout(function(){
     var btn = document.getElementById(dlId);
     if(btn) btn.onclick = function(){
-      var csv = "﻿" + h1 + ",이용 단지수," + h2 + "," + h3 + ",매출 추정(만원),매출 정산(만원)\n";
-      filtered.forEach(function(r){ csv += r.ym + "," + (r.cplx||0) + "," + r.v1 + "," + r.v2 + "," + Math.round(revEst[r.ym]||0) + "," + Math.round(revSet[r.ym]||0) + "\n"; });
-      csv += "합계(누적 고유)," + totalCplx + "," + total1 + "," + total2 + "," + Math.round(totalRevEst) + "," + Math.round(totalRevSet) + "\n";
+      var csv = "﻿" + h1 + ",이용 단지수," + h2 + "," + h3 + ",매출 추정(원),매출 정산(원)\n";
+      filtered.forEach(function(r){ csv += r.ym + "," + (r.cplx||0) + "," + r.v1 + "," + r.v2 + "," + Math.round((revEst[r.ym]||0)*10000) + "," + Math.round((revSet[r.ym]||0)*10000) + "\n"; });
+      csv += "합계(누적 고유)," + totalCplx + "," + total1 + "," + total2 + "," + Math.round(totalRevEst*10000) + "," + Math.round(totalRevSet*10000) + "\n";
       triggerCsvDownload(csv, fname);
     };
   }, 50);

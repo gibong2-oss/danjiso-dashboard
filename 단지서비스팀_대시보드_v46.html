@@ -586,7 +586,7 @@ function avgDataset(data){
   };
 }
 function barCfg(labels, data, color, yFmt){
-  var ds = [{data: data, backgroundColor: color, borderRadius: 4}];
+  var ds = [{data: data, backgroundColor: color, borderRadius: 4, order: 1}];
   var ad = avgDataset(data); if(ad) ds.push(ad);
   return {
     type: "bar",
@@ -810,7 +810,7 @@ function drawUsageRev(id, data_est, data_settle){
       return;
     }
     var colors=d.labels.map(function(){return "rgba(139,128,212,.8)";});
-    var revDs=[{label:"매출(만원, VAT포함)",data:d.vals,backgroundColor:colors,borderRadius:4}];
+    var revDs=[{label:"매출(만원, VAT포함)",data:d.vals,backgroundColor:colors,borderRadius:4,order:1}];
     var revAd=avgDataset(d.vals); if(revAd) revDs.push(revAd);
     mkC(id,{type:"bar",data:{labels:d.labels,datasets:revDs},
       options:{responsive:true,maintainAspectRatio:true,clip:false,layout:{padding:{top:20,right:8}},
@@ -1202,7 +1202,7 @@ function drawVoteRev(){
     var t = types[idxArr[i]]; return t === "settled" ? "#52C41A" : "rgba(139,128,212,.8)";
   });
   mkC("cVR", {type: "bar",
-    data: {labels: sd.lbl, datasets: [{label: "매출(만원, VAT포함)", data: sd.d[0], backgroundColor: colors, borderRadius: 4}]},
+    data: {labels: sd.lbl, datasets: [{label: "매출(만원, VAT포함)", data: sd.d[0], backgroundColor: colors, borderRadius: 4, order: 1}]},
     options: {responsive: true, maintainAspectRatio: true,
       plugins: {legend: {display: false}, datalabels: {display: true, anchor: "end", align: "end",
         font: {size: 9, weight: "700"}, formatter: function(v){ return v ? v.toLocaleString() : ""; }, color: "#555"}},
