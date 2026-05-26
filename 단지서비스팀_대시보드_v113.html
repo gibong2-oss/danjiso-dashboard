@@ -1254,6 +1254,21 @@ function initOv(){
       return "<div class=\"card kpi\"><div class=\"ki\">"+k.icon+"</div><div class=\"kv\">"+k.val+"</div><div class=\"kl\">"+k.label+(k.sub?"<br><span style='font-size:10px;color:var(--ts)'>"+k.sub+"</span>":"")+"</div></div>";
     }).join("");
   }
+  drawTotalRev();
+
+  drawTotalCnt();
+
+
+  drawTotalCplx();
+
+  drawTotalExcl();
+
+  // 활성도 도넛 → initCx()로 이동
+
+  // 상위 10개 단지 MAU 제거됨
+}
+
+function drawTotalRev(){
   // 기간별 전체 매출 현황 차트 (3개 서비스 합계)
   (function(){
     function mergeP(arrs){
@@ -1294,7 +1309,9 @@ function initOv(){
       {day:sttDay, wk:sttWk, mo:sttMo}
     );
   })();
+}
 
+function drawTotalCnt(){
   // 월별 전체 이용 건수 차트
   (function(){
     var vLabels=D.vote_ids_labels||D.months||[]; var vVals=D.vote_ids_values||[];
@@ -1319,8 +1336,9 @@ function initOv(){
       plugins:{legend:{position:"top",labels:{boxWidth:10,font:{size:10}},onClick:function(e,item,legend){Chart.defaults.plugins.legend.onClick.call(this,e,item,legend);var ch=legend.chart;var avgDs=ch.data.datasets[ch.data.datasets.length-1];var sum=new Array(mos.length).fill(0);ch.data.datasets.forEach(function(ds,i){if(ds.label!=="평균"&&!ch.getDatasetMeta(i).hidden){ds.data.forEach(function(v,j){sum[j]+=(v||0);});}});var avg=sum.length?Math.round(sum.reduce(function(a,b){return a+b;},0)/sum.length):0;avgDs.data=sum.map(function(){return avg;});ch.update();}},datalabels:{display:false},tooltip:{callbacks:{label:function(ctx){var v=ctx.parsed.y;return ctx.dataset.label+": "+v.toLocaleString()+"건";}}}},
       scales:{x:{stacked:true,ticks:{font:{size:9},maxRotation:45}},y:{stacked:true,ticks:{font:{size:9},callback:function(v){return v>=10000?(v/10000).toFixed(0)+"만":v;}}}}}});
   })();
+}
 
-
+function drawTotalCplx(){
   // 월별 전체 이용 단지 수 차트
   (function(){
     var sc=D.svc_cplx||{};
@@ -1346,7 +1364,9 @@ function initOv(){
       plugins:{legend:{position:"top",labels:{boxWidth:10,font:{size:10}},onClick:function(e,item,legend){Chart.defaults.plugins.legend.onClick.call(this,e,item,legend);var ch=legend.chart;var avgDs=ch.data.datasets[ch.data.datasets.length-1];var sum=new Array(mos.length).fill(0);ch.data.datasets.forEach(function(ds,i){if(ds.label!=="평균"&&!ch.getDatasetMeta(i).hidden){ds.data.forEach(function(v,j){sum[j]+=(v||0);});}});var avg=sum.length?Math.round(sum.reduce(function(a,b){return a+b;},0)/sum.length):0;avgDs.data=sum.map(function(){return avg;});ch.update();}},datalabels:{display:false},tooltip:{callbacks:{label:function(ctx){var v=ctx.parsed.y;return ctx.dataset.label+": "+v.toLocaleString()+"개";}}}},
       scales:{x:{stacked:true,ticks:{font:{size:9},maxRotation:45}},y:{stacked:true,ticks:{font:{size:9},callback:function(v){return v>=1000?Math.round(v/1000)+"k":v;}}}}}});
   })();
+}
 
+function drawTotalExcl(){
   // 월별 전체 1,000원 미만 발송 건수 차트
   (function(){
     function lkp(lbls,vals,m){var i=(lbls||[]).indexOf(m);return i>=0?(vals[i]||0):0;}
@@ -1372,11 +1392,8 @@ function initOv(){
       plugins:{legend:{position:"top",labels:{boxWidth:10,font:{size:10}},onClick:function(e,item,legend){Chart.defaults.plugins.legend.onClick.call(this,e,item,legend);var ch=legend.chart;var avgDs=ch.data.datasets[ch.data.datasets.length-1];var sum=new Array(mos.length).fill(0);ch.data.datasets.forEach(function(ds,i){if(ds.label!=="평균"&&!ch.getDatasetMeta(i).hidden){ds.data.forEach(function(v,j){sum[j]+=(v||0);});}});var avg=sum.length?Math.round(sum.reduce(function(a,b){return a+b;},0)/sum.length):0;avgDs.data=sum.map(function(){return avg;});ch.update();}},datalabels:{display:false},tooltip:{callbacks:{label:function(ctx){var v=ctx.parsed.y;return ctx.dataset.label+": "+v.toLocaleString()+"건";}}}},
       scales:{x:{stacked:true,ticks:{font:{size:9},maxRotation:45}},y:{stacked:true,ticks:{font:{size:9},callback:function(v){return v>=1000?Math.round(v/1000)+"k":v;}}}}}});
   })();
-
-  // 활성도 도넛 → initCx()로 이동
-
-  // 상위 10개 단지 MAU 제거됨
 }
+
 
 // ── 서비스별 init (SERVICES 배열 기반) ──
 // 신규 서비스 추가는 SERVICES 배열에만 항목 추가하면 됨.
