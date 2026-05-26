@@ -370,7 +370,6 @@ var INITED = {};
 var gFilt = {start: null, end: null, code: null};
 var SETTLE_START = "2026-03";
 var mauSelectedCode = null;
-var revModeV = "e";
 
 // ── Helpers ──
 function mkC(id, cfg){
@@ -1419,90 +1418,46 @@ function initOv(){
   // 상위 10개 단지 MAU 제거됨
 }
 
-// ── 전자투표 ──
-function initVote(){
-  drawUsageCnt("cVI","#8B80D4",{
-    day:{labels:GR.vote_day_labels||[],vals:GR.vote_day_vals||[]},
-    wk:{labels:GR.vote_wk_labels||[],vals:GR.vote_wk_vals||[]},
-    mo:{labels:D.vote_ids_labels||D.months||[],vals:D.vote_ids_values||[]}
+// ── 서비스별 init (SERVICES 배열 기반) ──
+// 신규 서비스 추가는 SERVICES 배열에만 항목 추가하면 됨.
+// vote는 D.revenue_estimate_*를 매출로 쓰고, notify/survey는 GR 또는 count를 사용 → 헬퍼가 분기.
+function svcUsageRevMo(svc){
+  if(svc.dKeys.mo_rev_labels)
+    return {labels: D[svc.dKeys.mo_rev_labels]||[], vals: D[svc.dKeys.mo_rev]||[]};
+  return {labels: GR[svc.grKeys.rev_mo_labels]||[], vals: GR[svc.grKeys.rev_mo_vals]||[]};
+}
+function svcGrowthRevMo(svc){
+  if(svc.dKeys.mo_rev_labels)
+    return {labels: D[svc.dKeys.mo_rev_labels]||[], vals: D[svc.dKeys.mo_rev]||[]};
+  return {labels: D[svc.dKeys.mo_labels]||[], vals: D[svc.dKeys.mo_cnt]||[]};
+}
+function initService(svc){
+  var dK=svc.dKeys, gK=svc.grKeys, cv=svc.canvas;
+  drawUsageCnt(cv.cnt, svc.color, {
+    day:{labels:GR[gK.day_labels]||[], vals:GR[gK.day_vals]||[]},
+    wk: {labels:GR[gK.wk_labels]||[],  vals:GR[gK.wk_vals]||[]},
+    mo: {labels:D[dK.mo_labels]||D.months||[], vals:D[dK.mo_cnt]||[]}
   });
-  drawUsageRev("cVR",
-    {day:{labels:GR.vote_day_labels||[],vals:GR.vote_rev_day_vals||[]},
-     wk:{labels:GR.vote_rev_wk_labels||[],vals:GR.vote_rev_wk_vals||[]},
-     mo:{labels:D.revenue_estimate_labels||[],vals:D.revenue_estimate_values||[]}},
-    {day:{labels:GR.vote_settle_day_labels||[],vals:GR.vote_settle_day_vals||[]},
-     wk:{labels:GR.vote_settle_wk_labels||[],vals:GR.vote_settle_wk_vals||[]},
-     mo:{labels:GR.vote_settle_labels||[],vals:GR.vote_settle_vals||[]}}
+  var revMo = svcUsageRevMo(svc);
+  drawUsageRev(cv.rev,
+    {day:{labels:GR[gK.day_labels]||[], vals:GR[gK.rev_day_vals]||[]},
+     wk: {labels:GR[gK.rev_wk_labels]||[], vals:GR[gK.rev_wk_vals]||[]},
+     mo: revMo},
+    {day:{labels:GR[gK.settle_day_labels]||[], vals:GR[gK.settle_day_vals]||[]},
+     wk: {labels:GR[gK.settle_wk_labels]||[],  vals:GR[gK.settle_wk_vals]||[]},
+     mo: {labels:GR[gK.settle_labels]||[],     vals:GR[gK.settle_vals]||[]}}
   );
-  var vGr = calcGrowthRates(D.vote_ids_labels||[], D.vote_ids_values||[]);
-  drawGrowthCnt("cVG_cnt", GR.vote_wk_labels, GR.vote_wk_wow, D.vote_ids_labels||[], vGr.mom, vGr.qoq, vGr.yoy);
-  drawGrowthRev("cVG_rev", GR.vote_rev_wk_labels||[], GR.vote_rev_wk_wow||[], D.revenue_estimate_labels||[], D.revenue_estimate_values||[], GR.vote_settle_labels||[], GR.vote_settle_vals||[], GR.vote_settle_wk_labels||[], GR.vote_settle_wk_wow||[]);
+  var gr = calcGrowthRates(D[dK.mo_labels]||[], D[dK.mo_cnt]||[]);
+  drawGrowthCnt(cv.growthCnt, GR[gK.wk_labels], GR[gK.wk_wow], D[dK.mo_labels]||[], gr.mom, gr.qoq, gr.yoy);
+  var grRev = svcGrowthRevMo(svc);
+  drawGrowthRev(cv.growthRev, GR[gK.rev_wk_labels]||[], GR[gK.rev_wk_wow]||[],
+                grRev.labels, grRev.vals,
+                GR[gK.settle_labels]||[], GR[gK.settle_vals]||[],
+                GR[gK.settle_wk_labels]||[], GR[gK.settle_wk_wow]||[]);
 }
-function drawVoteRev(){
-  var useSettle = (revModeV === "s");
-  var labels = D.revenue_estimate_labels || D.months;
-  var vals = useSettle ? D.revenue_settled_values : D.revenue_estimate_values;
-  var types = D.revenue_settled_types || [];
-  var sd = SD(labels, vals);
-  var idxArr = sliceArr(labels);
-  var colors = sd.lbl.map(function(l, i){
-    var t = types[idxArr[i]]; return t === "settled" ? "#52C41A" : "rgba(139,128,212,.8)";
-  });
-  mkC("cVR", {type: "bar",
-    data: {labels: sd.lbl, datasets: [{label: "매출(원, VAT포함)", data: sd.d[0], backgroundColor: colors, borderRadius: 4, order: 1}]},
-    options: {responsive: true, maintainAspectRatio: true,
-      plugins: {legend: {display: false}, datalabels: {display: true, anchor: "end", align: "end",
-        font: {size: 9, weight: "700"}, formatter: function(v){ return v ? v.toLocaleString() : ""; }, color: "#555"}},
-      scales: {x: {ticks: {font: {size: 9}, maxRotation: 45}},
-        y: {ticks: {font: {size: 9}}}}
-    }
-  });
-}
-
-// ── 알림서비스 ──
-function initNotify(){
-  drawUsageCnt("cNE","#5EC8E8",{
-    day:{labels:GR.notify_day_labels||[],vals:GR.notify_day_vals||[]},
-    wk:{labels:GR.notify_wk_labels||[],vals:GR.notify_wk_vals||[]},
-    mo:{labels:D.notify_labels||[],vals:D.notify_sends||[]}
-  });
-  drawUsageRev("cNS",
-    {day:{labels:GR.notify_day_labels||[],vals:GR.notify_rev_day_vals||[]},
-     wk:{labels:GR.notify_wk_labels||[],vals:GR.notify_rev_wk_vals||[]},
-     mo:{labels:GR.notify_rev_months||[],vals:GR.notify_rev_vals||[]}},
-    {day:{labels:GR.notify_settle_day_labels||[],vals:GR.notify_settle_day_vals||[]},
-     wk:{labels:GR.notify_settle_wk_labels||[],vals:GR.notify_settle_wk_vals||[]},
-     mo:{labels:GR.notify_settle_labels||[],vals:GR.notify_settle_vals||[]}}
-  );
-  var nGr = calcGrowthRates(D.notify_labels||[], D.notify_sends||[]);
-  drawGrowthCnt("cNG_cnt", GR.notify_wk_labels, GR.notify_wk_wow, D.notify_labels||[], nGr.mom, nGr.qoq, nGr.yoy);
-  drawGrowthRev("cNG_rev", GR.notify_rev_wk_labels||[], GR.notify_rev_wk_wow||[], D.notify_labels||[], D.notify_sends||[], GR.notify_settle_labels||[], GR.notify_settle_vals||[], GR.notify_settle_wk_labels||[], GR.notify_settle_wk_wow||[]);
-}
-
-// ── 설문조사 ──
-function initSurvey(){
-  drawUsageCnt("cSI","#FFC654",{
-    day:{labels:GR.survey_day_labels||[],vals:GR.survey_day_vals||[]},
-    wk:{labels:GR.survey_wk_labels||[],vals:GR.survey_wk_vals||[]},
-    mo:{labels:D.survey_labels||D.months||[],vals:D.survey_cnt_values||[]}
-  });
-  drawUsageRev("cSR",
-    {day:{labels:GR.survey_day_labels||[],vals:GR.survey_rev_day_vals||[]},
-     wk:{labels:GR.survey_rev_wk_labels||[],vals:GR.survey_rev_wk_vals||[]},
-     mo:{labels:GR.survey_rev_months||[],vals:GR.survey_rev_vals||[]}},
-    {day:{labels:GR.survey_settle_day_labels||[],vals:GR.survey_settle_day_vals||[]},
-     wk:{labels:GR.survey_settle_wk_labels||[],vals:GR.survey_settle_wk_vals||[]},
-     mo:{labels:GR.survey_settle_labels||[],vals:GR.survey_settle_vals||[]}}
-  );
-  var sGr = calcGrowthRates(D.survey_labels||[], D.survey_cnt_values||[]);
-  drawGrowthCnt("cSG_cnt", GR.survey_wk_labels, GR.survey_wk_wow, D.survey_labels||[], sGr.mom, sGr.qoq, sGr.yoy);
-  drawGrowthRev("cSG_rev", GR.survey_rev_wk_labels||[], GR.survey_rev_wk_wow||[], D.survey_labels||[], D.survey_cnt_values||[], GR.survey_settle_labels||[], GR.survey_settle_vals||[], GR.survey_settle_wk_labels||[], GR.survey_settle_wk_wow||[]);
-}
-
 function initSp(id){
-  if(id === "sp-v") initVote();
-  else if(id === "sp-n") initNotify();
-  else if(id === "sp-s") initSurvey();
+  var svc = svcByPane(id);
+  if(svc) initService(svc);
 }
 
 // ── 단지 분석 탭 ──
@@ -1864,7 +1819,7 @@ function showExclModal(type){
   });
   filtered.sort(function(a,b){ return a.mo > b.mo ? -1 : a.mo < b.mo ? 1 : 0; });
 
-  var svcName  = baseType==="vote" ? "전자투표" : baseType==="notify" ? "알림서비스" : "설문조사";
+  var svcName  = svcByKey(baseType).label;
   var estLabel = isEst ? " (매출추정기반·전체기간)" : " (정산기준 이후)";
   var title    = svcName + " 발행제외 내역" + estLabel;
   var periodStr= effStart + " ~ " + (fEnd === "9999-99" ? "현재" : fEnd);
@@ -1875,7 +1830,7 @@ function showExclModal(type){
   filtered.forEach(function(it){ uniqueCodes[it.code]=1; });
   var totalCplx = Object.keys(uniqueCodes).length;
 
-  var unitPrice = baseType==='vote' ? 44 : baseType==='notify' ? 22 : 88;
+  var unitPrice = svcByKey(baseType).unitPrice;
   var totalExclCnt = 0;
   var _countedMos = {};
   filtered.forEach(function(it){
