@@ -175,8 +175,6 @@ td{font-size:12px}tr:hover td{background:rgba(139,128,212,.04)}
   <div class="g3" id="ovSvcTier" style="margin-bottom:14px"></div>
   <div class="st">전체 매출 현황</div>
   <div class="g4" style="margin-bottom:10px" id="ovTotalRevKpi"></div>
-  <div class="g2" style="margin-bottom:14px"><div class="card"><div class="ch"><span class="ct">기간별 전체 매출 현황</span><span class="cs">전자투표 + 알림서비스 + 설문조사</span></div><canvas id="cTotalRev" height="120"></canvas></div><div class="card" style="display:flex;flex-direction:column"><div class="ch"><span class="ct">월별 전체 이용 건수 현황</span><span class="cs">전자투표 + 알림서비스 + 설문조사</span></div><div style="flex:1;min-height:120px;position:relative"><canvas id="cTotalCnt"></canvas></div></div></div>
-  <div class="g2" style="margin-bottom:14px"><div class="card"><div class="ch"><span class="ct">월별 전체 이용 단지 수 현황</span><span class="cs">전자투표 + 알림서비스 + 설문조사</span></div><canvas id="cTotalCplx" height="90"></canvas></div><div class="card"><div class="ch"><span class="ct">월별 전체 1,000원 미만 발송 건수 현황</span><span class="cs">전자투표 + 알림서비스 + 설문조사</span></div><canvas id="cTotalExcl" height="90"></canvas></div></div>
   <div class="st">서비스별 현황 <span id="ovPeriodLabel" style="font-size:12px;color:var(--ts);font-weight:400"></span></div>
   <div class="g3" style="margin-bottom:14px">
     <div class="card kpi-clickable" id="card-vote" onclick="showKpiModal('vote')" title="클릭하면 상세 보기" style="cursor:pointer"><div class="ch"><span class="ct">🗳 전자투표</span><span class="cs" style="font-size:11px;color:var(--cp)">▶ 상세보기</span></div><div class="svc-stat-grid" id="ovVoteStat"></div></div>
@@ -1254,18 +1252,6 @@ function initOv(){
       return "<div class=\"card kpi\"><div class=\"ki\">"+k.icon+"</div><div class=\"kv\">"+k.val+"</div><div class=\"kl\">"+k.label+(k.sub?"<br><span style='font-size:10px;color:var(--ts)'>"+k.sub+"</span>":"")+"</div></div>";
     }).join("");
   }
-  drawTotalRev();
-
-  drawTotalCnt();
-
-
-  drawTotalCplx();
-
-  drawTotalExcl();
-
-  // 활성도 도넛 → initCx()로 이동
-
-  // 상위 10개 단지 MAU 제거됨
 }
 
 function drawTotalRev(){
@@ -1440,6 +1426,10 @@ function initService(svc){ initServiceUsage(svc); initServiceRevenue(svc); }
 function renderUsageCards(){
   var host = document.getElementById('pg-us');
   if(!host || host.dataset.rendered === '1') return;
+  var totalCards = '<div class="g2" style="margin-bottom:var(--g)">'+
+    '<div class="card" style="display:flex;flex-direction:column"><div class="ch"><span class="ct">월별 전체 이용 건수 현황</span><span class="cs">서비스별 합계</span></div><div style="flex:1;min-height:120px;position:relative"><canvas id="cTotalCnt"></canvas></div></div>'+
+    '<div class="card"><div class="ch"><span class="ct">월별 전체 이용 단지 수 현황</span><span class="cs">서비스별 합계</span></div><canvas id="cTotalCplx" height="90"></canvas></div>'+
+  '</div>';
   var svcCards = SERVICES.map(function(s){
     return '<div class="card"><div class="ch"><span class="ct">'+s.icon+' '+s.label+' — 이용 건수</span></div>'+
            '<canvas id="'+s.canvas.cnt+'" height="120"></canvas></div>';
@@ -1450,6 +1440,8 @@ function renderUsageCards(){
            '<div class="notice">WoW=주단위 | MoM·QoQ·YoY=월단위 | null 구간은 선 끊김</div></div>';
   }).join('');
   host.innerHTML =
+    '<div class="st">전체 이용 현황</div>'+
+    totalCards+
     '<div class="st">서비스별 이용 현황</div>'+
     '<div class="g3" style="margin-bottom:var(--g)">'+svcCards+'</div>'+
     '<div class="st">서비스별 성장률 (이용 기반)</div>'+
@@ -1459,6 +1451,10 @@ function renderUsageCards(){
 function renderRevenueCards(){
   var host = document.getElementById('pg-rv');
   if(!host || host.dataset.rendered === '1') return;
+  var totalCards = '<div class="g2" style="margin-bottom:var(--g)">'+
+    '<div class="card"><div class="ch"><span class="ct">기간별 전체 매출 현황</span><span class="cs">서비스별 합계</span></div><canvas id="cTotalRev" height="120"></canvas></div>'+
+    '<div class="card"><div class="ch"><span class="ct">월별 전체 1,000원 미만 발송 건수 현황</span><span class="cs">서비스별 합계</span></div><canvas id="cTotalExcl" height="90"></canvas></div>'+
+  '</div>';
   var svcCards = SERVICES.map(function(s){
     return '<div class="card"><div class="ch"><span class="ct">'+s.icon+' '+s.label+' — 매출</span></div>'+
            '<canvas id="'+s.canvas.rev+'" height="120"></canvas></div>';
@@ -1469,6 +1465,8 @@ function renderRevenueCards(){
            '<div class="notice">정산현황 데이터 기준 | null 구간은 선 끊김</div></div>';
   }).join('');
   host.innerHTML =
+    '<div class="st">전체 매출 현황</div>'+
+    totalCards+
     '<div class="st">서비스별 매출 현황</div>'+
     '<div class="g3" style="margin-bottom:var(--g)">'+svcCards+'</div>'+
     '<div class="st">서비스별 성장률 (매출 기반)</div>'+
@@ -1477,10 +1475,14 @@ function renderRevenueCards(){
 }
 function initUsage(){
   renderUsageCards();
+  drawTotalCnt();
+  drawTotalCplx();
   SERVICES.forEach(initServiceUsage);
 }
 function initRevenue(){
   renderRevenueCards();
+  drawTotalRev();
+  drawTotalExcl();
   SERVICES.forEach(initServiceRevenue);
 }
 
