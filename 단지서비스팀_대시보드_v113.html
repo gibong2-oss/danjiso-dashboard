@@ -138,7 +138,7 @@ td{font-size:12px}tr:hover td{background:rgba(139,128,212,.04)}
   <nav class="tabs">
     <button class="tb on" id="tab-ov">📊 개요</button>
     <button class="tb" id="tab-us">📈 이용 현황</button>
-    <button class="tb" id="tab-rv">💰 매출 데이터</button>
+    <button class="tb" id="tab-rv">💰 매출 현황</button>
     <button class="tb" id="tab-cx">🏠 단지 분석</button>
     <button class="tb" id="tab-tb">📋 상세 테이블</button>
     <button class="tb" id="tab-rd">📂 로우데이터</button>
@@ -185,7 +185,7 @@ td{font-size:12px}tr:hover td{background:rgba(139,128,212,.04)}
 </div>
 <!-- 이용 현황 -->
 <div class="pg" id="pg-us"></div>
-<!-- 매출 데이터 -->
+<!-- 매출 현황 -->
 <div class="pg" id="pg-rv"></div>
 <!-- 단지 분석 -->
 <div class="pg" id="pg-cx">
@@ -316,7 +316,29 @@ var SERVICES = [
             rev_mo_labels:'survey_rev_months', rev_mo_vals:'survey_rev_vals',
             settle_day_labels:'survey_settle_day_labels', settle_day_vals:'survey_settle_day_vals',
             settle_wk_labels:'survey_settle_wk_labels', settle_wk_vals:'survey_settle_wk_vals', settle_wk_wow:'survey_settle_wk_wow',
-            settle_labels:'survey_settle_labels', settle_vals:'survey_settle_vals'} }
+            settle_labels:'survey_settle_labels', settle_vals:'survey_settle_vals'} },
+  { key:'officener', label:'오피스너', icon:'🏢', color:'#FF7056',
+    unitPrice:0, rawUnitPrice:0, sheet:'',
+    canvas:{cnt:'cOI',rev:'cOR',growthCnt:'cOG_cnt',growthRev:'cOG_rev'},
+    dKeys:{mo_labels:null, mo_cnt:null, mo_rev_labels:null, mo_rev:null},
+    grKeys:{day_labels:null, day_vals:null, wk_labels:null, wk_vals:null, wk_wow:null,
+            rev_day_vals:null,
+            rev_wk_labels:null, rev_wk_vals:null, rev_wk_wow:null,
+            rev_mo_labels:null, rev_mo_vals:null,
+            settle_day_labels:null, settle_day_vals:null,
+            settle_wk_labels:null, settle_wk_vals:null, settle_wk_wow:null,
+            settle_labels:null, settle_vals:null} },
+  { key:'aptstory', label:'아파트스토리', icon:'📰', color:'#F48FB1',
+    unitPrice:0, rawUnitPrice:0, sheet:'',
+    canvas:{cnt:'cAI',rev:'cAR',growthCnt:'cAG_cnt',growthRev:'cAG_rev'},
+    dKeys:{mo_labels:null, mo_cnt:null, mo_rev_labels:null, mo_rev:null},
+    grKeys:{day_labels:null, day_vals:null, wk_labels:null, wk_vals:null, wk_wow:null,
+            rev_day_vals:null,
+            rev_wk_labels:null, rev_wk_vals:null, rev_wk_wow:null,
+            rev_mo_labels:null, rev_mo_vals:null,
+            settle_day_labels:null, settle_day_vals:null,
+            settle_wk_labels:null, settle_wk_vals:null, settle_wk_wow:null,
+            settle_labels:null, settle_vals:null} }
 ];
 function svcByKey(k){ for(var i=0;i<SERVICES.length;i++) if(SERVICES[i].key===k) return SERVICES[i]; return null; }
 var GR = D.gr;
@@ -501,7 +523,8 @@ function _gnbApply(){
   var pg = document.querySelector(".pg.on");
   if(pg){ var id = pg.id.replace("pg-",""); INITED[id]=true;
     if(id==="ov") initOv();
-    else if(id==="sv"){ var sp=document.querySelector(".spg.on"); if(sp) initSp(sp.id); }
+    else if(id==="us") initUsage();
+    else if(id==="rv") initRevenue();
     else if(id==="cx") initCx();
     else if(id==="tb") initTb();
   }
@@ -564,7 +587,8 @@ function _gnbApply(){
     var pg=document.querySelector(".pg.on");
     if(pg){ var id=pg.id.replace("pg-",""); INITED[id]=true;
       if(id==="ov") initOv();
-      else if(id==="sv"){var sp=document.querySelector(".spg.on");if(sp) initSp(sp.id);}
+      else if(id==="us") initUsage();
+      else if(id==="rv") initRevenue();
       else if(id==="cx") initCx(); else if(id==="tb") initTb();
     }
   });
@@ -576,7 +600,8 @@ function _gnbApply(){
     var pg=document.querySelector(".pg.on");
     if(pg){ var id=pg.id.replace("pg-",""); INITED[id]=true;
       if(id==="ov") initOv();
-      else if(id==="sv"){var sp=document.querySelector(".spg.on");if(sp) initSp(sp.id);}
+      else if(id==="us") initUsage();
+      else if(id==="rv") initRevenue();
       else if(id==="cx") initCx(); else if(id==="tb") initTb();
     }
   });
@@ -594,7 +619,8 @@ function resetF(){
   var pg=document.querySelector(".pg.on");
   if(pg){ var id=pg.id.replace("pg-",""); INITED[id]=true;
     if(id==="ov") initOv();
-    else if(id==="sv"){var sp=document.querySelector(".spg.on");if(sp) initSp(sp.id);}
+    else if(id==="us") initUsage();
+    else if(id==="rv") initRevenue();
     else if(id==="cx") initCx(); else if(id==="tb") initTb();
   }
 }
@@ -1428,7 +1454,7 @@ function renderUsageCards(){
   if(!host || host.dataset.rendered === '1') return;
   var totalCards = '<div class="g2" style="margin-bottom:var(--g)">'+
     '<div class="card" style="display:flex;flex-direction:column"><div class="ch"><span class="ct">월별 전체 이용 건수 현황</span><span class="cs">서비스별 합계</span></div><div style="flex:1;min-height:120px;position:relative"><canvas id="cTotalCnt"></canvas></div></div>'+
-    '<div class="card"><div class="ch"><span class="ct">월별 전체 이용 단지 수 현황</span><span class="cs">서비스별 합계</span></div><canvas id="cTotalCplx" height="90"></canvas></div>'+
+    '<div class="card" style="display:flex;flex-direction:column"><div class="ch"><span class="ct">월별 전체 이용 단지 수 현황</span><span class="cs">서비스별 합계</span></div><div style="flex:1;min-height:120px;position:relative"><canvas id="cTotalCplx"></canvas></div></div>'+
   '</div>';
   var svcCards = SERVICES.map(function(s){
     return '<div class="card"><div class="ch"><span class="ct">'+s.icon+' '+s.label+' — 이용 건수</span></div>'+
@@ -1452,8 +1478,8 @@ function renderRevenueCards(){
   var host = document.getElementById('pg-rv');
   if(!host || host.dataset.rendered === '1') return;
   var totalCards = '<div class="g2" style="margin-bottom:var(--g)">'+
-    '<div class="card"><div class="ch"><span class="ct">기간별 전체 매출 현황</span><span class="cs">서비스별 합계</span></div><canvas id="cTotalRev" height="120"></canvas></div>'+
-    '<div class="card"><div class="ch"><span class="ct">월별 전체 1,000원 미만 발송 건수 현황</span><span class="cs">서비스별 합계</span></div><canvas id="cTotalExcl" height="90"></canvas></div>'+
+    '<div class="card" style="display:flex;flex-direction:column"><div class="ch"><span class="ct">기간별 전체 매출 현황</span><span class="cs">서비스별 합계</span></div><div style="flex:1;min-height:120px;position:relative"><canvas id="cTotalRev"></canvas></div></div>'+
+    '<div class="card" style="display:flex;flex-direction:column"><div class="ch"><span class="ct">월별 전체 1,000원 미만 발송 건수 현황</span><span class="cs">서비스별 합계</span></div><div style="flex:1;min-height:120px;position:relative"><canvas id="cTotalExcl"></canvas></div></div>'+
   '</div>';
   var svcCards = SERVICES.map(function(s){
     return '<div class="card"><div class="ch"><span class="ct">'+s.icon+' '+s.label+' — 매출</span></div>'+
