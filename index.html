@@ -9,6 +9,14 @@
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <style>
 :root{--bg:#F5F5F5;--card:#FFF;--bdr:#EEE;--tm:#333;--ts:#888;--cp:#8B80D4;--cg:#52C41A;--ca:#FFC107;--co:#FF7043;--cr:#EF5350;--cs:#5EC8E8;--s1:#9B8FE8;--s2:#5EC8E8;--s3:#FF7056;--s4:#FFC654;--s5:#F48FB1;--r:12px;--sh:0 2px 8px rgba(0,0,0,.06);--p:18px;--g:14px}
+
+.tb-dropdown{position:relative;display:inline-block}
+.tb-dropdown .tb-menu{display:none;position:absolute;top:100%;left:0;min-width:200px;background:var(--card);border:1px solid var(--bdr);border-radius:8px;box-shadow:var(--sh);z-index:100;padding:4px 0;margin-top:2px}
+.tb-dropdown.open .tb-menu{display:block}
+.tb-menu .tb-item{display:block;width:100%;padding:9px 16px;background:transparent;border:none;font-size:13px;text-align:left;cursor:pointer;white-space:nowrap;color:var(--tm)}
+.tb-menu .tb-item:hover{background:rgba(139,128,212,0.1)}
+.tb-menu .tb-item.active{color:var(--cp);font-weight:600;background:rgba(139,128,212,0.06)}
+.tb-caret{font-size:9px;margin-left:2px;opacity:.7}
 *{box-sizing:border-box}body{font-family:'Pretendard',sans-serif;background:var(--bg);color:var(--tm);margin:0;font-size:14px}
 .gnb{background:var(--card);box-shadow:var(--sh);position:sticky;top:0;z-index:200;display:flex;align-items:center;padding:0 20px;gap:0;flex-wrap:wrap}
 .logo{font-size:16px;font-weight:700;color:var(--cp);padding:13px 16px 13px 0;white-space:nowrap;border-right:1px solid var(--bdr);margin-right:4px}
@@ -137,8 +145,22 @@ td{font-size:12px}tr:hover td{background:rgba(139,128,212,.04)}
   <div class="logo">🏢 단지서비스팀</div>
   <nav class="tabs">
     <button class="tb on" id="tab-ov">📊 개요</button>
-    <button class="tb" id="tab-us">📈 이용 현황</button>
-    <button class="tb" id="tab-rv">💰 매출 현황</button>
+    <div class="tb-dropdown" id="dd-us">
+      <button class="tb" id="tab-us">📈 <span id="label-us">이용 현황</span> <span class="tb-caret">▾</span></button>
+      <div class="tb-menu" id="menu-us" data-tab="us">
+        <button class="tb-item active" data-grp="aptner">🏘 아파트너</button>
+        <button class="tb-item" data-grp="officener">🏢 오피스너</button>
+        <button class="tb-item" data-grp="aptstory">📰 아파트스토리</button>
+      </div>
+    </div>
+    <div class="tb-dropdown" id="dd-rv">
+      <button class="tb" id="tab-rv">💰 <span id="label-rv">매출 현황</span> <span class="tb-caret">▾</span></button>
+      <div class="tb-menu" id="menu-rv" data-tab="rv">
+        <button class="tb-item active" data-grp="aptner">🏘 아파트너</button>
+        <button class="tb-item" data-grp="officener">🏢 오피스너</button>
+        <button class="tb-item" data-grp="aptstory">📰 아파트스토리</button>
+      </div>
+    </div>
     <button class="tb" id="tab-cx">🏠 단지 분석</button>
     <button class="tb" id="tab-tb">📋 상세 테이블</button>
     <button class="tb" id="tab-rd">📂 로우데이터</button>
@@ -648,8 +670,61 @@ function sw(id){
   }
 }
 document.getElementById("tab-ov").addEventListener("click", function(){ sw("ov"); });
-document.getElementById("tab-us").addEventListener("click", function(){ sw("us"); });
-document.getElementById("tab-rv").addEventListener("click", function(){ sw("rv"); });
+// 드롭다운: 이용/매출 탭 클릭 시 드롭다운 토글 + sw(tab) + 현재 그룹 적용
+var activeGroup = { us: 'aptner', rv: 'aptner' };
+function applyGroup(tabId, grp){
+  activeGroup[tabId] = grp;
+  var host = document.getElementById('pg-' + tabId);
+  if(!host) return;
+  host.querySelectorAll('.spg').forEach(function(p){ p.classList.remove('on'); });
+  var pane = document.getElementById(tabId + '-' + grp);
+  if(pane) pane.classList.add('on');
+  var menu = document.getElementById('menu-' + tabId);
+  if(menu){
+    menu.querySelectorAll('.tb-item').forEach(function(b){ b.classList.remove('active'); });
+    var it = menu.querySelector('[data-grp="' + grp + '"]');
+    if(it) it.classList.add('active');
+  }
+  var labelEl = document.getElementById('label-' + tabId);
+  if(labelEl){
+    var g = null;
+    for(var i=0;i<GROUPS.length;i++) if(GROUPS[i].key === grp) { g = GROUPS[i]; break; }
+    var tabLabel = (tabId === 'us') ? '이용 현황' : '매출 현황';
+    if(g) labelEl.textContent = tabLabel + ' · ' + g.icon + ' ' + g.label;
+  }
+}
+function toggleDropdown(tabId){
+  document.querySelectorAll('.tb-dropdown').forEach(function(dd){
+    if(dd.id === 'dd-' + tabId) dd.classList.toggle('open');
+    else dd.classList.remove('open');
+  });
+}
+document.getElementById("tab-us").addEventListener("click", function(e){
+  e.stopPropagation();
+  sw("us"); applyGroup("us", activeGroup.us); toggleDropdown("us");
+});
+document.getElementById("tab-rv").addEventListener("click", function(e){
+  e.stopPropagation();
+  sw("rv"); applyGroup("rv", activeGroup.rv); toggleDropdown("rv");
+});
+// 메뉴 항목 클릭
+document.querySelectorAll('.tb-menu .tb-item').forEach(function(item){
+  item.addEventListener('click', function(e){
+    e.stopPropagation();
+    var grp = item.dataset.grp;
+    var menu = item.closest('.tb-menu');
+    var tabId = menu.dataset.tab;
+    sw(tabId);
+    applyGroup(tabId, grp);
+    item.closest('.tb-dropdown').classList.remove('open');
+  });
+});
+// 외부 클릭 시 드롭다운 닫기
+document.addEventListener('click', function(e){
+  if(!e.target.closest('.tb-dropdown')){
+    document.querySelectorAll('.tb-dropdown.open').forEach(function(dd){ dd.classList.remove('open'); });
+  }
+});
 document.getElementById("tab-cx").addEventListener("click", function(){ sw("cx"); });
 document.getElementById("tab-tb").addEventListener("click", function(){ sw("tb"); });
 document.getElementById("tab-rd").addEventListener("click", function(){ sw("rd"); });
@@ -854,7 +929,9 @@ function drawUsageCnt(id, color, data){
 }
 
 // ── 매출 현황 차트 (기간 토글 + 건수추정/정산현황 토글) ──────────────────
-function drawUsageRev(id, data_est, data_settle){
+function drawUsageRev(id, data_est, data_settle, opts){
+  opts = opts || {};
+  var _mAR = (opts.maintainAspectRatio !== undefined) ? opts.maintainAspectRatio : true;
   // data_est/settle: {day:{labels,vals}, wk:{labels,vals}, mo:{labels,vals}}
   var el=document.getElementById(id); if(!el) return;
   var btnId=id+"_rbtns";
@@ -870,13 +947,21 @@ function drawUsageRev(id, data_est, data_settle){
       var b=document.createElement("button"); b.type="button"; b.className="tgb"+(s==="건수추정"?" on":""); b.textContent=s; b.dataset.src=s; rightG.appendChild(b);
     });
     wrap.appendChild(leftG); wrap.appendChild(rightG);
-    el.parentElement.insertBefore(wrap, el);
     // 단위 표시 텍스트
     var unitNote = document.createElement("div");
     unitNote.id = btnId + "_unit";
     unitNote.style.cssText = "font-size:10px;color:var(--ts);text-align:right;margin-bottom:4px;width:100%";
     unitNote.textContent = "(단위: 원, VAT 포함)";
-    el.parentElement.insertBefore(unitNote, el);
+    // 삽입 위치: canvas 부모가 카드가 아니면 (예: cTotalRev처럼 inner div면) 카드 자체에 삽입
+    var _card = el.closest('.card');
+    var _innerDiv = el.parentElement;
+    if(_card && _innerDiv !== _card){
+      _card.insertBefore(wrap, _innerDiv);
+      _card.insertBefore(unitNote, _innerDiv);
+    } else {
+      _innerDiv.insertBefore(wrap, el);
+      _innerDiv.insertBefore(unitNote, el);
+    }
   }
   var _abp=document.getElementById(btnId+"_per")?document.querySelector("#"+btnId+"_per button.on"):null;
   var _abs=document.getElementById(btnId+"_src")?document.querySelector("#"+btnId+"_src button.on"):null;
@@ -903,7 +988,7 @@ function drawUsageRev(id, data_est, data_settle){
     var revDs=[{label:"매출(원, VAT포함)",data:d.vals.map(function(v){return Math.round(v*10000);}),backgroundColor:colors,borderRadius:4,order:1}];
     var revVals=d.vals.map(function(v){return Math.round(v*10000);}); var revAd=avgDataset(revVals); if(revAd) revDs.push(revAd);
     mkC(id,{type:"bar",data:{labels:d.labels,datasets:revDs},
-      options:{responsive:true,maintainAspectRatio:true,clip:false,layout:{padding:{top:20,right:8}},
+      options:{responsive:true,maintainAspectRatio:_mAR,clip:false,layout:{padding:{top:20,right:8}},
         interaction:{mode:"index",intersect:false},
         plugins:{legend:{display:revAd!=null,labels:{boxWidth:20,font:{size:10},filter:function(li){return li.datasetIndex>0;}}},
           tooltip:{callbacks:{label:function(ctx){
@@ -1323,7 +1408,8 @@ function drawTotalRev(){
     ]);
     drawUsageRev("cTotalRev",
       {day:estDay, wk:estWk, mo:estMo},
-      {day:sttDay, wk:sttWk, mo:sttMo}
+      {day:sttDay, wk:sttWk, mo:sttMo},
+      {maintainAspectRatio:false}
     );
   })();
 }
@@ -1377,7 +1463,7 @@ function drawTotalCplx(){
       {label:"알림서비스",data:nD,backgroundColor:"rgba(94,200,232,.8)",stack:"cplx",borderRadius:2},
       {label:"설문조사",data:sD,backgroundColor:"rgba(255,193,7,.8)",stack:"cplx",borderRadius:2},
       {label:"평균",data:mos.map(function(){return Math.round(avgTotal);}),type:"line",borderColor:"#888",borderWidth:1.5,borderDash:[4,3],pointRadius:0,pointHoverRadius:5,hitRadius:20,fill:false,order:0}
-    ]},options:{responsive:true,maintainAspectRatio:true,
+    ]},options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{position:"top",labels:{boxWidth:10,font:{size:10}},onClick:function(e,item,legend){Chart.defaults.plugins.legend.onClick.call(this,e,item,legend);var ch=legend.chart;var avgDs=ch.data.datasets[ch.data.datasets.length-1];var sum=new Array(mos.length).fill(0);ch.data.datasets.forEach(function(ds,i){if(ds.label!=="평균"&&!ch.getDatasetMeta(i).hidden){ds.data.forEach(function(v,j){sum[j]+=(v||0);});}});var avg=sum.length?Math.round(sum.reduce(function(a,b){return a+b;},0)/sum.length):0;avgDs.data=sum.map(function(){return avg;});ch.update();}},datalabels:{display:false},tooltip:{callbacks:{label:function(ctx){var v=ctx.parsed.y;return ctx.dataset.label+": "+v.toLocaleString()+"개";}}}},
       scales:{x:{stacked:true,ticks:{font:{size:9},maxRotation:45}},y:{stacked:true,ticks:{font:{size:9},callback:function(v){return v>=1000?Math.round(v/1000)+"k":v;}}}}}});
   })();
@@ -1405,7 +1491,7 @@ function drawTotalExcl(){
       {label:"알림서비스",data:nD,backgroundColor:"rgba(94,200,232,.8)",stack:"excl",borderRadius:2},
       {label:"설문조사",data:sD,backgroundColor:"rgba(255,193,7,.8)",stack:"excl",borderRadius:2},
       {label:"평균",data:mos.map(function(){return Math.round(avgTotal);}),type:"line",borderColor:"#888",borderWidth:1.5,borderDash:[4,3],pointRadius:0,pointHoverRadius:5,hitRadius:20,fill:false,order:0}
-    ]},options:{responsive:true,maintainAspectRatio:true,
+    ]},options:{responsive:true,maintainAspectRatio:false,
       plugins:{legend:{position:"top",labels:{boxWidth:10,font:{size:10}},onClick:function(e,item,legend){Chart.defaults.plugins.legend.onClick.call(this,e,item,legend);var ch=legend.chart;var avgDs=ch.data.datasets[ch.data.datasets.length-1];var sum=new Array(mos.length).fill(0);ch.data.datasets.forEach(function(ds,i){if(ds.label!=="평균"&&!ch.getDatasetMeta(i).hidden){ds.data.forEach(function(v,j){sum[j]+=(v||0);});}});var avg=sum.length?Math.round(sum.reduce(function(a,b){return a+b;},0)/sum.length):0;avgDs.data=sum.map(function(){return avg;});ch.update();}},datalabels:{display:false},tooltip:{callbacks:{label:function(ctx){var v=ctx.parsed.y;return ctx.dataset.label+": "+v.toLocaleString()+"건";}}}},
       scales:{x:{stacked:true,ticks:{font:{size:9},maxRotation:45}},y:{stacked:true,ticks:{font:{size:9},callback:function(v){return v>=1000?Math.round(v/1000)+"k":v;}}}}}});
   })();
@@ -1458,8 +1544,8 @@ function renderUsageCards(){
   var host = document.getElementById('pg-us');
   if(!host || host.dataset.rendered === '1') return;
   var totalCards = '<div class="g2" style="margin-bottom:var(--g)">'+
-    '<div class="card" style="display:flex;flex-direction:column"><div class="ch"><span class="ct">월별 전체 이용 건수 현황</span><span class="cs">서비스별 합계</span></div><div style="flex:1;min-height:120px;position:relative"><canvas id="cTotalCnt"></canvas></div></div>'+
-    '<div class="card" style="display:flex;flex-direction:column"><div class="ch"><span class="ct">월별 전체 이용 단지 수 현황</span><span class="cs">서비스별 합계</span></div><div style="flex:1;min-height:120px;position:relative"><canvas id="cTotalCplx"></canvas></div></div>'+
+    '<div class="card" style="display:flex;flex-direction:column;height:360px"><div class="ch"><span class="ct">월별 전체 이용 건수 현황</span><span class="cs">서비스별 합계</span></div><div style="flex:1;position:relative;min-height:200px"><canvas id="cTotalCnt"></canvas></div></div>'+
+    '<div class="card" style="display:flex;flex-direction:column;height:360px"><div class="ch"><span class="ct">월별 전체 이용 단지 수 현황</span><span class="cs">서비스별 합계</span></div><div style="flex:1;position:relative;min-height:200px"><canvas id="cTotalCplx"></canvas></div></div>'+
   '</div>';
   var subTabs = GROUPS.map(function(g,i){
     return '<button class="stb '+(i===0?'on':'')+'" data-grp="'+g.key+'" data-tab="us">'+g.icon+' '+g.label+'</button>';
@@ -1484,7 +1570,6 @@ function renderUsageCards(){
     '<div class="st">전체 이용 현황</div>'+
     totalCards+
     '<div class="st">서비스별 이용 현황</div>'+
-    '<div class="stabs">'+subTabs+'</div>'+
     groupPanels;
   host.dataset.rendered = '1';
   host.querySelectorAll('.stabs .stb').forEach(function(btn){
@@ -1502,8 +1587,8 @@ function renderRevenueCards(){
   var host = document.getElementById('pg-rv');
   if(!host || host.dataset.rendered === '1') return;
   var totalCards = '<div class="g2" style="margin-bottom:var(--g)">'+
-    '<div class="card" style="display:flex;flex-direction:column"><div class="ch"><span class="ct">기간별 전체 매출 현황</span><span class="cs">서비스별 합계</span></div><div style="flex:1;min-height:120px;position:relative"><canvas id="cTotalRev"></canvas></div></div>'+
-    '<div class="card" style="display:flex;flex-direction:column"><div class="ch"><span class="ct">월별 전체 1,000원 미만 발송 건수 현황</span><span class="cs">서비스별 합계</span></div><div style="flex:1;min-height:120px;position:relative"><canvas id="cTotalExcl"></canvas></div></div>'+
+    '<div class="card" style="display:flex;flex-direction:column;height:360px"><div class="ch"><span class="ct">기간별 전체 매출 현황</span><span class="cs">서비스별 합계</span></div><div style="flex:1;position:relative;min-height:200px"><canvas id="cTotalRev"></canvas></div></div>'+
+    '<div class="card" style="display:flex;flex-direction:column;height:360px"><div class="ch"><span class="ct">월별 전체 1,000원 미만 발송 건수 현황</span><span class="cs">서비스별 합계</span></div><div style="flex:1;position:relative;min-height:200px"><canvas id="cTotalExcl"></canvas></div></div>'+
   '</div>';
   var subTabs = GROUPS.map(function(g,i){
     return '<button class="stb '+(i===0?'on':'')+'" data-grp="'+g.key+'" data-tab="rv">'+g.icon+' '+g.label+'</button>';
@@ -1528,7 +1613,6 @@ function renderRevenueCards(){
     '<div class="st">전체 매출 현황</div>'+
     totalCards+
     '<div class="st">서비스별 매출 현황</div>'+
-    '<div class="stabs">'+subTabs+'</div>'+
     groupPanels;
   host.dataset.rendered = '1';
   host.querySelectorAll('.stabs .stb').forEach(function(btn){
