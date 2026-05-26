@@ -1631,12 +1631,14 @@ function initUsage(){
   drawTotalCnt();
   drawTotalCplx();
   SERVICES.forEach(initServiceUsage);
+  if(window._attachChartClickHandlers) window._attachChartClickHandlers();
 }
 function initRevenue(){
   renderRevenueCards();
   drawTotalRev();
   drawTotalExcl();
   SERVICES.forEach(initServiceRevenue);
+  if(window._attachChartClickHandlers) window._attachChartClickHandlers();
 }
 
 // ── 단지 분석 탭 ──
@@ -2579,17 +2581,30 @@ function bootApp(){
     _cSGr.title='설문조사 성장률 — 매출'; _MDATA['cSG_rev']=_cSGr;
 
     // ── 차트 카드 클릭 이벤트 ──
-    ['cTotalRev','cTotalCnt','cTotalCplx','cTotalExcl','cVI','cVR','cVG_cnt','cVG_rev',
-     'cNE','cNS','cNG_cnt','cNG_rev','cSI','cSR','cSG_cnt','cSG_rev'].forEach(function(id){
-      var el=document.getElementById(id); if(!el) return;
-      var card=el.closest('.card'); if(!card) return;
-      card.style.cursor='pointer';
-      card.classList.add('kpi-clickable');
-      card.addEventListener('click',function(e){
-        if(e.target.closest('button')) return;
-        showChartModal(id);
+    function attachChartClickHandlers(){
+      var ids = ['cTotalRev','cTotalCnt','cTotalCplx','cTotalExcl'];
+      // SERVICES 기반 동적 ID 추가 (vote/notify/survey + 신규 서비스)
+      if(typeof SERVICES !== 'undefined'){
+        SERVICES.forEach(function(s){
+          ids.push(s.canvas.cnt, s.canvas.rev, s.canvas.growthCnt, s.canvas.growthRev);
+        });
+      }
+      ids.forEach(function(id){
+        var el=document.getElementById(id); if(!el) return;
+        var card=el.closest('.card'); if(!card) return;
+        if(card.dataset.clickWired === '1') return;  // 중복 방지
+        card.style.cursor='pointer';
+        card.classList.add('kpi-clickable');
+        card.addEventListener('click',function(e){
+          if(e.target.closest('button')) return;
+          showChartModal(id);
+        });
+        card.dataset.clickWired = '1';
       });
-    });
+    }
+    attachChartClickHandlers();  // 페이지 로드 시 ovTotalRev 등에 등록 (있을 경우)
+    // initUsage/initRevenue 끝에서도 호출됨 (동적 카드 대상)
+    window._attachChartClickHandlers = attachChartClickHandlers;  // 전역 노출
 
     // ── 전체 매출 KPI 블록 클릭 등록 ──
     var kpiEl=document.getElementById('ovTotalRevKpi');
