@@ -186,35 +186,9 @@ td{font-size:12px}tr:hover td{background:rgba(139,128,212,.04)}
 
 </div>
 <!-- 이용 현황 -->
-<div class="pg" id="pg-us">
-  <div class="st">서비스별 이용 현황</div>
-  <div class="g3" style="margin-bottom:var(--g)">
-    <div class="card"><div class="ch"><span class="ct">🗳 전자투표 — 이용 건수</span></div><canvas id="cVI" height="120"></canvas></div>
-    <div class="card"><div class="ch"><span class="ct">🔔 알림서비스 — 이용 건수</span></div><canvas id="cNE" height="120"></canvas></div>
-    <div class="card"><div class="ch"><span class="ct">📝 설문조사 — 이용 건수</span></div><canvas id="cSI" height="120"></canvas></div>
-  </div>
-  <div class="st">서비스별 성장률 (이용 기반)</div>
-  <div class="g3">
-    <div class="card"><div class="ch"><span class="ct">📈 전자투표 성장률</span><span class="cs">버튼으로 지표 선택</span></div><canvas id="cVG_cnt" height="135"></canvas><div class="notice">WoW=주단위 참조ID | MoM·QoQ·YoY=월단위 | null 구간은 선 끊김</div></div>
-    <div class="card"><div class="ch"><span class="ct">📈 알림서비스 성장률</span><span class="cs">버튼으로 지표 선택</span></div><canvas id="cNG_cnt" height="135"></canvas><div class="notice">WoW=주단위 발송건수 | MoM·QoQ·YoY=월단위 | null 구간은 선 끊김</div></div>
-    <div class="card"><div class="ch"><span class="ct">📈 설문조사 성장률</span><span class="cs">버튼으로 지표 선택</span></div><canvas id="cSG_cnt" height="135"></canvas><div class="notice">WoW=주단위 참조ID | MoM·QoQ·YoY=월단위 | null 구간은 선 끊김</div></div>
-  </div>
-</div>
+<div class="pg" id="pg-us"></div>
 <!-- 매출 데이터 -->
-<div class="pg" id="pg-rv">
-  <div class="st">서비스별 매출 현황</div>
-  <div class="g3" style="margin-bottom:var(--g)">
-    <div class="card"><div class="ch"><span class="ct">🗳 전자투표 — 매출</span></div><canvas id="cVR" height="120"></canvas></div>
-    <div class="card"><div class="ch"><span class="ct">🔔 알림서비스 — 매출</span></div><canvas id="cNS" height="120"></canvas></div>
-    <div class="card"><div class="ch"><span class="ct">📝 설문조사 — 매출 (정산현황)</span></div><canvas id="cSR" height="120"></canvas></div>
-  </div>
-  <div class="st">서비스별 성장률 (매출 기반)</div>
-  <div class="g3">
-    <div class="card"><div class="ch"><span class="ct">📈 전자투표 성장률 (매출)</span><span class="cs">건수추정·정산현황 선택</span></div><canvas id="cVG_rev" height="135"></canvas><div class="notice">정산현황 데이터 기준 | null 구간은 선 끊김</div></div>
-    <div class="card"><div class="ch"><span class="ct">📈 알림서비스 성장률 (매출)</span><span class="cs">건수추정·정산현황 선택</span></div><canvas id="cNG_rev" height="135"></canvas><div class="notice">정산현황 데이터 기준 | null 구간은 선 끊김</div></div>
-    <div class="card"><div class="ch"><span class="ct">📈 설문조사 성장률 (매출)</span><span class="cs">건수추정·정산현황 선택</span></div><canvas id="cSG_rev" height="135"></canvas><div class="notice">정산현황 데이터 기준 | null 구간은 선 끊김</div></div>
-  </div>
-</div>
+<div class="pg" id="pg-rv"></div>
 <!-- 단지 분석 -->
 <div class="pg" id="pg-cx">
   <div class="g2" style="margin-bottom:10px">
@@ -309,7 +283,6 @@ var SERVICES = [
   { key:'vote', label:'전자투표', icon:'🗳', color:'#8B80D4',
     unitPrice:44, rawUnitPrice:40, sheet:'전자투표',
     canvas:{cnt:'cVI',rev:'cVR',growthCnt:'cVG_cnt',growthRev:'cVG_rev'},
-    tabPane:'sp-v', tabBtn:'stab-sp-v',
     dKeys:{mo_labels:'vote_ids_labels', mo_cnt:'vote_ids_values',
            mo_rev_labels:'revenue_estimate_labels', mo_rev:'revenue_estimate_values'},
     grKeys:{day_labels:'vote_day_labels', day_vals:'vote_day_vals',
@@ -323,7 +296,6 @@ var SERVICES = [
   { key:'notify', label:'알림서비스', icon:'🔔', color:'#5EC8E8',
     unitPrice:22, rawUnitPrice:20, sheet:'알림서비스',
     canvas:{cnt:'cNE',rev:'cNS',growthCnt:'cNG_cnt',growthRev:'cNG_rev'},
-    tabPane:'sp-n', tabBtn:'stab-sp-n',
     dKeys:{mo_labels:'notify_labels', mo_cnt:'notify_sends',
            mo_rev_labels:null, mo_rev:null},
     grKeys:{day_labels:'notify_day_labels', day_vals:'notify_day_vals',
@@ -337,7 +309,6 @@ var SERVICES = [
   { key:'survey', label:'설문조사', icon:'📝', color:'#FFC654',
     unitPrice:88, rawUnitPrice:80, sheet:'설문조사',
     canvas:{cnt:'cSI',rev:'cSR',growthCnt:'cSG_cnt',growthRev:'cSG_rev'},
-    tabPane:'sp-s', tabBtn:'stab-sp-s',
     dKeys:{mo_labels:'survey_labels', mo_cnt:'survey_cnt_values',
            mo_rev_labels:null, mo_rev:null},
     grKeys:{day_labels:'survey_day_labels', day_vals:'survey_day_vals',
@@ -350,7 +321,6 @@ var SERVICES = [
             settle_labels:'survey_settle_labels', settle_vals:'survey_settle_vals'} }
 ];
 function svcByKey(k){ for(var i=0;i<SERVICES.length;i++) if(SERVICES[i].key===k) return SERVICES[i]; return null; }
-function svcByPane(p){ for(var i=0;i<SERVICES.length;i++) if(SERVICES[i].tabPane===p) return SERVICES[i]; return null; }
 var GR = D.gr;
 var MAU_M = D.mau_m;
 var TBL = D.table;
@@ -1421,13 +1391,18 @@ function svcGrowthRevMo(svc){
     return {labels: D[svc.dKeys.mo_rev_labels]||[], vals: D[svc.dKeys.mo_rev]||[]};
   return {labels: D[svc.dKeys.mo_labels]||[], vals: D[svc.dKeys.mo_cnt]||[]};
 }
-function initService(svc){
+function initServiceUsage(svc){
   var dK=svc.dKeys, gK=svc.grKeys, cv=svc.canvas;
   drawUsageCnt(cv.cnt, svc.color, {
     day:{labels:GR[gK.day_labels]||[], vals:GR[gK.day_vals]||[]},
     wk: {labels:GR[gK.wk_labels]||[],  vals:GR[gK.wk_vals]||[]},
     mo: {labels:D[dK.mo_labels]||D.months||[], vals:D[dK.mo_cnt]||[]}
   });
+  var gr = calcGrowthRates(D[dK.mo_labels]||[], D[dK.mo_cnt]||[]);
+  drawGrowthCnt(cv.growthCnt, GR[gK.wk_labels], GR[gK.wk_wow], D[dK.mo_labels]||[], gr.mom, gr.qoq, gr.yoy);
+}
+function initServiceRevenue(svc){
+  var dK=svc.dKeys, gK=svc.grKeys, cv=svc.canvas;
   var revMo = svcUsageRevMo(svc);
   drawUsageRev(cv.rev,
     {day:{labels:GR[gK.day_labels]||[], vals:GR[gK.rev_day_vals]||[]},
@@ -1437,19 +1412,59 @@ function initService(svc){
      wk: {labels:GR[gK.settle_wk_labels]||[],  vals:GR[gK.settle_wk_vals]||[]},
      mo: {labels:GR[gK.settle_labels]||[],     vals:GR[gK.settle_vals]||[]}}
   );
-  var gr = calcGrowthRates(D[dK.mo_labels]||[], D[dK.mo_cnt]||[]);
-  drawGrowthCnt(cv.growthCnt, GR[gK.wk_labels], GR[gK.wk_wow], D[dK.mo_labels]||[], gr.mom, gr.qoq, gr.yoy);
   var grRev = svcGrowthRevMo(svc);
   drawGrowthRev(cv.growthRev, GR[gK.rev_wk_labels]||[], GR[gK.rev_wk_wow]||[],
                 grRev.labels, grRev.vals,
                 GR[gK.settle_labels]||[], GR[gK.settle_vals]||[],
                 GR[gK.settle_wk_labels]||[], GR[gK.settle_wk_wow]||[]);
 }
+function initService(svc){ initServiceUsage(svc); initServiceRevenue(svc); }
+// ── 이용/매출 탭 카드 동적 렌더링 (SERVICES 배열 기반) ──
+function renderUsageCards(){
+  var host = document.getElementById('pg-us');
+  if(!host || host.dataset.rendered === '1') return;
+  var svcCards = SERVICES.map(function(s){
+    return '<div class="card"><div class="ch"><span class="ct">'+s.icon+' '+s.label+' — 이용 건수</span></div>'+
+           '<canvas id="'+s.canvas.cnt+'" height="120"></canvas></div>';
+  }).join('');
+  var growthCards = SERVICES.map(function(s){
+    return '<div class="card"><div class="ch"><span class="ct">📈 '+s.label+' 성장률</span><span class="cs">버튼으로 지표 선택</span></div>'+
+           '<canvas id="'+s.canvas.growthCnt+'" height="135"></canvas>'+
+           '<div class="notice">WoW=주단위 | MoM·QoQ·YoY=월단위 | null 구간은 선 끊김</div></div>';
+  }).join('');
+  host.innerHTML =
+    '<div class="st">서비스별 이용 현황</div>'+
+    '<div class="g3" style="margin-bottom:var(--g)">'+svcCards+'</div>'+
+    '<div class="st">서비스별 성장률 (이용 기반)</div>'+
+    '<div class="g3">'+growthCards+'</div>';
+  host.dataset.rendered = '1';
+}
+function renderRevenueCards(){
+  var host = document.getElementById('pg-rv');
+  if(!host || host.dataset.rendered === '1') return;
+  var svcCards = SERVICES.map(function(s){
+    return '<div class="card"><div class="ch"><span class="ct">'+s.icon+' '+s.label+' — 매출</span></div>'+
+           '<canvas id="'+s.canvas.rev+'" height="120"></canvas></div>';
+  }).join('');
+  var growthCards = SERVICES.map(function(s){
+    return '<div class="card"><div class="ch"><span class="ct">📈 '+s.label+' 성장률 (매출)</span><span class="cs">건수추정·정산 선택</span></div>'+
+           '<canvas id="'+s.canvas.growthRev+'" height="135"></canvas>'+
+           '<div class="notice">정산현황 데이터 기준 | null 구간은 선 끊김</div></div>';
+  }).join('');
+  host.innerHTML =
+    '<div class="st">서비스별 매출 현황</div>'+
+    '<div class="g3" style="margin-bottom:var(--g)">'+svcCards+'</div>'+
+    '<div class="st">서비스별 성장률 (매출 기반)</div>'+
+    '<div class="g3">'+growthCards+'</div>';
+  host.dataset.rendered = '1';
+}
 function initUsage(){
-  SERVICES.forEach(initService);
+  renderUsageCards();
+  SERVICES.forEach(initServiceUsage);
 }
 function initRevenue(){
-  SERVICES.forEach(initService);
+  renderRevenueCards();
+  SERVICES.forEach(initServiceRevenue);
 }
 
 // ── 단지 분석 탭 ──
