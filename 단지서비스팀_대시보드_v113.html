@@ -278,7 +278,7 @@ var D = {"months":["2025-01","2025-02","2025-03","2025-04","2025-05","2025-06","
 // unitPrice: VAT 포함(UI 표시용), rawUnitPrice: VAT 제외(정산용).
 // dKeys/grKeys: 기존 코드 호환을 위해 각 서비스가 사용하는 D / GR 데이터 키.
 var SERVICES = [
-  { key:'vote', label:'전자투표', icon:'🗳', color:'#8B80D4',
+  { key:'vote', group:'aptner', label:'전자투표', icon:'🗳', color:'#8B80D4',
     unitPrice:44, rawUnitPrice:40, sheet:'전자투표',
     canvas:{cnt:'cVI',rev:'cVR',growthCnt:'cVG_cnt',growthRev:'cVG_rev'},
     dKeys:{mo_labels:'vote_ids_labels', mo_cnt:'vote_ids_values',
@@ -291,7 +291,7 @@ var SERVICES = [
             settle_day_labels:'vote_settle_day_labels', settle_day_vals:'vote_settle_day_vals',
             settle_wk_labels:'vote_settle_wk_labels', settle_wk_vals:'vote_settle_wk_vals', settle_wk_wow:'vote_settle_wk_wow',
             settle_labels:'vote_settle_labels', settle_vals:'vote_settle_vals'} },
-  { key:'notify', label:'알림서비스', icon:'🔔', color:'#5EC8E8',
+  { key:'notify', group:'aptner', label:'알림서비스', icon:'🔔', color:'#5EC8E8',
     unitPrice:22, rawUnitPrice:20, sheet:'알림서비스',
     canvas:{cnt:'cNE',rev:'cNS',growthCnt:'cNG_cnt',growthRev:'cNG_rev'},
     dKeys:{mo_labels:'notify_labels', mo_cnt:'notify_sends',
@@ -304,7 +304,7 @@ var SERVICES = [
             settle_day_labels:'notify_settle_day_labels', settle_day_vals:'notify_settle_day_vals',
             settle_wk_labels:'notify_settle_wk_labels', settle_wk_vals:'notify_settle_wk_vals', settle_wk_wow:'notify_settle_wk_wow',
             settle_labels:'notify_settle_labels', settle_vals:'notify_settle_vals'} },
-  { key:'survey', label:'설문조사', icon:'📝', color:'#FFC654',
+  { key:'survey', group:'aptner', label:'설문조사', icon:'📝', color:'#FFC654',
     unitPrice:88, rawUnitPrice:80, sheet:'설문조사',
     canvas:{cnt:'cSI',rev:'cSR',growthCnt:'cSG_cnt',growthRev:'cSG_rev'},
     dKeys:{mo_labels:'survey_labels', mo_cnt:'survey_cnt_values',
@@ -317,7 +317,7 @@ var SERVICES = [
             settle_day_labels:'survey_settle_day_labels', settle_day_vals:'survey_settle_day_vals',
             settle_wk_labels:'survey_settle_wk_labels', settle_wk_vals:'survey_settle_wk_vals', settle_wk_wow:'survey_settle_wk_wow',
             settle_labels:'survey_settle_labels', settle_vals:'survey_settle_vals'} },
-  { key:'officener', label:'오피스너', icon:'🏢', color:'#FF7056',
+  { key:'officener', group:'officener', label:'오피스너', icon:'🏢', color:'#FF7056',
     unitPrice:0, rawUnitPrice:0, sheet:'',
     canvas:{cnt:'cOI',rev:'cOR',growthCnt:'cOG_cnt',growthRev:'cOG_rev'},
     dKeys:{mo_labels:null, mo_cnt:null, mo_rev_labels:null, mo_rev:null},
@@ -328,7 +328,7 @@ var SERVICES = [
             settle_day_labels:null, settle_day_vals:null,
             settle_wk_labels:null, settle_wk_vals:null, settle_wk_wow:null,
             settle_labels:null, settle_vals:null} },
-  { key:'aptstory', label:'아파트스토리', icon:'📰', color:'#F48FB1',
+  { key:'aptstory', group:'aptstory', label:'아파트스토리', icon:'📰', color:'#F48FB1',
     unitPrice:0, rawUnitPrice:0, sheet:'',
     canvas:{cnt:'cAI',rev:'cAR',growthCnt:'cAG_cnt',growthRev:'cAG_rev'},
     dKeys:{mo_labels:null, mo_cnt:null, mo_rev_labels:null, mo_rev:null},
@@ -339,6 +339,11 @@ var SERVICES = [
             settle_day_labels:null, settle_day_vals:null,
             settle_wk_labels:null, settle_wk_vals:null, settle_wk_wow:null,
             settle_labels:null, settle_vals:null} }
+];
+var GROUPS = [
+  { key:'aptner', label:'아파트너', icon:'🏘' },
+  { key:'officener', label:'오피스너', icon:'🏢' },
+  { key:'aptstory', label:'아파트스토리', icon:'📰' }
 ];
 function svcByKey(k){ for(var i=0;i<SERVICES.length;i++) if(SERVICES[i].key===k) return SERVICES[i]; return null; }
 var GR = D.gr;
@@ -1456,23 +1461,42 @@ function renderUsageCards(){
     '<div class="card" style="display:flex;flex-direction:column"><div class="ch"><span class="ct">월별 전체 이용 건수 현황</span><span class="cs">서비스별 합계</span></div><div style="flex:1;min-height:120px;position:relative"><canvas id="cTotalCnt"></canvas></div></div>'+
     '<div class="card" style="display:flex;flex-direction:column"><div class="ch"><span class="ct">월별 전체 이용 단지 수 현황</span><span class="cs">서비스별 합계</span></div><div style="flex:1;min-height:120px;position:relative"><canvas id="cTotalCplx"></canvas></div></div>'+
   '</div>';
-  var svcCards = SERVICES.map(function(s){
-    return '<div class="card"><div class="ch"><span class="ct">'+s.icon+' '+s.label+' — 이용 건수</span></div>'+
-           '<canvas id="'+s.canvas.cnt+'" height="120"></canvas></div>';
+  var subTabs = GROUPS.map(function(g,i){
+    return '<button class="stb '+(i===0?'on':'')+'" data-grp="'+g.key+'" data-tab="us">'+g.icon+' '+g.label+'</button>';
   }).join('');
-  var growthCards = SERVICES.map(function(s){
-    return '<div class="card"><div class="ch"><span class="ct">📈 '+s.label+' 성장률</span><span class="cs">버튼으로 지표 선택</span></div>'+
-           '<canvas id="'+s.canvas.growthCnt+'" height="135"></canvas>'+
-           '<div class="notice">WoW=주단위 | MoM·QoQ·YoY=월단위 | null 구간은 선 끊김</div></div>';
+  var groupPanels = GROUPS.map(function(g,i){
+    var grpSvcs = SERVICES.filter(function(s){return s.group===g.key;});
+    var sc = grpSvcs.map(function(s){
+      return '<div class="card"><div class="ch"><span class="ct">'+s.icon+' '+s.label+' — 이용 건수</span></div>'+
+             '<canvas id="'+s.canvas.cnt+'" height="120"></canvas></div>';
+    }).join('');
+    var gc = grpSvcs.map(function(s){
+      return '<div class="card"><div class="ch"><span class="ct">📈 '+s.label+' 성장률</span><span class="cs">버튼으로 지표 선택</span></div>'+
+             '<canvas id="'+s.canvas.growthCnt+'" height="135"></canvas>'+
+             '<div class="notice">WoW=주단위 | MoM·QoQ·YoY=월단위 | null 구간은 선 끊김</div></div>';
+    }).join('');
+    return '<div class="spg '+(i===0?'on':'')+'" id="us-'+g.key+'">'+
+           '<div class="g3" style="margin-bottom:var(--g)">'+sc+'</div>'+
+           '<div class="g3">'+gc+'</div>'+
+           '</div>';
   }).join('');
   host.innerHTML =
     '<div class="st">전체 이용 현황</div>'+
     totalCards+
     '<div class="st">서비스별 이용 현황</div>'+
-    '<div class="g3" style="margin-bottom:var(--g)">'+svcCards+'</div>'+
-    '<div class="st">서비스별 성장률 (이용 기반)</div>'+
-    '<div class="g3">'+growthCards+'</div>';
+    '<div class="stabs">'+subTabs+'</div>'+
+    groupPanels;
   host.dataset.rendered = '1';
+  host.querySelectorAll('.stabs .stb').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var grp = btn.dataset.grp;
+      host.querySelectorAll('.stabs .stb').forEach(function(b){b.classList.remove('on');});
+      btn.classList.add('on');
+      host.querySelectorAll('.spg').forEach(function(p){p.classList.remove('on');});
+      var pane = document.getElementById('us-'+grp);
+      if(pane) pane.classList.add('on');
+    });
+  });
 }
 function renderRevenueCards(){
   var host = document.getElementById('pg-rv');
@@ -1481,23 +1505,42 @@ function renderRevenueCards(){
     '<div class="card" style="display:flex;flex-direction:column"><div class="ch"><span class="ct">기간별 전체 매출 현황</span><span class="cs">서비스별 합계</span></div><div style="flex:1;min-height:120px;position:relative"><canvas id="cTotalRev"></canvas></div></div>'+
     '<div class="card" style="display:flex;flex-direction:column"><div class="ch"><span class="ct">월별 전체 1,000원 미만 발송 건수 현황</span><span class="cs">서비스별 합계</span></div><div style="flex:1;min-height:120px;position:relative"><canvas id="cTotalExcl"></canvas></div></div>'+
   '</div>';
-  var svcCards = SERVICES.map(function(s){
-    return '<div class="card"><div class="ch"><span class="ct">'+s.icon+' '+s.label+' — 매출</span></div>'+
-           '<canvas id="'+s.canvas.rev+'" height="120"></canvas></div>';
+  var subTabs = GROUPS.map(function(g,i){
+    return '<button class="stb '+(i===0?'on':'')+'" data-grp="'+g.key+'" data-tab="rv">'+g.icon+' '+g.label+'</button>';
   }).join('');
-  var growthCards = SERVICES.map(function(s){
-    return '<div class="card"><div class="ch"><span class="ct">📈 '+s.label+' 성장률 (매출)</span><span class="cs">건수추정·정산 선택</span></div>'+
-           '<canvas id="'+s.canvas.growthRev+'" height="135"></canvas>'+
-           '<div class="notice">정산현황 데이터 기준 | null 구간은 선 끊김</div></div>';
+  var groupPanels = GROUPS.map(function(g,i){
+    var grpSvcs = SERVICES.filter(function(s){return s.group===g.key;});
+    var sc = grpSvcs.map(function(s){
+      return '<div class="card"><div class="ch"><span class="ct">'+s.icon+' '+s.label+' — 매출</span></div>'+
+             '<canvas id="'+s.canvas.rev+'" height="120"></canvas></div>';
+    }).join('');
+    var gc = grpSvcs.map(function(s){
+      return '<div class="card"><div class="ch"><span class="ct">📈 '+s.label+' 성장률 (매출)</span><span class="cs">건수추정·정산 선택</span></div>'+
+             '<canvas id="'+s.canvas.growthRev+'" height="135"></canvas>'+
+             '<div class="notice">정산현황 데이터 기준 | null 구간은 선 끊김</div></div>';
+    }).join('');
+    return '<div class="spg '+(i===0?'on':'')+'" id="rv-'+g.key+'">'+
+           '<div class="g3" style="margin-bottom:var(--g)">'+sc+'</div>'+
+           '<div class="g3">'+gc+'</div>'+
+           '</div>';
   }).join('');
   host.innerHTML =
     '<div class="st">전체 매출 현황</div>'+
     totalCards+
     '<div class="st">서비스별 매출 현황</div>'+
-    '<div class="g3" style="margin-bottom:var(--g)">'+svcCards+'</div>'+
-    '<div class="st">서비스별 성장률 (매출 기반)</div>'+
-    '<div class="g3">'+growthCards+'</div>';
+    '<div class="stabs">'+subTabs+'</div>'+
+    groupPanels;
   host.dataset.rendered = '1';
+  host.querySelectorAll('.stabs .stb').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var grp = btn.dataset.grp;
+      host.querySelectorAll('.stabs .stb').forEach(function(b){b.classList.remove('on');});
+      btn.classList.add('on');
+      host.querySelectorAll('.spg').forEach(function(p){p.classList.remove('on');});
+      var pane = document.getElementById('rv-'+grp);
+      if(pane) pane.classList.add('on');
+    });
+  });
 }
 function initUsage(){
   renderUsageCards();
