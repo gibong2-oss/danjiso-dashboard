@@ -49,7 +49,7 @@
 .stb.on{color:var(--cp);border-bottom-color:var(--cp)}.stb:hover{color:var(--tm)}
 .spg{display:none}.spg.on{display:block}
 .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--g)}
-.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--g)}
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--g)}
 .g2{display:grid;grid-template-columns:repeat(2,1fr);gap:var(--g)}
 .sp2{grid-column:span 2}
 .card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:var(--p)}
@@ -1108,11 +1108,20 @@ function initOv(){
   var surveyCplxSettleStat = cplxAvgSettle(CPLX.survey_cplx_monthly || {}, GR.survey_settle_labels || []);
   var tierEl = document.getElementById("ovSvcTier");
   if(tierEl){
-    var tiers = [
-      {n: sc.cnt1, label: "1가지 이상 이용 단지", sub: "전자투표·알림·설문 중 1개 이상", tier: 1},
-      {n: sc.cnt2, label: "2가지 이상 이용 단지", sub: "복수 서비스 이용 경험 단지",     tier: 2},
-      {n: sc.cnt3, label: "3가지 모두 이용 단지", sub: "전자투표·알림·설문 모두 이용",   tier: 3},
-    ];
+    // 티어 카드: SERVICES.length 기반 N개 동적 생성
+    var _svcLabels = SERVICES.map(function(s){return s.label;}).join("·");
+    var _N = SERVICES.length;
+    var tiers = [];
+    for(var _k=1; _k<=_N; _k++){
+      tiers.push({
+        n: sc["cnt"+_k] || 0,
+        label: (_k === _N ? _k+"가지 모두 이용 단지" : _k+"가지 이상 이용 단지"),
+        sub:   (_k === 1 ? _svcLabels+" 중 1개 이상"
+               : _k === _N ? _svcLabels+" 모두 이용"
+               : "복수 서비스 이용 경험 단지"),
+        tier: _k
+      });
+    }
     tierEl.innerHTML = tiers.map(function(t){
       return "<div class=\"card kpi kpi-clickable\" onclick=\"showSvcModal("+t.tier+")\" title=\"클릭하면 단지 목록 보기\">" +
         "<div class=\"ki\">🏘</div>" +
@@ -1901,8 +1910,9 @@ function showExclModal(type){
 function showSvcModal(tier){
   var SVC = D.svc_usage;
   if(!SVC || !SVC.svc_matrix) return;
-  var tierLabel = tier === 1 ? "1가지 이상 이용 단지 목록" :
-                  tier === 2 ? "2가지 이상 이용 단지 목록" : "3가지 서비스 모두 이용 단지 목록";
+  var tierLabel = (tier === SERVICES.length)
+    ? tier+"가지 서비스 모두 이용 단지 목록"
+    : tier+"가지 이상 이용 단지 목록";
   var entries = Object.keys(SVC.svc_matrix).map(function(code){
     return {code: code, d: SVC.svc_matrix[code]};
   }).filter(function(e){ return e.d.svc_count >= tier; })
