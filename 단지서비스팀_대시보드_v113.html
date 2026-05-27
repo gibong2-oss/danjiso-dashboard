@@ -1742,6 +1742,14 @@ function renderUsageCards(){
     return '<div class="card" style="display:flex;flex-direction:column;height:360px;margin-bottom:var(--g)">'+
            '<div class="ch"><span class="ct">누적 단지수 (1/2/3가지 이상 이용)</span><span class="cs">아파트너 누적 (월/주 토글)</span></div>'+
            '<div style="flex:1;position:relative;min-height:200px"><canvas id="cSvcCntHist"></canvas></div>'+
+           '</div>' +
+           '<div class="card" style="display:flex;flex-direction:column;height:360px;margin-bottom:var(--g)">'+
+           '<div class="ch"><span class="ct">📈 전체 이용건수 성장률 (WoW/MoM/QoQ/YoY)</span><span class="cs">아파트너 합산</span></div>'+
+           '<div style="flex:1;position:relative;min-height:200px"><canvas id="cTotalCntGrowth"></canvas></div>'+
+           '</div>' +
+           '<div class="card" style="display:flex;flex-direction:column;height:360px;margin-bottom:var(--g)">'+
+           '<div class="ch"><span class="ct">📈 전체 이용 단지수 성장률 (WoW/MoM/QoQ/YoY)</span><span class="cs">아파트너 합산</span></div>'+
+           '<div style="flex:1;position:relative;min-height:200px"><canvas id="cTotalCplxGrowth"></canvas></div>'+
            '</div>';
   }
     return '<div class="spg '+(i===0?'on':'')+'" id="us-'+g.key+'">'+
@@ -1810,6 +1818,111 @@ function renderRevenueCards(){
     });
   });
 }
+function _calcGrowthSeries(vals){
+  var mom = vals.map(function(v,i){
+    if(i === 0 || vals[i-1] == null || vals[i-1] === 0) return null;
+    return Math.round((v - vals[i-1]) / vals[i-1] * 1000) / 10;
+  });
+  var qoq = vals.map(function(v,i){
+    if(i < 3 || vals[i-3] == null || vals[i-3] === 0) return null;
+    return Math.round((v - vals[i-3]) / vals[i-3] * 1000) / 10;
+  });
+  var yoy = vals.map(function(v,i){
+    if(i < 12 || vals[i-12] == null || vals[i-12] === 0) return null;
+    return Math.round((v - vals[i-12]) / vals[i-12] * 1000) / 10;
+  });
+  return { mom:mom, qoq:qoq, yoy:yoy };
+}
+function _buildCntGrowth(){
+  function _lk(lb,va,k){var i=(lb||[]).indexOf(k);return i>=0?((va||[])[i]||0):0;}
+  // 월별 합산
+  var vL = D.vote_ids_labels||D.months||[], nL = D.notify_labels||[], sL = D.survey_labels||D.months||[];
+  var allM = {}; vL.forEach(function(m){allM[m]=1;}); nL.forEach(function(m){allM[m]=1;}); sL.forEach(function(m){allM[m]=1;});
+  var mos = Object.keys(allM).sort();
+  var moTotal = mos.map(function(m){
+    return _lk(vL, D.vote_ids_values||[], m) + _lk(nL, D.notify_sends||[], m) + _lk(sL, D.survey_ids_values||[], m);
+  });
+  var moGr = _calcGrowthSeries(moTotal);
+  // 주별 합산
+  var vWL = GR.vote_wk_labels||[], nWL = GR.notify_wk_labels||[], sWL = GR.survey_wk_labels||[];
+  var allW = {}; vWL.forEach(function(w){allW[w]=1;}); nWL.forEach(function(w){allW[w]=1;}); sWL.forEach(function(w){allW[w]=1;});
+  var wks = Object.keys(allW).sort();
+  var wkTotal = wks.map(function(w){
+    return _lk(vWL, GR.vote_wk_vals||[], w) + _lk(nWL, GR.notify_wk_vals||[], w) + _lk(sWL, GR.survey_wk_vals||[], w);
+  });
+  var wow = wkTotal.map(function(v,i){
+    if(i === 0 || wkTotal[i-1] == null || wkTotal[i-1] === 0) return null;
+    return Math.round((v - wkTotal[i-1]) / wkTotal[i-1] * 1000) / 10;
+  });
+  return { mos:mos, moTotal:moTotal, mom:moGr.mom, qoq:moGr.qoq, yoy:moGr.yoy, wks:wks, wkTotal:wkTotal, wow:wow };
+}
+function _buildCplxGrowth(){
+  var sc = D.svc_cplx || {};
+  var vM = sc.vote_cplx_monthly||{}, nM = sc.notify_cplx_monthly||{}, sM = sc.survey_cplx_monthly||{};
+  var allM = {}; Object.keys(vM).forEach(function(m){allM[m]=1;}); Object.keys(nM).forEach(function(m){allM[m]=1;}); Object.keys(sM).forEach(function(m){allM[m]=1;});
+  var mos = Object.keys(allM).sort();
+  var moTotal = mos.map(function(m){ return (vM[m]||0) + (nM[m]||0) + (sM[m]||0); });
+  var moGr = _calcGrowthSeries(moTotal);
+  // 주별 — GR.vote_wk_cplx_vals 등 사용 (단순 합산, union이 아닌 합)
+  function _lk(lb,va,k){var i=(lb||[]).indexOf(k);return i>=0?((va||[])[i]||0):0;}
+  var vWL = GR.vote_wk_cplx_labels||[], nWL = GR.notify_wk_cplx_labels||[], sWL = GR.survey_wk_cplx_labels||[];
+  var allW = {}; vWL.forEach(function(w){allW[w]=1;}); nWL.forEach(function(w){allW[w]=1;}); sWL.forEach(function(w){allW[w]=1;});
+  var wks = Object.keys(allW).sort();
+  var wkTotal = wks.map(function(w){
+    return _lk(vWL, GR.vote_wk_cplx_vals||[], w) + _lk(nWL, GR.notify_wk_cplx_vals||[], w) + _lk(sWL, GR.survey_wk_cplx_vals||[], w);
+  });
+  var wow = wkTotal.map(function(v,i){
+    if(i === 0 || wkTotal[i-1] == null || wkTotal[i-1] === 0) return null;
+    return Math.round((v - wkTotal[i-1]) / wkTotal[i-1] * 1000) / 10;
+  });
+  return { mos:mos, moTotal:moTotal, mom:moGr.mom, qoq:moGr.qoq, yoy:moGr.yoy, wks:wks, wkTotal:wkTotal, wow:wow };
+}
+function _drawGrowthChart(canvasId, btnPrefix, dataFn, color){
+  var el = document.getElementById(canvasId); if(!el) return;
+  var btnId = canvasId + '_pbtns';
+  if(!document.getElementById(btnId)){
+    var card = el.closest('.card');
+    var ch = card ? card.querySelector('.ch') : null;
+    if(ch){
+      var bw = document.createElement('div');
+      bw.id = btnId; bw.className = 'tg';
+      bw.style.cssText = 'margin-left:auto;display:inline-flex;gap:4px';
+      ['wow','mom','qoq','yoy'].forEach(function(p){
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'tgb' + (p === 'mom' ? ' on' : '');
+        b.textContent = p.toUpperCase();
+        b.dataset.per = p;
+        b.addEventListener('click', function(){
+          el.dataset._per = this.dataset.per;
+          bw.querySelectorAll('button').forEach(function(x){x.classList.remove('on');});
+          this.classList.add('on');
+          render();
+        });
+        bw.appendChild(b);
+      });
+      ch.appendChild(bw);
+    }
+  }
+  var data = dataFn();
+  function render(){
+    var per = el.dataset._per || 'mom';
+    var labels, vals;
+    if(per === 'wow') { labels = data.wks; vals = data.wow; }
+    else if(per === 'mom') { labels = data.mos; vals = data.mom; }
+    else if(per === 'qoq') { labels = data.mos; vals = data.qoq; }
+    else { labels = data.mos; vals = data.yoy; }
+    mkC(canvasId, {type:'line', data:{labels:labels, datasets:[
+      {label: per.toUpperCase() + ' (%)', data: vals, borderColor: color, backgroundColor: color+'33', fill:false, tension:0.2, borderWidth:2, pointRadius:2, spanGaps:false}
+    ]}, options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, datalabels:{display:false},
+        tooltip:{callbacks:{label:function(ctx){var v=ctx.parsed.y; return v!=null?v+'%':'데이터 없음';}}}},
+      scales:{x:{ticks:{font:{size:9}, maxRotation:45}}, y:{ticks:{font:{size:9}, callback:function(v){return v+'%';}}}}}});
+  }
+  render();
+}
+function drawTotalCntGrowth(){ _drawGrowthChart('cTotalCntGrowth', 'cnt', _buildCntGrowth, '#8B80D4'); }
+function drawTotalCplxGrowth(){ _drawGrowthChart('cTotalCplxGrowth', 'cplx', _buildCplxGrowth, '#5EC8E8'); }
 function drawSvcCountHistory(){
   var el = document.getElementById('cSvcCntHist'); if(!el) return;
   var h = (D.svc_count_history || {});
@@ -1868,6 +1981,8 @@ function initUsage(){
   drawTotalCnt();
   drawTotalCplx();
   drawSvcCountHistory();
+  drawTotalCntGrowth();
+  drawTotalCplxGrowth();
   SERVICES.forEach(initServiceUsage);
   if(window._attachChartClickHandlers) window._attachChartClickHandlers();
 }
@@ -2744,9 +2859,36 @@ function bootApp(){
       }
       var qtrTab = mkAggTab('qtr','분기','분기', aggCplx(mos, 'qtr'));
       var yrTab = mkAggTab('yr','연간','연도', aggCplx(mos, 'yr'));
-      // 일/주 — 단지별 일자별 set 데이터 없어서 빈 탭
-      var dyTab = { key:'day', label:'일간', cols:['날짜','전자투표(단지)','알림서비스(단지)','설문조사(단지)','합계(단지)'], rows:[] };
-      var wkTab = { key:'wk', label:'주간', cols:['주','전자투표(단지)','알림서비스(단지)','설문조사(단지)','합계(단지)'], rows:[] };
+      // 일/주: GR에서 day_cplx/wk_cplx 데이터 사용
+      function _mkDW(key,label,colHead,vL,vV,nL,nV,sL,sV){
+        var allK={};
+        (vL||[]).forEach(function(k){allK[k]=1;});
+        (nL||[]).forEach(function(k){allK[k]=1;});
+        (sL||[]).forEach(function(k){allK[k]=1;});
+        var keys = Object.keys(allK).sort();
+        function _lk(lb,va,k){var i=(lb||[]).indexOf(k);return i>=0?((va||[])[i]||0):0;}
+        var rows=[], sv=0, sn=0, ss=0;
+        keys.forEach(function(k){
+          var v=_lk(vL,vV,k), nn=_lk(nL,nV,k), s=_lk(sL,sV,k);
+          sv+=v; sn+=nn; ss+=s;
+          rows.push([k, n(v), n(nn), n(s), n(v+nn+s)]);
+        });
+        var L = keys.length||1;
+        return { key:key, label:label,
+          cols:[colHead,'전자투표(단지)','알림서비스(단지)','설문조사(단지)','합계(단지)'],
+          rows:rows,
+          totals:['합계', n(sv), n(sn), n(ss), n(sv+sn+ss)],
+          avgs:[label+' 평균', n(Math.round(sv/L)), n(Math.round(sn/L)), n(Math.round(ss/L)), n(Math.round((sv+sn+ss)/L))]
+        };
+      }
+      var dyTab = _mkDW('day','일간','날짜',
+        GR.vote_day_cplx_labels||[], GR.vote_day_cplx_vals||[],
+        GR.notify_day_cplx_labels||[], GR.notify_day_cplx_vals||[],
+        GR.survey_day_cplx_labels||[], GR.survey_day_cplx_vals||[]);
+      var wkTab = _mkDW('wk','주간','주',
+        GR.vote_wk_cplx_labels||[], GR.vote_wk_cplx_vals||[],
+        GR.notify_wk_cplx_labels||[], GR.notify_wk_cplx_vals||[],
+        GR.survey_wk_cplx_labels||[], GR.survey_wk_cplx_vals||[]);
       _MDATA['cTotalCplx'] = {
         type: 'tabbed',
         title: '전체 이용 단지 수 현황',
@@ -2791,6 +2933,34 @@ function bootApp(){
           { key:'mo', label:'월간', cols:['월','1가지 이상','2가지 이상','3가지 모두'], rows: moRows },
           { key:'wk', label:'주간', cols:['주','1가지 이상','2가지 이상','3가지 모두'], rows: wkRows }
         ]
+      };
+    })();
+    // cTotalCntGrowth + cTotalCplxGrowth — 성장률 모달 (WoW/MoM/QoQ/YoY 4탭)
+    (function(){
+      function mkGrTabs(builder, label, unitLabel){
+        var g = builder();
+        function mkTab(key, name, labels, vals){
+          var rows = labels.map(function(l, i){ return [l, (vals[i] == null ? '-' : vals[i] + '%')]; });
+          return { key:key, label:name, cols:[key === 'wow' ? '주' : '월', label+' (%)'], rows:rows };
+        }
+        return [
+          mkTab('wow','WoW', g.wks, g.wow),
+          mkTab('mom','MoM', g.mos, g.mom),
+          mkTab('qoq','QoQ', g.mos, g.qoq),
+          mkTab('yoy','YoY', g.mos, g.yoy)
+        ];
+      }
+      _MDATA['cTotalCntGrowth'] = {
+        type: 'tabbed',
+        title: '전체 이용건수 성장률 (WoW/MoM/QoQ/YoY)',
+        fname_base: '전체이용건수_성장률',
+        tabs: mkGrTabs(_buildCntGrowth, '성장률', '%')
+      };
+      _MDATA['cTotalCplxGrowth'] = {
+        type: 'tabbed',
+        title: '전체 이용 단지수 성장률 (WoW/MoM/QoQ/YoY)',
+        fname_base: '전체이용단지수_성장률',
+        tabs: mkGrTabs(_buildCplxGrowth, '성장률', '%')
       };
     })();
 
@@ -2912,7 +3082,7 @@ function bootApp(){
 
     // ── 차트 카드 클릭 이벤트 ──
     function attachChartClickHandlers(){
-      var ids = ['cTotalRev','cTotalCnt','cTotalCplx','cTotalExcl','cSvcCntHist'];
+      var ids = ['cTotalRev','cTotalCnt','cTotalCplx','cTotalExcl','cSvcCntHist','cTotalCntGrowth','cTotalCplxGrowth'];
       // SERVICES 기반 동적 ID 추가 (vote/notify/survey + 신규 서비스)
       if(typeof SERVICES !== 'undefined'){
         SERVICES.forEach(function(s){
