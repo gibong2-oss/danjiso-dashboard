@@ -2461,24 +2461,55 @@ function bootApp(){
       ]};
     })();
 
-    // cTotalCnt — 월별 전체 이용건수
+    // cTotalCnt — 기간별 전체 이용건수 (일/주/월/분기/연간 tabbed)
     (function(){
-      var vL=D.vote_ids_labels||D.months||[], vV=D.vote_ids_values||[];
-      var nL=D.notify_labels||[], nV=D.notify_sends||[];
-      var sL=D.survey_labels||D.months||[], sV=D.survey_ids_values||[];
-      var allMo={};
-      vL.forEach(function(m){allMo[m]=1;}); nL.forEach(function(m){allMo[m]=1;}); sL.forEach(function(m){allMo[m]=1;});
-      var mos=Object.keys(allMo).sort();
-      var rows=[], sv=0, sn=0, ss=0;
-      mos.forEach(function(m){
-        var v=lkp(vL,vV,m)||0, nn=lkp(nL,nV,m)||0, s=lkp(sL,sV,m)||0;
-        sv+=v; sn+=nn; ss+=s;
-        rows.push([m, n(v), n(nn), n(s), n(v+nn+s)]);
-      });
-      _MDATA['cTotalCnt']={title:'월별 전체 이용건수', fname:'월별전체이용건수',
-        cols:['월','전자투표(건)','알림서비스(건)','설문조사(건)','합계(건)'],
-        rows:rows, totals:['합계', n(sv), n(sn), n(ss), n(sv+sn+ss)],
-        avgs:['월평균', n(Math.round(sv/(mos.length||1))), n(Math.round(sn/(mos.length||1))), n(Math.round(ss/(mos.length||1))), n(Math.round((sv+sn+ss)/(mos.length||1)))]};
+      function _lkp(lbls,vals,k){var i=(lbls||[]).indexOf(k);return i>=0?((vals||[])[i]||0):0;}
+      function mkCntTab(key,label,colHead,vL,vV,nL,nV,sL,sV){
+        var allK={};
+        (vL||[]).forEach(function(k){allK[k]=1;});
+        (nL||[]).forEach(function(k){allK[k]=1;});
+        (sL||[]).forEach(function(k){allK[k]=1;});
+        var keys = Object.keys(allK).sort();
+        var rows=[], sv=0, sn=0, ss=0;
+        keys.forEach(function(k){
+          var v=_lkp(vL,vV,k)||0, nn=_lkp(nL,nV,k)||0, s=_lkp(sL,sV,k)||0;
+          sv+=v; sn+=nn; ss+=s;
+          rows.push([k, n(v), n(nn), n(s), n(v+nn+s)]);
+        });
+        var L = keys.length || 1;
+        return { key:key, label:label,
+          cols:[colHead,'전자투표(건)','알림서비스(건)','설문조사(건)','합계(건)'],
+          rows:rows,
+          totals:['합계', n(sv), n(sn), n(ss), n(sv+sn+ss)],
+          avgs:[label+' 평균', n(Math.round(sv/L)), n(Math.round(sn/L)), n(Math.round(ss/L)), n(Math.round((sv+sn+ss)/L))]
+        };
+      }
+      var moTab = mkCntTab('mo','월간','월',
+        D.vote_ids_labels||D.months||[], D.vote_ids_values||[],
+        D.notify_labels||[], D.notify_sends||[],
+        D.survey_labels||D.months||[], D.survey_ids_values||[]);
+      var dyTab = mkCntTab('day','일간','날짜',
+        GR.vote_day_labels||[], GR.vote_day_vals||[],
+        GR.notify_day_labels||[], GR.notify_day_vals||[],
+        GR.survey_day_labels||[], GR.survey_day_vals||[]);
+      var wkTab = mkCntTab('wk','주간','주',
+        GR.vote_wk_labels||[], GR.vote_wk_vals||[],
+        GR.notify_wk_labels||[], GR.notify_wk_vals||[],
+        GR.survey_wk_labels||[], GR.survey_wk_vals||[]);
+      var _vQ = aggPeriod(D.vote_ids_labels||D.months||[], D.vote_ids_values||[], 'qtr');
+      var _nQ = aggPeriod(D.notify_labels||[], D.notify_sends||[], 'qtr');
+      var _sQ = aggPeriod(D.survey_labels||D.months||[], D.survey_ids_values||[], 'qtr');
+      var qtrTab = mkCntTab('qtr','분기','분기', _vQ.labels, _vQ.vals, _nQ.labels, _nQ.vals, _sQ.labels, _sQ.vals);
+      var _vY = aggPeriod(D.vote_ids_labels||D.months||[], D.vote_ids_values||[], 'yr');
+      var _nY = aggPeriod(D.notify_labels||[], D.notify_sends||[], 'yr');
+      var _sY = aggPeriod(D.survey_labels||D.months||[], D.survey_ids_values||[], 'yr');
+      var yrTab = mkCntTab('yr','연간','연도', _vY.labels, _vY.vals, _nY.labels, _nY.vals, _sY.labels, _sY.vals);
+      _MDATA['cTotalCnt'] = {
+        type: 'tabbed',
+        title: '기간별 전체 이용건수',
+        fname_base: '전체이용건수',
+        tabs: [dyTab, wkTab, moTab, qtrTab, yrTab]
+      };
     })();
 
     // KPI 블록 → cTotalRev 재사용
