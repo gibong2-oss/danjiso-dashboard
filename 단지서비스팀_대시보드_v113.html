@@ -1415,32 +1415,85 @@ function drawTotalRev(){
 }
 
 function drawTotalCnt(){
-  // 월별 전체 이용 건수 차트
-  (function(){
-    var vLabels=D.vote_ids_labels||D.months||[]; var vVals=D.vote_ids_values||[];
-    var nLabels=D.notify_labels||[]; var nVals=D.notify_sends||[];
-    var sLabels=D.survey_labels||D.months||[]; var sVals=D.survey_ids_values||[];
-    var allMo={}; vLabels.forEach(function(m){allMo[m]=1;}); nLabels.forEach(function(m){allMo[m]=1;}); sLabels.forEach(function(m){allMo[m]=1;});
-    var mos=Object.keys(allMo).sort();
-    var fStart=gFilt.start||mos[0]||""; var fEnd=gFilt.end||mos[mos.length-1]||"";
-    mos=mos.filter(function(m){return m>=fStart&&m<=fEnd;});
-    function lkp(lbls,vals,m){var i=lbls.indexOf(m);return i>=0?(vals[i]||0):0;}
-    var vD=mos.map(function(m){return lkp(vLabels,vVals,m)||0;});
-    var nD=mos.map(function(m){return lkp(nLabels,nVals,m)||0;});
-    var sD=mos.map(function(m){return lkp(sLabels,sVals,m)||0;});
-    var total=mos.map(function(m,i){return vD[i]+nD[i]+sD[i];});
-    var avgTotal=total.length?total.reduce(function(a,b){return a+b;},0)/total.length:0;
-    mkC('cTotalCnt',{type:"bar",data:{labels:mos,datasets:[
-      {label:"전자투표",data:vD,backgroundColor:"rgba(139,128,212,.85)",stack:"cnt",borderRadius:2},
-      {label:"알림서비스",data:nD,backgroundColor:"rgba(94,200,232,.8)",stack:"cnt",borderRadius:2},
-      {label:"설문조사",data:sD,backgroundColor:"rgba(255,193,7,.8)",stack:"cnt",borderRadius:2},
-      {label:"평균",data:mos.map(function(){return Math.round(avgTotal);}),type:"line",borderColor:"#888",borderWidth:1.5,borderDash:[4,3],pointRadius:0,pointHoverRadius:5,hitRadius:20,fill:false,order:0}
-    ]},options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{position:"top",labels:{boxWidth:10,font:{size:10}},onClick:function(e,item,legend){Chart.defaults.plugins.legend.onClick.call(this,e,item,legend);var ch=legend.chart;var avgDs=ch.data.datasets[ch.data.datasets.length-1];var sum=new Array(mos.length).fill(0);ch.data.datasets.forEach(function(ds,i){if(ds.label!=="평균"&&!ch.getDatasetMeta(i).hidden){ds.data.forEach(function(v,j){sum[j]+=(v||0);});}});var avg=sum.length?Math.round(sum.reduce(function(a,b){return a+b;},0)/sum.length):0;avgDs.data=sum.map(function(){return avg;});ch.update();}},datalabels:{display:false},tooltip:{callbacks:{label:function(ctx){var v=ctx.parsed.y;return ctx.dataset.label+": "+v.toLocaleString()+"건";}}}},
-      scales:{x:{stacked:true,ticks:{font:{size:9},maxRotation:45}},y:{stacked:true,ticks:{font:{size:9},callback:function(v){return v>=10000?(v/10000).toFixed(0)+"만":v;}}}}}});
-  })();
+  var el = document.getElementById('cTotalCnt'); if(!el) return;
+  // 토글 버튼 (한 번만)
+  var btnId = 'cTotalCnt_pbtns';
+  if(!document.getElementById(btnId)){
+    var card = el.closest('.card');
+    var ch = card ? card.querySelector('.ch') : null;
+    if(ch){
+      var bw = document.createElement('div');
+      bw.id = btnId; bw.className = 'tg';
+      bw.style.cssText = 'margin-left:auto;display:inline-flex;gap:4px';
+      ['day','wk','mo','qtr','yr'].forEach(function(p){
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'tgb' + (p === 'mo' ? ' on' : '');
+        b.textContent = ({day:'일간',wk:'주간',mo:'월간',qtr:'분기',yr:'연간'})[p];
+        b.dataset.per = p;
+        b.addEventListener('click', function(){
+          el.dataset._per = this.dataset.per;
+          bw.querySelectorAll('button').forEach(function(x){x.classList.remove('on');});
+          this.classList.add('on');
+          renderC();
+        });
+        bw.appendChild(b);
+      });
+      ch.appendChild(bw);
+    }
+  }
+  function _lkp(lbls,vals,k){var i=(lbls||[]).indexOf(k);return i>=0?((vals||[])[i]||0):0;}
+  function getData(per){
+    if(per === 'day') return {
+      vL: GR.vote_day_labels||[], vV: GR.vote_day_vals||[],
+      nL: GR.notify_day_labels||[], nV: GR.notify_day_vals||[],
+      sL: GR.survey_day_labels||[], sV: GR.survey_day_vals||[]
+    };
+    if(per === 'wk') return {
+      vL: GR.vote_wk_labels||[], vV: GR.vote_wk_vals||[],
+      nL: GR.notify_wk_labels||[], nV: GR.notify_wk_vals||[],
+      sL: GR.survey_wk_labels||[], sV: GR.survey_wk_vals||[]
+    };
+    if(per === 'mo') return {
+      vL: D.vote_ids_labels||D.months||[], vV: D.vote_ids_values||[],
+      nL: D.notify_labels||[], nV: D.notify_sends||[],
+      sL: D.survey_labels||D.months||[], sV: D.survey_ids_values||[]
+    };
+    var pt = (per === 'qtr') ? 'qtr' : 'yr';
+    var vAg = aggPeriod(D.vote_ids_labels||D.months||[], D.vote_ids_values||[], pt);
+    var nAg = aggPeriod(D.notify_labels||[], D.notify_sends||[], pt);
+    var sAg = aggPeriod(D.survey_labels||D.months||[], D.survey_ids_values||[], pt);
+    return { vL:vAg.labels, vV:vAg.vals, nL:nAg.labels, nV:nAg.vals, sL:sAg.labels, sV:sAg.vals };
+  }
+  function renderC(){
+    var per = el.dataset._per || 'mo';
+    var d = getData(per);
+    var allK={};
+    (d.vL||[]).forEach(function(k){allK[k]=1;});
+    (d.nL||[]).forEach(function(k){allK[k]=1;});
+    (d.sL||[]).forEach(function(k){allK[k]=1;});
+    var keys = Object.keys(allK).sort();
+    var fStart = (per === 'mo' && gFilt.start) ? gFilt.start : keys[0]||'';
+    var fEnd   = (per === 'mo' && gFilt.end)   ? gFilt.end   : keys[keys.length-1]||'';
+    if(per === 'mo'){ keys = keys.filter(function(k){return k>=fStart && k<=fEnd;}); }
+    var vD = keys.map(function(k){return _lkp(d.vL,d.vV,k);});
+    var nD = keys.map(function(k){return _lkp(d.nL,d.nV,k);});
+    var sD = keys.map(function(k){return _lkp(d.sL,d.sV,k);});
+    var total = keys.map(function(k,i){return vD[i]+nD[i]+sD[i];});
+    var avgT = total.length ? total.reduce(function(a,b){return a+b;},0)/total.length : 0;
+    mkC('cTotalCnt', {type:'bar', data:{labels:keys, datasets:[
+      {label:'전자투표',  data:vD, backgroundColor:'rgba(139,128,212,.85)', stack:'cnt', borderRadius:2},
+      {label:'알림서비스', data:nD, backgroundColor:'rgba(94,200,232,.8)',  stack:'cnt', borderRadius:2},
+      {label:'설문조사',  data:sD, backgroundColor:'rgba(255,193,7,.8)',   stack:'cnt', borderRadius:2},
+      {label:'평균', data:keys.map(function(){return Math.round(avgT);}), type:'line', borderColor:'#888', borderWidth:1.5, borderDash:[4,3], pointRadius:0, hitRadius:20, fill:false, order:0}
+    ]}, options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'top', labels:{boxWidth:10, font:{size:10}}},
+        datalabels:{display:false},
+        tooltip:{callbacks:{label:function(ctx){var v=ctx.parsed.y; return ctx.dataset.label+': '+v.toLocaleString()+'건';}}}},
+      scales:{x:{stacked:true, ticks:{font:{size:9}, maxRotation:45}}, y:{stacked:true, ticks:{font:{size:9}, callback:function(v){return v>=10000?(v/10000).toFixed(0)+'만':v;}}}}}});
+  }
+  renderC();
 }
-
 function drawTotalCplx(){
   // 월별 전체 이용 단지 수 차트
   (function(){
