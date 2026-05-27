@@ -1742,14 +1742,6 @@ function renderUsageCards(){
     return '<div class="card" style="display:flex;flex-direction:column;height:360px;margin-bottom:var(--g)">'+
            '<div class="ch"><span class="ct">누적 단지수 (1/2/3가지 이상 이용)</span><span class="cs">아파트너 누적 (월/주 토글)</span></div>'+
            '<div style="flex:1;position:relative;min-height:200px"><canvas id="cSvcCntHist"></canvas></div>'+
-           '</div>' +
-           '<div class="card" style="display:flex;flex-direction:column;height:360px;margin-bottom:var(--g)">'+
-           '<div class="ch"><span class="ct">📈 전체 이용건수 성장률 (WoW/MoM/QoQ/YoY)</span><span class="cs">아파트너 합산</span></div>'+
-           '<div style="flex:1;position:relative;min-height:200px"><canvas id="cTotalCntGrowth"></canvas></div>'+
-           '</div>' +
-           '<div class="card" style="display:flex;flex-direction:column;height:360px;margin-bottom:var(--g)">'+
-           '<div class="ch"><span class="ct">📈 전체 이용 단지수 성장률 (WoW/MoM/QoQ/YoY)</span><span class="cs">아파트너 합산</span></div>'+
-           '<div style="flex:1;position:relative;min-height:200px"><canvas id="cTotalCplxGrowth"></canvas></div>'+
            '</div>';
   }
     return '<div class="spg '+(i===0?'on':'')+'" id="us-'+g.key+'">'+
@@ -1758,9 +1750,20 @@ function renderUsageCards(){
            '<div class="g3">'+gc+'</div>'+
            '</div>';
   }).join('');
+  var growthCards = '<div class="g2" style="margin-bottom:var(--g)">'+
+    '<div class="card" style="display:flex;flex-direction:column;height:360px">'+
+      '<div class="ch"><span class="ct">📈 전체 이용건수 성장률 (WoW/MoM/QoQ/YoY)</span><span class="cs">아파트너 합산</span></div>'+
+      '<div style="flex:1;position:relative;min-height:200px"><canvas id="cTotalCntGrowth"></canvas></div>'+
+    '</div>'+
+    '<div class="card" style="display:flex;flex-direction:column;height:360px">'+
+      '<div class="ch"><span class="ct">📈 전체 이용 단지수 성장률 (WoW/MoM/QoQ/YoY)</span><span class="cs">아파트너 합산</span></div>'+
+      '<div style="flex:1;position:relative;min-height:200px"><canvas id="cTotalCplxGrowth"></canvas></div>'+
+    '</div>'+
+  '</div>';
   host.innerHTML =
     '<div class="st">전체 이용 현황</div>'+
     totalCards+
+    growthCards+
     '<div class="st">서비스별 이용 현황</div>'+
     groupPanels;
   host.dataset.rendered = '1';
@@ -2935,32 +2938,35 @@ function bootApp(){
         ]
       };
     })();
-    // cTotalCntGrowth + cTotalCplxGrowth — 성장률 모달 (WoW/MoM/QoQ/YoY 4탭)
+    // cTotalCntGrowth + cTotalCplxGrowth — 성장률 모달 (WoW/MoM/QoQ/YoY 4탭, 실제값 + 성장률)
     (function(){
-      function mkGrTabs(builder, label, unitLabel){
+      function mkGrTabs(builder, valueLabel){
         var g = builder();
-        function mkTab(key, name, labels, vals){
-          var rows = labels.map(function(l, i){ return [l, (vals[i] == null ? '-' : vals[i] + '%')]; });
-          return { key:key, label:name, cols:[key === 'wow' ? '주' : '월', label+' (%)'], rows:rows };
+        function mkTab(key, name, labels, vals_actual, vals_pct){
+          var rows = labels.map(function(l, i){
+            return [l, n(vals_actual[i] || 0), (vals_pct[i] == null ? '-' : vals_pct[i] + '%')];
+          });
+          var colHead = (key === 'wow' ? '주' : '월');
+          return { key:key, label:name, cols:[colHead, valueLabel, name+' 성장률 (%)'], rows:rows };
         }
         return [
-          mkTab('wow','WoW', g.wks, g.wow),
-          mkTab('mom','MoM', g.mos, g.mom),
-          mkTab('qoq','QoQ', g.mos, g.qoq),
-          mkTab('yoy','YoY', g.mos, g.yoy)
+          mkTab('wow','WoW', g.wks, g.wkTotal, g.wow),
+          mkTab('mom','MoM', g.mos, g.moTotal, g.mom),
+          mkTab('qoq','QoQ', g.mos, g.moTotal, g.qoq),
+          mkTab('yoy','YoY', g.mos, g.moTotal, g.yoy)
         ];
       }
       _MDATA['cTotalCntGrowth'] = {
         type: 'tabbed',
         title: '전체 이용건수 성장률 (WoW/MoM/QoQ/YoY)',
         fname_base: '전체이용건수_성장률',
-        tabs: mkGrTabs(_buildCntGrowth, '성장률', '%')
+        tabs: mkGrTabs(_buildCntGrowth, '이용건수(건)')
       };
       _MDATA['cTotalCplxGrowth'] = {
         type: 'tabbed',
         title: '전체 이용 단지수 성장률 (WoW/MoM/QoQ/YoY)',
         fname_base: '전체이용단지수_성장률',
-        tabs: mkGrTabs(_buildCplxGrowth, '성장률', '%')
+        tabs: mkGrTabs(_buildCplxGrowth, '이용 단지수(개)')
       };
     })();
 
