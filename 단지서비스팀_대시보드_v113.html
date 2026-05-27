@@ -2527,14 +2527,21 @@ function bootApp(){
     })();
     (function(){
       var h = D.svc_count_history || {};
-      var labels = h.monthly_labels || [];
-      var v1 = h.cnt1_monthly || [], v2 = h.cnt2_monthly || [], v3 = h.cnt3_monthly || [];
-      var rows = labels.map(function(m, i){ return [m, n(v1[i]||0), n(v2[i]||0), n(v3[i]||0)]; });
-      var title = '누적 단지수 (1/2/3가지 이상 이용 단지)';
-      var fname = '누적단지수_월별';
-      _MDATA['cSvcCntHist'] = {title:title, fname:fname,
-        cols:['월','1가지 이상','2가지 이상','3가지 모두'],
-        rows:rows};
+      var moL = h.monthly_labels || [];
+      var moV1 = h.cnt1_monthly || [], moV2 = h.cnt2_monthly || [], moV3 = h.cnt3_monthly || [];
+      var moRows = moL.map(function(m, i){ return [m, n(moV1[i]||0), n(moV2[i]||0), n(moV3[i]||0)]; });
+      var wkL = h.weekly_labels || [];
+      var wkV1 = h.cnt1_weekly || [], wkV2 = h.cnt2_weekly || [], wkV3 = h.cnt3_weekly || [];
+      var wkRows = wkL.map(function(w, i){ return [w, n(wkV1[i]||0), n(wkV2[i]||0), n(wkV3[i]||0)]; });
+      _MDATA['cSvcCntHist'] = {
+        type: 'tabbed',
+        title: '누적 단지수 (1/2/3가지 이상 이용 단지)',
+        fname_base: '누적단지수',
+        tabs: [
+          { key:'mo', label:'월간', cols:['월','1가지 이상','2가지 이상','3가지 모두'], rows: moRows },
+          { key:'wk', label:'주간', cols:['주','1가지 이상','2가지 이상','3가지 모두'], rows: wkRows }
+        ]
+      };
     })();
 
 
