@@ -1561,7 +1561,15 @@ function renderUsageCards(){
              '<canvas id="'+s.canvas.growthCnt+'" height="135"></canvas>'+
              '<div class="notice">WoW=주단위 | MoM·QoQ·YoY=월단위 | null 구간은 선 끊김</div></div>';
     }).join('');
+  function _extraFor(grpKey){
+    if(grpKey !== 'aptner') return '';
+    return '<div class="card" style="display:flex;flex-direction:column;height:360px;margin-bottom:var(--g)">'+
+           '<div class="ch"><span class="ct">누적 단지수 (1/2/3가지 이상 이용)</span><span class="cs">아파트너 누적 (월/주 토글)</span></div>'+
+           '<div style="flex:1;position:relative;min-height:200px"><canvas id="cSvcCntHist"></canvas></div>'+
+           '</div>';
+  }
     return '<div class="spg '+(i===0?'on':'')+'" id="us-'+g.key+'">'+
+           _extraFor(g.key) +
            '<div class="g3" style="margin-bottom:var(--g)">'+sc+'</div>'+
            '<div class="g3">'+gc+'</div>'+
            '</div>';
@@ -1626,10 +1634,64 @@ function renderRevenueCards(){
     });
   });
 }
+function drawSvcCountHistory(){
+  var el = document.getElementById('cSvcCntHist'); if(!el) return;
+  var h = (D.svc_count_history || {});
+  if(!el.dataset._per) el.dataset._per = 'monthly';
+  var btnId = 'cSvcCntHist_btns';
+  if(!document.getElementById(btnId)){
+    var card = el.closest('.card');
+    var ch = card ? card.querySelector('.ch') : null;
+    if(ch){
+      var bw = document.createElement('div');
+      bw.id = btnId; bw.className = 'tg';
+      bw.style.cssText = 'margin-left:auto;display:inline-flex;gap:4px';
+      ['mo','wk'].forEach(function(p){
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'tgb' + (p === 'mo' ? ' on' : '');
+        b.textContent = (p === 'mo' ? '월간' : '주간');
+        b.dataset.per = p;
+        bw.appendChild(b);
+      });
+      ch.appendChild(bw);
+    }
+  }
+  function render(){
+    var per = el.dataset._per;
+    var labels = per === 'mo' ? (h.monthly_labels || []) : (h.weekly_labels || []);
+    var v1 = per === 'mo' ? (h.cnt1_monthly || []) : (h.cnt1_weekly || []);
+    var v2 = per === 'mo' ? (h.cnt2_monthly || []) : (h.cnt2_weekly || []);
+    var v3 = per === 'mo' ? (h.cnt3_monthly || []) : (h.cnt3_weekly || []);
+    mkC('cSvcCntHist', {type:'line', data:{labels:labels, datasets:[
+      {label:'1가지 이상', data:v1, borderColor:'#8B80D4', fill:false, tension:0.2, borderWidth:2, pointRadius:2},
+      {label:'2가지 이상', data:v2, borderColor:'#5EC8E8', fill:false, tension:0.2, borderWidth:2, pointRadius:2},
+      {label:'3가지 모두', data:v3, borderColor:'#FFC654', fill:false, tension:0.2, borderWidth:2, pointRadius:2}
+    ]}, options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{position:'top', labels:{boxWidth:14, font:{size:11}}},
+        datalabels:{display:false},
+        tooltip:{mode:'index', intersect:false}},
+      scales:{x:{ticks:{font:{size:9}, maxRotation:45}}, y:{beginAtZero:true, ticks:{font:{size:9}}}}}});
+  }
+  var btnEl = document.getElementById(btnId);
+  if(btnEl && !btnEl.dataset.wired){
+    btnEl.querySelectorAll('button').forEach(function(b){
+      b.addEventListener('click', function(){
+        el.dataset._per = this.dataset.per;
+        btnEl.querySelectorAll('button').forEach(function(x){x.classList.remove('on');});
+        this.classList.add('on');
+        render();
+      });
+    });
+    btnEl.dataset.wired = '1';
+  }
+  render();
+}
 function initUsage(){
   renderUsageCards();
   drawTotalCnt();
   drawTotalCplx();
+  drawSvcCountHistory();
   SERVICES.forEach(initServiceUsage);
   if(window._attachChartClickHandlers) window._attachChartClickHandlers();
 }
@@ -2463,6 +2525,17 @@ function bootApp(){
         rows:rows, totals:['합계', n(sv), n(sn), n(ss), n(sv+sn+ss)],
         avgs:['월평균', n(Math.round(sv/(mos.length||1))), n(Math.round(sn/(mos.length||1))), n(Math.round(ss/(mos.length||1))), n(Math.round((sv+sn+ss)/(mos.length||1)))]};
     })();
+    (function(){
+      var h = D.svc_count_history || {};
+      var labels = h.monthly_labels || [];
+      var v1 = h.cnt1_monthly || [], v2 = h.cnt2_monthly || [], v3 = h.cnt3_monthly || [];
+      var rows = labels.map(function(m, i){ return [m, n(v1[i]||0), n(v2[i]||0), n(v3[i]||0)]; });
+      var title = '누적 단지수 (1/2/3가지 이상 이용 단지)';
+      var fname = '누적단지수_월별';
+      _MDATA['cSvcCntHist'] = {title:title, fname:fname,
+        cols:['월','1가지 이상','2가지 이상','3가지 모두'],
+        rows:rows};
+    })();
 
 
     // ── 집계 헬퍼 ──
@@ -2582,7 +2655,7 @@ function bootApp(){
 
     // ── 차트 카드 클릭 이벤트 ──
     function attachChartClickHandlers(){
-      var ids = ['cTotalRev','cTotalCnt','cTotalCplx','cTotalExcl'];
+      var ids = ['cTotalRev','cTotalCnt','cTotalCplx','cTotalExcl','cSvcCntHist'];
       // SERVICES 기반 동적 ID 추가 (vote/notify/survey + 신규 서비스)
       if(typeof SERVICES !== 'undefined'){
         SERVICES.forEach(function(s){
