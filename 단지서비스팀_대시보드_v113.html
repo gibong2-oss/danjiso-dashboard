@@ -1606,20 +1606,15 @@ function drawTotalCplx(){
         sL: sL, sV: sL.map(function(m){return sM[m];})
       };
     }
-    function aggCplx(monthlyDict, type){
-      var bkt = {}, cnt = {}, ord = [];
-      Object.keys(monthlyDict).forEach(function(m){
-        var key = type === 'qtr' ? (m.substring(0,4)+'-Q'+Math.ceil(parseInt(m.substring(5,7))/3)) : m.substring(0,4);
-        if(!bkt[key]){ bkt[key] = 0; cnt[key] = 0; ord.push(key); }
-        bkt[key] += monthlyDict[m]||0; cnt[key] += 1;
-      });
-      ord.sort();
-      return { labels: ord, vals: ord.map(function(k){return Math.round(bkt[k]/cnt[k]);}) };
+    // union 기반 (generate_html.py에서 미리 계산)
+    function dictToLabelsVals(d){
+      var keys = Object.keys(d||{}).sort();
+      return { labels:keys, vals:keys.map(function(k){return d[k];}) };
     }
-    var pt = (per === 'qtr') ? 'qtr' : 'yr';
-    var vAg = aggCplx(sc.vote_cplx_monthly||{}, pt);
-    var nAg = aggCplx(sc.notify_cplx_monthly||{}, pt);
-    var sAg = aggCplx(sc.survey_cplx_monthly||{}, pt);
+    var suffix = (per === 'qtr') ? 'quarterly' : 'yearly';
+    var vAg = dictToLabelsVals(sc['vote_cplx_' + suffix]);
+    var nAg = dictToLabelsVals(sc['notify_cplx_' + suffix]);
+    var sAg = dictToLabelsVals(sc['survey_cplx_' + suffix]);
     return { vL:vAg.labels, vV:vAg.vals, nL:nAg.labels, nV:nAg.vals, sL:sAg.labels, sV:sAg.vals };
   }
   function _keyToYM(p, k){
@@ -2992,16 +2987,18 @@ function bootApp(){
         };
       }
       // 분기/연간은 단지 set이 아니라 단지 카운트의 평균/합산이 부적절 — 월별만 의미 있음
-      // 분기: 그 분기 모든 월의 단지 count 평균
+      // 분기/연간: generate_html.py에서 union 으로 미리 계산 (svc_cplx_quarterly/yearly)
       function aggCplx(monthLabels, type){
-        var bkt={}, ord=[], cnt={};
-        monthLabels.forEach(function(m){
-          var key = type==='qtr' ? (m.substring(0,4)+'-Q'+Math.ceil(parseInt(m.substring(5,7))/3)) : m.substring(0,4);
-          if(!bkt[key]){bkt[key]={v:0,n:0,s:0}; cnt[key]=0; ord.push(key);}
-          bkt[key].v += vM[m]||0; bkt[key].n += nM[m]||0; bkt[key].s += sM[m]||0;
-          cnt[key] += 1;
-        });
-        return ord.map(function(k){ var c=cnt[k]||1; return {label:k, v:Math.round(bkt[k].v/c), n:Math.round(bkt[k].n/c), s:Math.round(bkt[k].s/c)}; });
+        var suffix = (type === 'qtr') ? 'quarterly' : 'yearly';
+        var vD = sc['vote_cplx_' + suffix] || {};
+        var nD = sc['notify_cplx_' + suffix] || {};
+        var sD = sc['survey_cplx_' + suffix] || {};
+        var allK = {};
+        Object.keys(vD).forEach(function(k){allK[k]=1;});
+        Object.keys(nD).forEach(function(k){allK[k]=1;});
+        Object.keys(sD).forEach(function(k){allK[k]=1;});
+        var keys = Object.keys(allK).sort();
+        return keys.map(function(k){return {label:k, v:vD[k]||0, n:nD[k]||0, s:sD[k]||0};});
       }
       var moTab = mkCplxTab('mo','월간','월', mos);
       function mkAggTab(key,label,colHead,agg){
