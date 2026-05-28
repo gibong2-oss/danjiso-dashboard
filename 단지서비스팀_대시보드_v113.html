@@ -144,7 +144,14 @@ td{font-size:12px}tr:hover td{background:rgba(139,128,212,.04)}
 <div class="gnb">
   <div class="logo">🏢 단지서비스팀</div>
   <nav class="tabs">
-    <button class="tb on" id="tab-ov">📊 개요</button>
+    <div class="tb-dropdown" id="dd-ov">
+      <button class="tb on" id="tab-ov">📊 <span id="label-ov">개요</span> <span class="tb-caret">▾</span></button>
+      <div class="tb-menu" id="menu-ov" data-tab="ov">
+        <button class="tb-item active" data-grp="aptner">🏘 아파트너</button>
+        <button class="tb-item" data-grp="officener">🏢 오피스너</button>
+        <button class="tb-item" data-grp="aptstory">📰 아파트스토리</button>
+      </div>
+    </div>
     <div class="tb-dropdown" id="dd-us">
       <button class="tb" id="tab-us">📈 <span id="label-us">이용 현황</span> <span class="tb-caret">▾</span></button>
       <div class="tb-menu" id="menu-us" data-tab="us">
@@ -161,9 +168,30 @@ td{font-size:12px}tr:hover td{background:rgba(139,128,212,.04)}
         <button class="tb-item" data-grp="aptstory">📰 아파트스토리</button>
       </div>
     </div>
-    <button class="tb" id="tab-cx">🏠 단지 분석</button>
-    <button class="tb" id="tab-tb">📋 상세 테이블</button>
-    <button class="tb" id="tab-rd">📂 로우데이터</button>
+    <div class="tb-dropdown" id="dd-cx">
+      <button class="tb" id="tab-cx">🏠 <span id="label-cx">단지 분석</span> <span class="tb-caret">▾</span></button>
+      <div class="tb-menu" id="menu-cx" data-tab="cx">
+        <button class="tb-item active" data-grp="aptner">🏘 아파트너</button>
+        <button class="tb-item" data-grp="officener">🏢 오피스너</button>
+        <button class="tb-item" data-grp="aptstory">📰 아파트스토리</button>
+      </div>
+    </div>
+    <div class="tb-dropdown" id="dd-tb">
+      <button class="tb" id="tab-tb">📋 <span id="label-tb">상세 테이블</span> <span class="tb-caret">▾</span></button>
+      <div class="tb-menu" id="menu-tb" data-tab="tb">
+        <button class="tb-item active" data-grp="aptner">🏘 아파트너</button>
+        <button class="tb-item" data-grp="officener">🏢 오피스너</button>
+        <button class="tb-item" data-grp="aptstory">📰 아파트스토리</button>
+      </div>
+    </div>
+    <div class="tb-dropdown" id="dd-rd">
+      <button class="tb" id="tab-rd">📂 <span id="label-rd">로우데이터</span> <span class="tb-caret">▾</span></button>
+      <div class="tb-menu" id="menu-rd" data-tab="rd">
+        <button class="tb-item active" data-grp="aptner">🏘 아파트너</button>
+        <button class="tb-item" data-grp="officener">🏢 오피스너</button>
+        <button class="tb-item" data-grp="aptstory">📰 아파트스토리</button>
+      </div>
+    </div>
   </nav>
   <div class="gnb-f">
     <div style="display:flex;align-items:center;gap:8px">
@@ -669,9 +697,9 @@ function sw(id){
     else if(id === "rd") initRd();
   }
 }
-document.getElementById("tab-ov").addEventListener("click", function(){ sw("ov"); });
+document.getElementById("tab-ov").addEventListener("click", function(e){ e.stopPropagation(); sw("ov"); applyGroup("ov", activeGroup.ov); toggleDropdown("ov"); });
 // 드롭다운: 이용/매출 탭 클릭 시 드롭다운 토글 + sw(tab) + 현재 그룹 적용
-var activeGroup = { us: 'aptner', rv: 'aptner' };
+var activeGroup = { us: 'aptner', rv: 'aptner', ov: 'aptner', cx: 'aptner', tb: 'aptner', rd: 'aptner' };
 function applyGroup(tabId, grp){
   activeGroup[tabId] = grp;
   var host = document.getElementById('pg-' + tabId);
@@ -689,8 +717,14 @@ function applyGroup(tabId, grp){
   if(labelEl){
     var g = null;
     for(var i=0;i<GROUPS.length;i++) if(GROUPS[i].key === grp) { g = GROUPS[i]; break; }
-    var tabLabel = (tabId === 'us') ? '이용 현황' : '매출 현황';
+    var labelMap = {ov:'개요', us:'이용 현황', rv:'매출 현황', cx:'단지 분석', tb:'상세 테이블', rd:'로우데이터'};
+    var tabLabel = labelMap[tabId] || tabId;
     if(g) labelEl.textContent = tabLabel + ' · ' + g.icon + ' ' + g.label;
+  }
+  // 그룹 변경 시 현재 탭 재초기화 (us/rv 외 탭은 INITED 리셋 → sw 재호출)
+  if(tabId !== 'us' && tabId !== 'rv'){
+    INITED[tabId] = false;
+    sw(tabId);
   }
 }
 function toggleDropdown(tabId){
@@ -725,9 +759,9 @@ document.addEventListener('click', function(e){
     document.querySelectorAll('.tb-dropdown.open').forEach(function(dd){ dd.classList.remove('open'); });
   }
 });
-document.getElementById("tab-cx").addEventListener("click", function(){ sw("cx"); });
-document.getElementById("tab-tb").addEventListener("click", function(){ sw("tb"); });
-document.getElementById("tab-rd").addEventListener("click", function(){ sw("rd"); });
+document.getElementById("tab-cx").addEventListener("click", function(e){ e.stopPropagation(); sw("cx"); applyGroup("cx", activeGroup.cx); toggleDropdown("cx"); });
+document.getElementById("tab-tb").addEventListener("click", function(e){ e.stopPropagation(); sw("tb"); applyGroup("tb", activeGroup.tb); toggleDropdown("tb"); });
+document.getElementById("tab-rd").addEventListener("click", function(e){ e.stopPropagation(); sw("rd"); applyGroup("rd", activeGroup.rd); toggleDropdown("rd"); });
 
 
 
@@ -1804,9 +1838,14 @@ function renderRevenueCards(){
            '<div class="g3">'+gc+'</div>'+
            '</div>';
   }).join('');
+  var revGrowthCard = '<div class="card" style="display:flex;flex-direction:column;height:360px;margin-bottom:var(--g)">'+
+    '<div class="ch"><span class="ct">📈 전체 매출 성장률 (WoW/MoM/QoQ/YoY)</span><span class="cs">아파트너 합산 · 건수추정/정산현황 토글</span></div>'+
+    '<div style="flex:1;position:relative;min-height:200px"><canvas id="cTotalRevGrowth"></canvas></div>'+
+  '</div>';
   host.innerHTML =
     '<div class="st">전체 매출 현황</div>'+
     totalCards+
+    revGrowthCard+
     '<div class="st">서비스별 매출 현황</div>'+
     groupPanels;
   host.dataset.rendered = '1';
@@ -1924,6 +1963,124 @@ function _drawGrowthChart(canvasId, btnPrefix, dataFn, color){
   }
   render();
 }
+function _buildRevGrowth(src){
+  function _lk(lb,va,k){var i=(lb||[]).indexOf(k);return i>=0?((va||[])[i]||0):0;}
+  var vL, vV, nL, nV, sL, sV;
+  if(src === 'est'){
+    vL = D.revenue_estimate_labels||GR.vote_rev_months||[]; vV = D.revenue_estimate_values||GR.vote_rev_vals||[];
+    nL = GR.notify_rev_months||[]; nV = GR.notify_rev_vals||[];
+    sL = GR.survey_rev_months||[]; sV = GR.survey_rev_vals||[];
+  } else {
+    vL = GR.vote_settle_labels||[]; vV = GR.vote_settle_vals||[];
+    nL = GR.notify_settle_labels||[]; nV = GR.notify_settle_vals||[];
+    sL = GR.survey_settle_labels||[]; sV = GR.survey_settle_vals||[];
+  }
+  var allM = {}; vL.forEach(function(m){allM[m]=1;}); nL.forEach(function(m){allM[m]=1;}); sL.forEach(function(m){allM[m]=1;});
+  var mos = Object.keys(allM).sort();
+  var moTotal = mos.map(function(m){return _lk(vL,vV,m)+_lk(nL,nV,m)+_lk(sL,sV,m);});
+  var moGr = _calcGrowthSeries(moTotal);
+  var vWL, vWV, nWL, nWV, sWL, sWV;
+  if(src === 'est'){
+    vWL = GR.vote_rev_wk_labels||[]; vWV = GR.vote_rev_wk_vals||[];
+    nWL = GR.notify_wk_labels||[]; nWV = GR.notify_rev_wk_vals||[];
+    sWL = GR.survey_rev_wk_labels||GR.survey_wk_labels||[]; sWV = GR.survey_rev_wk_vals||GR.survey_wk_vals||[];
+  } else {
+    vWL = GR.vote_settle_wk_labels||[]; vWV = GR.vote_settle_wk_vals||[];
+    nWL = GR.notify_settle_wk_labels||[]; nWV = GR.notify_settle_wk_vals||[];
+    sWL = GR.survey_settle_wk_labels||[]; sWV = GR.survey_settle_wk_vals||[];
+  }
+  var allW = {}; vWL.forEach(function(w){allW[w]=1;}); nWL.forEach(function(w){allW[w]=1;}); sWL.forEach(function(w){allW[w]=1;});
+  var wks = Object.keys(allW).sort();
+  var wkTotal = wks.map(function(w){return _lk(vWL,vWV,w)+_lk(nWL,nWV,w)+_lk(sWL,sWV,w);});
+  var wow = wkTotal.map(function(v,i){
+    if(i === 0 || wkTotal[i-1] == null || wkTotal[i-1] === 0) return null;
+    return Math.round((v - wkTotal[i-1]) / wkTotal[i-1] * 1000) / 10;
+  });
+  return { mos:mos, moTotal:moTotal, mom:moGr.mom, qoq:moGr.qoq, yoy:moGr.yoy, wks:wks, wkTotal:wkTotal, wow:wow };
+}
+function drawTotalRevGrowth(){
+  var el = document.getElementById('cTotalRevGrowth'); if(!el) return;
+  var btnId = 'cTotalRevGrowth_btns';
+  if(!document.getElementById(btnId)){
+    var card = el.closest('.card');
+    var ch = card ? card.querySelector('.ch') : null;
+    if(ch){
+      var srcBw = document.createElement('div');
+      srcBw.id = btnId + '_src'; srcBw.className = 'tg';
+      srcBw.style.cssText = 'display:inline-flex;gap:4px;margin-left:8px';
+      [['est','건수추정'],['set','정산현황']].forEach(function(pair){
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'tgb' + (pair[0] === 'est' ? ' on' : '');
+        b.textContent = pair[1]; b.dataset.src = pair[0];
+        b.addEventListener('click', function(){
+          el.dataset._src = this.dataset.src;
+          srcBw.querySelectorAll('button').forEach(function(x){x.classList.remove('on');});
+          this.classList.add('on');
+          render();
+        });
+        srcBw.appendChild(b);
+      });
+      ch.appendChild(srcBw);
+      var perBw = document.createElement('div');
+      perBw.id = btnId + '_per'; perBw.className = 'tg';
+      perBw.style.cssText = 'display:inline-flex;gap:4px;margin-left:auto';
+      ['wow','mom','qoq','yoy'].forEach(function(p){
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'tgb' + (p === 'mom' ? ' on' : '');
+        b.textContent = p.toUpperCase(); b.dataset.per = p;
+        b.addEventListener('click', function(){
+          el.dataset._per = this.dataset.per;
+          perBw.querySelectorAll('button').forEach(function(x){x.classList.remove('on');});
+          this.classList.add('on');
+          render();
+        });
+        perBw.appendChild(b);
+      });
+      ch.appendChild(perBw);
+    }
+  }
+  function _ymKey(per, k){
+    if(per === 'wow'){
+      var yr = parseInt(k.substring(0,4));
+      var w  = parseInt(k.substring(6,8));
+      var jan4 = new Date(Date.UTC(yr, 0, 4));
+      var dow  = jan4.getUTCDay() || 7;
+      var ws   = new Date(jan4.getTime() + ((w-1)*7 - (dow-1)) * 86400000);
+      var y = ws.getUTCFullYear();
+      var m = ws.getUTCMonth() + 1;
+      return y + '-' + (m<10?'0':'') + m;
+    }
+    return k;
+  }
+  function render(){
+    var per = el.dataset._per || 'mom';
+    var src = el.dataset._src || 'est';
+    var data = _buildRevGrowth(src);
+    var labels, vals;
+    if(per === 'wow') { labels = data.wks; vals = data.wow; }
+    else if(per === 'mom') { labels = data.mos; vals = data.mom; }
+    else if(per === 'qoq') { labels = data.mos; vals = data.qoq; }
+    else { labels = data.mos; vals = data.yoy; }
+    if(gFilt.start || gFilt.end){
+      var fS = gFilt.start || '', fE = gFilt.end || '';
+      var fL = [], fV = [];
+      labels.forEach(function(l,i){
+        var ym = _ymKey(per, l);
+        if(fS && ym < fS) return;
+        if(fE && ym > fE) return;
+        fL.push(l); fV.push(vals[i]);
+      });
+      labels = fL; vals = fV;
+    }
+    mkC('cTotalRevGrowth', {type:'line', data:{labels:labels, datasets:[
+      {label: per.toUpperCase()+' (%)', data: vals, borderColor:'#52C41A', backgroundColor:'rgba(82,196,26,.15)', fill:false, tension:0.2, borderWidth:2, pointRadius:2, spanGaps:false}
+    ]}, options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, datalabels:{display:false},
+        tooltip:{callbacks:{label:function(ctx){var v=ctx.parsed.y; return v!=null?v+'%':'데이터 없음';}}}},
+      scales:{x:{ticks:{font:{size:9}, maxRotation:45}}, y:{ticks:{font:{size:9}, callback:function(v){return v+'%';}}}}}});
+  }
+  render();
+}
 function drawTotalCntGrowth(){ _drawGrowthChart('cTotalCntGrowth', 'cnt', _buildCntGrowth, '#8B80D4'); }
 function drawTotalCplxGrowth(){ _drawGrowthChart('cTotalCplxGrowth', 'cplx', _buildCplxGrowth, '#5EC8E8'); }
 function drawSvcCountHistory(){
@@ -1993,6 +2150,7 @@ function initRevenue(){
   renderRevenueCards();
   drawTotalRev();
   drawTotalExcl();
+  drawTotalRevGrowth();
   SERVICES.forEach(initServiceRevenue);
   if(window._attachChartClickHandlers) window._attachChartClickHandlers();
 }
@@ -2969,6 +3127,55 @@ function bootApp(){
         tabs: mkGrTabs(_buildCplxGrowth, '이용 단지수(개)')
       };
     })();
+    // cTotalRevGrowth — 매출 성장률 모달 (WoW/MoM/QoQ/YoY 4탭, 추정+정산 둘 다)
+    (function(){
+      var ge = _buildRevGrowth('est');
+      var gs = _buildRevGrowth('set');
+      function _lk(lb, va, k){var i=(lb||[]).indexOf(k);return i>=0?((va||[])[i]||0):0;}
+      function mkTab(key, name){
+        var labels, eA, ePct, sA, sPct;
+        if(key === 'wow'){
+          var allW = {};
+          ge.wks.forEach(function(w){allW[w]=1;}); gs.wks.forEach(function(w){allW[w]=1;});
+          labels = Object.keys(allW).sort();
+          eA = labels.map(function(w){return _lk(ge.wks, ge.wkTotal, w);});
+          ePct = labels.map(function(w){var i=ge.wks.indexOf(w);return i>=0?ge.wow[i]:null;});
+          sA = labels.map(function(w){return _lk(gs.wks, gs.wkTotal, w);});
+          sPct = labels.map(function(w){var i=gs.wks.indexOf(w);return i>=0?gs.wow[i]:null;});
+        } else {
+          var allM = {};
+          ge.mos.forEach(function(m){allM[m]=1;}); gs.mos.forEach(function(m){allM[m]=1;});
+          labels = Object.keys(allM).sort();
+          eA = labels.map(function(m){return _lk(ge.mos, ge.moTotal, m);});
+          var ePctArr = (key === 'mom' ? ge.mom : key === 'qoq' ? ge.qoq : ge.yoy);
+          ePct = labels.map(function(m){var i=ge.mos.indexOf(m);return i>=0?ePctArr[i]:null;});
+          sA = labels.map(function(m){return _lk(gs.mos, gs.moTotal, m);});
+          var sPctArr = (key === 'mom' ? gs.mom : key === 'qoq' ? gs.qoq : gs.yoy);
+          sPct = labels.map(function(m){var i=gs.mos.indexOf(m);return i>=0?sPctArr[i]:null;});
+        }
+        var rows = labels.map(function(l, i){
+          return [l,
+                  n(Math.round((eA[i]||0) * 10000)),
+                  ePct[i] == null ? '-' : ePct[i] + '%',
+                  n(Math.round((sA[i]||0) * 10000)),
+                  sPct[i] == null ? '-' : sPct[i] + '%'];
+        });
+        return { key:key, label:name,
+          cols:[(key === 'wow' ? '주' : '월'), '추정매출(원)', name+' 추정(%)', '정산매출(원)', name+' 정산(%)'],
+          rows:rows };
+      }
+      _MDATA['cTotalRevGrowth'] = {
+        type: 'tabbed',
+        title: '전체 매출 성장률 (WoW/MoM/QoQ/YoY) — 건수추정 vs 정산현황',
+        fname_base: '전체매출_성장률',
+        tabs: [
+          mkTab('wow','WoW'),
+          mkTab('mom','MoM'),
+          mkTab('qoq','QoQ'),
+          mkTab('yoy','YoY')
+        ]
+      };
+    })();
 
 
     // ── 집계 헬퍼 ──
@@ -3088,7 +3295,7 @@ function bootApp(){
 
     // ── 차트 카드 클릭 이벤트 ──
     function attachChartClickHandlers(){
-      var ids = ['cTotalRev','cTotalCnt','cTotalCplx','cTotalExcl','cSvcCntHist','cTotalCntGrowth','cTotalCplxGrowth'];
+      var ids = ['cTotalRev','cTotalCnt','cTotalCplx','cTotalExcl','cSvcCntHist','cTotalCntGrowth','cTotalCplxGrowth','cTotalRevGrowth'];
       // SERVICES 기반 동적 ID 추가 (vote/notify/survey + 신규 서비스)
       if(typeof SERVICES !== 'undefined'){
         SERVICES.forEach(function(s){
