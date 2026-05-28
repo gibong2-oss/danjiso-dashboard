@@ -2861,23 +2861,29 @@ function bootApp(){
         }); return {labels:ord,vals:ord.map(function(k){return bkt[k];})};
       }
       function mergeToMap(arrs){ var m={}; arrs.forEach(function(a){ (a.labels||[]).forEach(function(l,i){ m[l]=(m[l]||0)+((a.vals||[])[i]||0); }); }); return m; }
-      function mkTab(key,label,colHead,svcs,sttL,sttV){
-        var sttM={}; (sttL||[]).forEach(function(l,i){sttM[l]=((sttV||[])[i]||0);});
-        var allKeys=allK(svcs.concat([{labels:sttL||[]}]));
-        var cols=[colHead,'전자투표(원)','알림서비스(원)','설문조사(원)','합계추정(원)','정산(원)'];
+      function mkTab(key,label,colHead,svcs,sttSvcs){
+        // svcs/sttSvcs = [{labels,vals}, {labels,vals}, {labels,vals}] (vote/notify/survey)
+        var allKeys=allK(svcs.concat(sttSvcs||[]));
+        var cols=[colHead,'전자투표 추정(원)','알림 추정(원)','설문 추정(원)','합계추정(원)','전자투표 정산(원)','알림 정산(원)','설문 정산(원)','합계정산(원)'];
         var rows=allKeys.map(function(l){
           var v=Math.round(lkp2(svcs[0].labels,svcs[0].vals,l)*mult);
           var nn=Math.round(lkp2(svcs[1].labels,svcs[1].vals,l)*mult);
           var s=Math.round(lkp2(svcs[2].labels,svcs[2].vals,l)*mult);
-          var tot=v+nn+s;
-          var stt=sttM.hasOwnProperty(l)?n(Math.round(sttM[l]*mult)):'-';
-          return [l,n(v),n(nn),n(s),n(tot),stt];
+          var totEst=v+nn+s;
+          var vSt=Math.round(lkp2(sttSvcs[0].labels,sttSvcs[0].vals,l)*mult);
+          var nSt=Math.round(lkp2(sttSvcs[1].labels,sttSvcs[1].vals,l)*mult);
+          var sSt=Math.round(lkp2(sttSvcs[2].labels,sttSvcs[2].vals,l)*mult);
+          var totStt=vSt+nSt+sSt;
+          return [l,n(v),n(nn),n(s),n(totEst),n(vSt),n(nSt),n(sSt),n(totStt)];
         });
         var sv=Math.round((svcs[0].vals||[]).reduce(function(a,b){return a+(b||0);},0)*mult);
         var sn=Math.round((svcs[1].vals||[]).reduce(function(a,b){return a+(b||0);},0)*mult);
         var ss=Math.round((svcs[2].vals||[]).reduce(function(a,b){return a+(b||0);},0)*mult);
-        var sstt=Math.round((sttV||[]).reduce(function(a,b){return a+(b||0);},0)*mult);
-        return {key:key,label:label,cols:cols,rows:rows,totals:['합계',n(sv),n(sn),n(ss),n(sv+sn+ss),n(sstt)]};
+        var svS=Math.round((sttSvcs[0].vals||[]).reduce(function(a,b){return a+(b||0);},0)*mult);
+        var snS=Math.round((sttSvcs[1].vals||[]).reduce(function(a,b){return a+(b||0);},0)*mult);
+        var ssS=Math.round((sttSvcs[2].vals||[]).reduce(function(a,b){return a+(b||0);},0)*mult);
+        return {key:key,label:label,cols:cols,rows:rows,
+          totals:['합계',n(sv),n(sn),n(ss),n(sv+sn+ss),n(svS),n(snS),n(ssS),n(svS+snS+ssS)]};
       }
       // 추정 데이터
       var vDy={labels:GR.vote_day_labels||[],vals:GR.vote_rev_day_vals||[]};
@@ -2891,20 +2897,25 @@ function bootApp(){
       var sMo2={labels:GR.survey_rev_months||[],vals:GR.survey_rev_vals||[]};
       var vQtr=aggPer(vMo.labels,vMo.vals,'qtr'),nQtr=aggPer(nMo.labels,nMo.vals,'qtr'),sQtr=aggPer(sMo2.labels,sMo2.vals,'qtr');
       var vYr=aggPer(vMo.labels,vMo.vals,'yr'),nYr=aggPer(nMo.labels,nMo.vals,'yr'),sYr=aggPer(sMo2.labels,sMo2.vals,'yr');
-      // 정산 데이터 (합계)
-      var _stDM=mergeToMap([{labels:GR.vote_settle_day_labels||[],vals:GR.vote_settle_day_vals||[]},{labels:GR.notify_settle_day_labels||[],vals:GR.notify_settle_day_vals||[]},{labels:GR.survey_settle_day_labels||[],vals:GR.survey_settle_day_vals||[]}]);
-      var stDyL=Object.keys(_stDM).sort(),stDyV=stDyL.map(function(l){return _stDM[l];});
-      var _stWM=mergeToMap([{labels:GR.vote_settle_wk_labels||[],vals:GR.vote_settle_wk_vals||[]},{labels:GR.survey_settle_wk_labels||[],vals:GR.survey_settle_wk_vals||[]}]);
-      var stWkL=Object.keys(_stWM).sort(),stWkV=stWkL.map(function(l){return _stWM[l];});
-      var _stMM=mergeToMap([{labels:GR.vote_settle_labels||[],vals:GR.vote_settle_vals||[]},{labels:GR.notify_settle_labels||[],vals:GR.notify_settle_vals||[]},{labels:GR.survey_settle_labels||[],vals:GR.survey_settle_vals||[]}]);
-      var stMoL=Object.keys(_stMM).sort(),stMoV=stMoL.map(function(l){return _stMM[l];});
-      var stQtr=aggPer(stMoL,stMoV,'qtr'),stYr=aggPer(stMoL,stMoV,'yr');
+      // 서비스별 정산 데이터 (vote/notify/survey 각각)
+      var vStDy={labels:GR.vote_settle_day_labels||[],vals:GR.vote_settle_day_vals||[]};
+      var nStDy={labels:GR.notify_settle_day_labels||[],vals:GR.notify_settle_day_vals||[]};
+      var sStDy={labels:GR.survey_settle_day_labels||[],vals:GR.survey_settle_day_vals||[]};
+      var vStWk={labels:GR.vote_settle_wk_labels||[],vals:GR.vote_settle_wk_vals||[]};
+      var nStWk={labels:GR.notify_settle_wk_labels||[],vals:GR.notify_settle_wk_vals||[]};
+      var sStWk={labels:GR.survey_settle_wk_labels||[],vals:GR.survey_settle_wk_vals||[]};
+      var vStMo={labels:GR.vote_settle_labels||[],vals:GR.vote_settle_vals||[]};
+      var nStMo={labels:GR.notify_settle_labels||[],vals:GR.notify_settle_vals||[]};
+      var sStMo={labels:GR.survey_settle_labels||[],vals:GR.survey_settle_vals||[]};
+      var vStQ=aggPer(vStMo.labels,vStMo.vals,'qtr'), nStQ=aggPer(nStMo.labels,nStMo.vals,'qtr'), sStQ=aggPer(sStMo.labels,sStMo.vals,'qtr');
+      var vStY=aggPer(vStMo.labels,vStMo.vals,'yr'),  nStY=aggPer(nStMo.labels,nStMo.vals,'yr'),  sStY=aggPer(sStMo.labels,sStMo.vals,'yr');
+      function _wrapAgg(o){return {labels:o.labels, vals:o.vals};}
       _MDATA['cTotalRev']={type:'tabbed',title:'기간별 전체 매출 현황',fname_base:'전체_매출',tabs:[
-        mkTab('day','일간','날짜',[vDy,nDy,sDy2],stDyL,stDyV),
-        mkTab('wk','주간','주',[vWk,nWk,sWk2],stWkL,stWkV),
-        mkTab('mo','월간','월',[vMo,nMo,sMo2],stMoL,stMoV),
-        mkTab('qtr','분기','분기',[vQtr,nQtr,sQtr],stQtr.labels,stQtr.vals),
-        mkTab('yr','연간','연도',[vYr,nYr,sYr],stYr.labels,stYr.vals)
+        mkTab('day','일간','날짜',[vDy,nDy,sDy2],[vStDy,nStDy,sStDy]),
+        mkTab('wk','주간','주',[vWk,nWk,sWk2],[vStWk,nStWk,sStWk]),
+        mkTab('mo','월간','월',[vMo,nMo,sMo2],[vStMo,nStMo,sStMo]),
+        mkTab('qtr','분기','분기',[vQtr,nQtr,sQtr],[_wrapAgg(vStQ),_wrapAgg(nStQ),_wrapAgg(sStQ)]),
+        mkTab('yr','연간','연도',[vYr,nYr,sYr],[_wrapAgg(vStY),_wrapAgg(nStY),_wrapAgg(sStY)])
       ]};
     })();
 
@@ -3232,22 +3243,33 @@ function bootApp(){
         {key:'yoy', label:'YoY', cols:['월','YoY(%)'],  rows:gRows(moL,gr.yoy)},
       ]};
     }
-    function mkRevGrowthTabs(wkL,wkWow, moL,moV, sttL,sttV, fname){
+    function mkRevGrowthTabs(wkL,wkV,wkWow, moL,moV, sttWkL,sttWkV,sttWkWow, sttL,sttV, fname){
       var gr=calcGrowthRates(moL,moV);
       var sttGr=calcGrowthRates(sttL||[],sttV||[]);
       var sttIdx={}; (sttL||[]).forEach(function(l,i){ sttIdx[l]=i; });
-      function gRows(L,V){ return (L||[]).map(function(l,i){ return [l, pn(V[i])]; }); }
-      function gRows2(L,V,sGr){
+      var sttWkIdx={}; (sttWkL||[]).forEach(function(w,i){ sttWkIdx[w]=i; });
+      function _m(v){ return n(Math.round((v||0)*10000)); }  // 만원 → 원
+      function gRowsWk(L,V,Wow){
+        return (L||[]).map(function(l,i){
+          var si=sttWkIdx.hasOwnProperty(l)?sttWkIdx[l]:-1;
+          var sttRev = si>=0 ? _m(sttWkV[si]) : '-';
+          var sttWow = si>=0 ? pn(sttWkWow[si]) : '-';
+          return [l, _m(V[i]), pn(Wow[i]), sttRev, sttWow];
+        });
+      }
+      function gRowsMo(L,V,grV,sGr){
         return (L||[]).map(function(l,i){
           var si=sttIdx.hasOwnProperty(l)?sttIdx[l]:-1;
-          return [l, pn(V[i]), si>=0?pn(sGr[si]):'-'];
+          var sttRev = si>=0 ? _m(sttV[si]) : '-';
+          var sttPct = si>=0 ? pn(sGr[si]) : '-';
+          return [l, _m(V[i]), pn(grV[i]), sttRev, sttPct];
         });
       }
       return {type:'growth', title:null, fname_base:fname, tabs:[
-        {key:'wow', label:'WoW', cols:['주','WoW(%)'],                        rows:gRows(wkL,wkWow)},
-        {key:'mom', label:'MoM', cols:['월','추정 MoM(%)','정산 MoM(%)'],     rows:gRows2(moL,gr.mom,sttGr.mom)},
-        {key:'qoq', label:'QoQ', cols:['월','추정 QoQ(%)','정산 QoQ(%)'],     rows:gRows2(moL,gr.qoq,sttGr.qoq)},
-        {key:'yoy', label:'YoY', cols:['월','추정 YoY(%)','정산 YoY(%)'],     rows:gRows2(moL,gr.yoy,sttGr.yoy)},
+        {key:'wow', label:'WoW', cols:['주','추정매출(원)','추정 WoW(%)','정산매출(원)','정산 WoW(%)'],   rows:gRowsWk(wkL,wkV,wkWow)},
+        {key:'mom', label:'MoM', cols:['월','추정매출(원)','추정 MoM(%)','정산매출(원)','정산 MoM(%)'],   rows:gRowsMo(moL,moV,gr.mom,sttGr.mom)},
+        {key:'qoq', label:'QoQ', cols:['월','추정매출(원)','추정 QoQ(%)','정산매출(원)','정산 QoQ(%)'],   rows:gRowsMo(moL,moV,gr.qoq,sttGr.qoq)},
+        {key:'yoy', label:'YoY', cols:['월','추정매출(원)','추정 YoY(%)','정산매출(원)','정산 YoY(%)'],   rows:gRowsMo(moL,moV,gr.yoy,sttGr.yoy)},
       ]};
     }
 
@@ -3261,7 +3283,7 @@ function bootApp(){
     var _cVGc=mkGrowthTabs(GR.vote_wk_labels||[],GR.vote_wk_wow||[],D.vote_ids_labels||[],D.vote_ids_values||[],'전자투표_성장률_이용건수');
     _cVGc.title='전자투표 성장률 — 이용건수'; _MDATA['cVG_cnt']=_cVGc;
 
-    var _cVGr=mkRevGrowthTabs(GR.vote_rev_wk_labels||[],GR.vote_rev_wk_wow||[],D.revenue_estimate_labels||[],D.vote_rev_est_values||D.revenue_estimate_values||[],GR.vote_settle_labels||[],GR.vote_settle_vals||[],'전자투표_성장률_매출');
+    var _cVGr=mkRevGrowthTabs(GR.vote_rev_wk_labels||[],GR.vote_rev_wk_vals||[],GR.vote_rev_wk_wow||[],D.revenue_estimate_labels||[],D.vote_rev_est_values||D.revenue_estimate_values||[],GR.vote_settle_wk_labels||[],GR.vote_settle_wk_vals||[],GR.vote_settle_wk_wow||[],GR.vote_settle_labels||[],GR.vote_settle_vals||[],'전자투표_성장률_매출');
     _cVGr.title='전자투표 성장률 — 매출'; _MDATA['cVG_rev']=_cVGr;
 
     // ── 알림서비스 ──
@@ -3274,7 +3296,7 @@ function bootApp(){
     var _cNGc=mkGrowthTabs(GR.notify_wk_labels||[],GR.notify_wk_wow||[],D.notify_labels||[],D.notify_sends||[],'알림서비스_성장률_이용건수');
     _cNGc.title='알림서비스 성장률 — 이용건수'; _MDATA['cNG_cnt']=_cNGc;
 
-    var _cNGr=mkRevGrowthTabs(GR.notify_rev_wk_labels||[],GR.notify_rev_wk_wow||[],GR.notify_rev_months||[],GR.notify_rev_vals||[],GR.notify_settle_labels||[],GR.notify_settle_vals||[],'알림서비스_성장률_매출');
+    var _cNGr=mkRevGrowthTabs(GR.notify_rev_wk_labels||[],GR.notify_rev_wk_vals||[],GR.notify_rev_wk_wow||[],GR.notify_rev_months||[],GR.notify_rev_vals||[],GR.notify_settle_wk_labels||[],GR.notify_settle_wk_vals||[],GR.notify_settle_wk_wow||[],GR.notify_settle_labels||[],GR.notify_settle_vals||[],'알림서비스_성장률_매출');
     _cNGr.title='알림서비스 성장률 — 매출'; _MDATA['cNG_rev']=_cNGr;
 
     // ── 설문조사 ──
@@ -3287,7 +3309,7 @@ function bootApp(){
     var _cSGc=mkGrowthTabs(GR.survey_wk_labels||[],GR.survey_wk_wow||[],D.survey_labels||D.months||[],D.survey_ids_values||[],'설문조사_성장률_이용건수');
     _cSGc.title='설문조사 성장률 — 이용건수'; _MDATA['cSG_cnt']=_cSGc;
 
-    var _cSGr=mkRevGrowthTabs(GR.survey_rev_wk_labels||GR.survey_wk_labels||[],GR.survey_rev_wk_wow||GR.survey_wk_wow||[],GR.survey_rev_months||[],GR.survey_rev_vals||[],GR.survey_settle_labels||[],GR.survey_settle_vals||[],'설문조사_성장률_매출');
+    var _cSGr=mkRevGrowthTabs(GR.survey_rev_wk_labels||GR.survey_wk_labels||[],GR.survey_rev_wk_vals||GR.survey_wk_vals||[],GR.survey_rev_wk_wow||GR.survey_wk_wow||[],GR.survey_rev_months||[],GR.survey_rev_vals||[],GR.survey_settle_wk_labels||[],GR.survey_settle_wk_vals||[],GR.survey_settle_wk_wow||[],GR.survey_settle_labels||[],GR.survey_settle_vals||[],'설문조사_성장률_매출');
     _cSGr.title='설문조사 성장률 — 매출'; _MDATA['cSG_rev']=_cSGr;
 
     // ── 차트 카드 클릭 이벤트 ──
