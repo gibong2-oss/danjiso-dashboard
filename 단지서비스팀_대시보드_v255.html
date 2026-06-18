@@ -4200,6 +4200,11 @@ function renderRevenueCards(){
              '<canvas id="'+s.canvas.growthRev+'" height="135"></canvas>'+
              '<div class="notice">정산현황 데이터 기준 | null 구간은 선 끊김</div></div>';
     }).join('');
+    // 아파트너 그룹 — 선결제 프로모션 카드 추가
+    if(g.key==='apt' && D.prepaid_promo){
+      sc += '<div class="card"><div class="ch"><span class="ct">💳 선결제 프로모션 — 매출</span><span class="cs">정산 (사전 결제)</span></div><canvas id="cPrepaidRev" height="120"></canvas></div>';
+      gc += '<div class="card"><div class="ch"><span class="ct">📈 선결제 프로모션 성장률 (매출)</span><span class="cs">WoW·MoM</span></div><canvas id="cPrepaidRevGrowth" height="135"></canvas><div class="notice">선결제 매출 기준 WoW/MoM 변화율</div></div>';
+    }
     return '<div class="spg '+(i===0?'on':'')+'" id="rv-'+g.key+'">'+
            '<div class="g3" style="margin-bottom:var(--g)">'+sc+'</div>'+
            '<div class="g3">'+gc+'</div>'+
@@ -4519,7 +4524,37 @@ function initRevenue(){
   drawTotalExcl();
   drawTotalRevGrowth();
   SERVICES.forEach(initServiceRevenue);
+  drawPrepaidPromoCards();
   if(window._attachChartClickHandlers) window._attachChartClickHandlers();
+}
+
+function drawPrepaidPromoCards(){
+  // 매출 현황 — 아파트너 sub-tab의 선결제 프로모션 카드 2개 (매출 + 성장률)
+  var pp = D.prepaid_promo;
+  if(!pp) return;
+  // 매출 차트 (drawUsageRev 재사용 — 추정=정산 동일)
+  if(document.getElementById('cPrepaidRev')){
+    try{
+      drawUsageRev('cPrepaidRev',
+        {day:{labels:[],vals:[]}, wk:{labels:pp.weeks||[],vals:pp.wk_values||[]}, mo:{labels:pp.months||[],vals:pp.values||[]}},
+        {day:{labels:[],vals:[]}, wk:{labels:pp.weeks||[],vals:pp.wk_values||[]}, mo:{labels:pp.months||[],vals:pp.values||[]}}
+      );
+    }catch(e){console.warn('cPrepaidRev draw err', e);}
+  }
+  // 성장률 차트
+  if(document.getElementById('cPrepaidRevGrowth')){
+    function pct(c,p){if(p==null||p===0)return null;return Math.round((c-p)/p*1000)/10;}
+    var wkV=pp.wk_values||[], moV=pp.values||[];
+    var wow=wkV.map(function(v,i){return i===0?null:pct(v,wkV[i-1]);});
+    var mom=moV.map(function(v,i){return i===0?null:pct(v,moV[i-1]);});
+    try{
+      drawGrowthRev('cPrepaidRevGrowth',
+        pp.weeks||[], wow,
+        pp.months||[], mom,
+        pp.months||[], mom,
+        pp.weeks||[], wow);
+    }catch(e){console.warn('cPrepaidRevGrowth draw err', e);}
+  }
 }
 
 // ── 단지 분석 탭 ──
