@@ -3803,12 +3803,14 @@ function drawTotalRev(){
     ]);
     var sttWk=mergeP([
       {labels:GR.vote_settle_wk_labels||[],vals:GR.vote_settle_wk_vals||[]},
-      {labels:GR.survey_settle_wk_labels||[],vals:GR.survey_settle_wk_vals||[]}
+      {labels:GR.survey_settle_wk_labels||[],vals:GR.survey_settle_wk_vals||[]},
+      {labels:(D.prepaid_promo&&D.prepaid_promo.weeks)||[],vals:(D.prepaid_promo&&D.prepaid_promo.wk_values)||[]}
     ]);
     var sttMo=mergeP([
       {labels:GR.vote_settle_labels||[],vals:GR.vote_settle_vals||[]},
       {labels:GR.notify_settle_labels||[],vals:GR.notify_settle_vals||[]},
-      {labels:GR.survey_settle_labels||[],vals:GR.survey_settle_vals||[]}
+      {labels:GR.survey_settle_labels||[],vals:GR.survey_settle_vals||[]},
+      {labels:(D.prepaid_promo&&D.prepaid_promo.months)||[],vals:(D.prepaid_promo&&D.prepaid_promo.values)||[]}
     ]);
     drawUsageRev("cTotalRev",
       {day:estDay, wk:estWk, mo:estMo},
