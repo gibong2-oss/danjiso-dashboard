@@ -5275,7 +5275,7 @@ function bootApp(){
       function mkTab(key,label,colHead,svcs,sttSvcs){
         // svcs (vote/notify/survey) + sttSvcs (vote/notify/survey/[prepaid])
         var allKeys=allK(svcs.concat(sttSvcs||[]));
-        var cols=[colHead,'전자투표 추정(원)','알림 추정(원)','설문 추정(원)','합계추정(원)','전자투표 정산(원)','알림 정산(원)','설문 정산(원)','선결제 정산(원)','합계정산(원)'];
+        var cols=[colHead,'전자투표 추정(원)','알림 추정(원)','설문 추정(원)','합계추정(원)','전자투표 정산(원)','알림 정산(원)','설문 정산(원)','선결제 프로모션 정산(원)','합계정산(원)'];
         var pp=(sttSvcs[3]||{labels:[],vals:[]});
         var rows=allKeys.map(function(l){
           var v=Math.round(lkp2(svcs[0].labels,svcs[0].vals,l)*mult);
@@ -5286,7 +5286,7 @@ function bootApp(){
           var nSt=Math.round(lkp2(sttSvcs[1].labels,sttSvcs[1].vals,l)*mult);
           var sSt=Math.round(lkp2(sttSvcs[2].labels,sttSvcs[2].vals,l)*mult);
           var ppSt=Math.round(lkp2(pp.labels,pp.vals,l)*mult);
-          var totStt=vSt+nSt+sSt;
+          var totStt=vSt+nSt+sSt+ppSt;
           return [l,n(v),n(nn),n(s),n(totEst),n(vSt),n(nSt),n(sSt),n(ppSt),n(totStt)];
         });
         var sv=Math.round((svcs[0].vals||[]).reduce(function(a,b){return a+(b||0);},0)*mult);
@@ -5298,8 +5298,8 @@ function bootApp(){
         var ppS=Math.round((pp.vals||[]).reduce(function(a,b){return a+(b||0);},0)*mult);
         var L=allKeys.length||1;
         return {key:key,label:label,cols:cols,rows:rows,
-          totals:['합계',n(sv),n(sn),n(ss),n(sv+sn+ss),n(svS),n(snS),n(ssS),n(ppS),n(svS+snS+ssS)],
-          avgs:[label+' 평균',n(Math.round(sv/L)),n(Math.round(sn/L)),n(Math.round(ss/L)),n(Math.round((sv+sn+ss)/L)),n(Math.round(svS/L)),n(Math.round(snS/L)),n(Math.round(ssS/L)),n(Math.round(ppS/L)),n(Math.round((svS+snS+ssS)/L))]};
+          totals:['합계',n(sv),n(sn),n(ss),n(sv+sn+ss),n(svS),n(snS),n(ssS),n(ppS),n(svS+snS+ssS+ppS)],
+          avgs:[label+' 평균',n(Math.round(sv/L)),n(Math.round(sn/L)),n(Math.round(ss/L)),n(Math.round((sv+sn+ss)/L)),n(Math.round(svS/L)),n(Math.round(snS/L)),n(Math.round(ssS/L)),n(Math.round(ppS/L)),n(Math.round((svS+snS+ssS+ppS)/L))]};
       }
       // 추정 데이터
       var vDy={labels:GR.vote_day_labels||[],vals:GR.vote_rev_day_vals||[]};
@@ -5329,7 +5329,7 @@ function bootApp(){
       // 선결제 프로모션 시계열 (정산만 보유)
       var ppMo={labels:(D.prepaid_promo&&D.prepaid_promo.months)||[],vals:(D.prepaid_promo&&D.prepaid_promo.values)||[]};
       var ppWk={labels:(D.prepaid_promo&&D.prepaid_promo.weeks)||[],vals:(D.prepaid_promo&&D.prepaid_promo.wk_values)||[]};
-      var ppDy={labels:[],vals:[]};
+      var ppDy={labels:(D.prepaid_promo&&D.prepaid_promo.days)||[],vals:(D.prepaid_promo&&D.prepaid_promo.day_values)||[]};
       var ppQtr=aggPer(ppMo.labels,ppMo.vals,'qtr');
       var ppYr=aggPer(ppMo.labels,ppMo.vals,'yr');
       _MDATA['cTotalRev']={type:'tabbed',title:'기간별 전체 매출 현황',fname_base:'전체_매출',tabs:[
