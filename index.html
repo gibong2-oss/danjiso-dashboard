@@ -106,7 +106,7 @@ td{font-size:12px}tr:hover td{background:rgba(139,128,212,.04)}
 .sec-ac-list{position:absolute;top:34px;left:0;min-width:280px;background:var(--card);border:1px solid var(--bdr);border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.12);max-height:200px;overflow-y:auto;z-index:500;display:none}
 .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center}
 .modal-bg.open{display:flex}
-.modal{background:var(--card);border-radius:16px;padding:24px;min-width:320px;max-width:90vw;width:fit-content;max-height:85vh;overflow:auto;box-shadow:0 8px 40px rgba(0,0,0,.2)}
+.modal{background:var(--card);border-radius:16px;padding:24px;min-width:320px;max-width:95vw;width:fit-content;max-height:85vh;overflow:auto;box-shadow:0 8px 40px rgba(0,0,0,.2)}
 .modal-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
 .modal-tit{font-size:16px;font-weight:700}
 .modal-close{background:none;border:none;font-size:20px;cursor:pointer;color:var(--ts);font-family:'Pretendard',sans-serif;padding:2px 8px}
@@ -543,7 +543,7 @@ function _wkLabelFmt(v){
   return v;
 }
 function _buildTbl(tId, cols, rows, totals, avgs){
-  var h='<table id="'+tId+'" style="width:100%;border-collapse:collapse;font-size:12px">';
+  var h='<table id="'+tId+'" style="border-collapse:collapse;font-size:12px;width:max-content">';
   h+='<thead><tr>';
   cols.forEach(function(col,ci){ h+='<th style="padding:6px 10px;border-bottom:2px solid var(--bdr);font-weight:700;white-space:nowrap;position:sticky;top:0;background:var(--card);text-align:'+(ci===0?'left':'right')+'">'+col+'</th>'; });
   h+='</tr></thead><tbody>';
