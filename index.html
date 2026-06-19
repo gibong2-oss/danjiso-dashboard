@@ -4201,7 +4201,7 @@ function renderRevenueCards(){
              '<div class="notice">정산현황 데이터 기준 | null 구간은 선 끊김</div></div>';
     }).join('');
     // 아파트너 그룹 — 선결제 프로모션 카드 추가
-    if(g.key==='aptner' && D.prepaid_promo){
+    if(g.key==='apt' && D.prepaid_promo){
       sc += '<div class="card"><div class="ch"><span class="ct">💳 선결제 프로모션 — 매출</span><span class="cs">정산 (사전 결제)</span></div><canvas id="cPrepaidRev" height="120"></canvas></div>';
       gc += '<div class="card"><div class="ch"><span class="ct">📈 선결제 프로모션 성장률 (매출)</span><span class="cs">WoW·MoM</span></div><canvas id="cPrepaidRevGrowth" height="135"></canvas><div class="notice">선결제 매출 기준 WoW/MoM 변화율</div></div>';
     }
@@ -6040,4 +6040,239 @@ function initRd(){
     '<div style="font-size:15px;font-weight:700;margin-bottom:12px;color:var(--t1)">📊 구글 시트 원본 데이터</div>'+
     '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px" id="gs-tabs">'+
     GS_TABS.map(function(t){
-      return '<button class="gs-tab tb" data-sheet
+      return '<button class="gs-tab tb" data-sheet="'+t.sheet+'" style="font-size:11px;padding:3px 12px">'+t.label+'</button>';
+    }).join('')+
+    '</div>'+
+    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">'+
+    '<input id="gs-srch" type="text" placeholder="검색 (전체 데이터 기준)..." '+
+      'style="flex:1;min-width:180px;max-width:360px;padding:5px 10px;border:1px solid var(--bd);border-radius:6px;font-size:12px;background:var(--bg2);color:var(--t1)">'+
+    '<span id="gs-info" style="font-size:12px;color:var(--ts);white-space:nowrap"></span>'+
+    '<button id="gs-csv-btn" class="btn-q" style="font-size:11px;padding:3px 12px;display:none">📥 CSV</button>'+
+    '</div>'+
+    '<div id="gs-pager" style="margin-bottom:6px;font-size:12px"></div>'+
+    '<div id="gs-tbl" style="overflow-x:auto;max-height:520px;overflow-y:auto;'+
+      'border:1px solid var(--bd);border-radius:6px;font-size:11px">'+
+      '<div style="padding:30px;text-align:center;color:var(--ts)">위 탭을 클릭하면 구글 시트 데이터를 불러옵니다.</div>'+
+    '</div>'+
+    '<div id="gs-pv-wrap" style="margin-top:18px;border-top:1px solid var(--bd);padding-top:14px;display:none">'+
+      '<div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--t1)">📐 피벗 테이블 (구글 시트 원본)</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px">'+
+        '<label style="font-size:12px">행 그룹: <select id="gs-pv-row" style="padding:3px 6px;font-size:12px"></select></label>'+
+        '<label style="font-size:12px">집계값: <select id="gs-pv-val" style="padding:3px 6px;font-size:12px"></select></label>'+
+        '<label style="font-size:12px">방식: <select id="gs-pv-agg"><option value="sum">합계</option><option value="count">건수</option><option value="avg">평균</option></select></label>'+
+        '<button id="gs-pv-btn" class="btn-q" style="font-size:12px;padding:4px 14px">피벗 생성</button>'+
+        '<button id="gs-pv-csv" class="btn-q" style="font-size:11px;padding:3px 12px;display:none">📥 피벗 CSV</button>'+
+      '</div>'+
+      '<div id="gs-pv-result"></div>'+
+    '</div>'+
+    '</div>';
+  pg.appendChild(gsSec);
+
+  function gsParseGviz(text){
+    var s = text.indexOf('('), e = text.lastIndexOf(')');
+    var json = JSON.parse(text.slice(s+1, e));
+    // Date(year,mon,day) → YYYY-MM-DD 변환 헬퍼
+    function fmtVal(v, f){
+      if(f !== undefined && f !== null && f !== '') return String(f);
+      if(v === null || v === undefined) return '';
+      var sv = String(v);
+      var dm = sv.match(/^Date\((\d+),(\d+),(\d+)\)$/);
+      if(dm){
+        var yr=dm[1], mo=String(parseInt(dm[2])+1).padStart(2,'0'), dy=String(parseInt(dm[3])).padStart(2,'0');
+        return yr+'-'+mo+'-'+dy;
+      }
+      return sv;
+    }
+    var cols = (json.table.cols||[]).map(function(c){
+      // 컬럼 라벨도 Date() 형식일 수 있음
+      var lbl = c.label !== undefined && c.label !== null ? String(c.label) : '';
+      if(!lbl){
+        // label이 없으면 id 사용 (A, B, C...)
+        lbl = c.id || '';
+      }
+      // label 자체가 Date() 형식이면 변환
+      var dm = lbl.match(/^Date\((\d+),(\d+),(\d+)\)$/);
+      if(dm){
+        var yr=dm[1], mo=String(parseInt(dm[2])+1).padStart(2,'0'), dy=String(parseInt(dm[3])).padStart(2,'0');
+        lbl = yr+'-'+mo+'-'+dy;
+      }
+      return lbl;
+    });
+    var rows = (json.table.rows||[]).map(function(r){
+      return ((r&&r.c)||[]).map(function(cell){
+        if(!cell) return '';
+        return fmtVal(cell.v, cell.f);
+      });
+    });
+    return {cols:cols, rows:rows};
+  }
+
+  function gsRender(){
+    var srch = (document.getElementById('gs-srch').value||'').trim().toLowerCase();
+    gsFilteredRows = srch
+      ? gsAllRows.filter(function(r){ return r.some(function(v){ return v.toLowerCase().indexOf(srch)>=0; }); })
+      : gsAllRows;
+    var total = gsFilteredRows.length;
+    var pages = Math.ceil(total/GS_PS)||1;
+    if(gsPage>=pages) gsPage=pages-1;
+    var s=gsPage*GS_PS, e=Math.min(s+GS_PS,total);
+    var pageRows=gsFilteredRows.slice(s,e);
+
+    // 헤더
+    var thStyle='style="position:sticky;top:0;background:var(--bg2);padding:5px 8px;border:1px solid var(--bd);white-space:nowrap;font-weight:600;font-size:11px"';
+    var tdStyle='style="padding:4px 8px;border:1px solid var(--bd);white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis"';
+    var th='<tr>'+gsCols.map(function(c){return '<th '+thStyle+'>'+c+'</th>';}).join('')+'</tr>';
+    var tb=pageRows.map(function(r){
+      return '<tr>'+r.map(function(v){return '<td '+tdStyle+' title="'+v.replace(/"/g,'&quot;')+'">'+v+'</td>';}).join('')+'</tr>';
+    }).join('');
+    document.getElementById('gs-tbl').innerHTML=
+      '<table style="border-collapse:collapse;width:100%"><thead>'+th+'</thead><tbody>'+tb+'</tbody></table>';
+
+    // 페이지 정보
+    var infoTxt = (srch?'검색 결과 ':'')+(total.toLocaleString())+'행'+(total>0?' | '+(s+1)+'~'+e+' 표시':'');
+    document.getElementById('gs-info').textContent = infoTxt;
+
+    // 페이저
+    if(pages<=1){
+      document.getElementById('gs-pager').innerHTML='';
+    } else {
+      var pg2='';
+      pg2+='<button onclick="window._gsPage('+(gsPage-1)+')" '+(gsPage===0?'disabled':'')+' style="padding:2px 8px;margin:0 2px">◀</button>';
+      var ps=Math.max(0,gsPage-3), pe=Math.min(pages-1,gsPage+3);
+      if(ps>0) pg2+='<button onclick="window._gsPage(0)" style="padding:2px 6px;margin:0 1px">1</button>'+(ps>1?'<span style="margin:0 2px">…</span>':'');
+      for(var pi=ps;pi<=pe;pi++){
+        var isC=pi===gsPage;
+        pg2+='<button onclick="window._gsPage('+pi+')" style="padding:2px 6px;margin:0 1px'+(isC?';background:var(--cp);color:#fff;border-radius:4px':'')+'">'+(pi+1)+'</button>';
+      }
+      if(pe<pages-1) pg2+=(pe<pages-2?'<span style="margin:0 2px">…</span>':'')+'<button onclick="window._gsPage('+(pages-1)+')" style="padding:2px 6px;margin:0 1px">'+pages+'</button>';
+      pg2+='<span style="margin-left:8px;font-size:11px;color:var(--ts)">'+(gsPage+1)+'/'+pages+' 페이지</span>';
+      document.getElementById('gs-pager').innerHTML=pg2;
+    }
+    document.getElementById('gs-csv-btn').style.display='';
+    // 피벗 섹션 표시 및 셀렉트 갱신
+    var pvWrap=document.getElementById('gs-pv-wrap');
+    if(pvWrap){ pvWrap.style.display=''; gsUpdatePvSelects(); }
+    document.getElementById('gs-pv-result').innerHTML='';
+    var pvCsv=document.getElementById('gs-pv-csv'); if(pvCsv) pvCsv.style.display='none';
+  }
+
+  window._gsPage = function(p){ gsPage=p; gsRender(); };
+
+  function gsLoad(sheetName){
+    document.querySelectorAll('.gs-tab').forEach(function(b){
+      b.classList.toggle('on', b.getAttribute('data-sheet')===sheetName);
+    });
+    gsSheet=sheetName;
+    if(GS_CACHE[sheetName]){
+      gsCols=GS_CACHE[sheetName].cols;
+      gsAllRows=GS_CACHE[sheetName].rows;
+      gsPage=0;
+      document.getElementById('gs-srch').value='';
+      document.getElementById('gs-info').textContent=gsAllRows.length.toLocaleString()+'행 · '+gsCols.length+'열 (캐시)';
+      gsRender();
+      return;
+    }
+    document.getElementById('gs-tbl').innerHTML=
+      '<div style="padding:30px;text-align:center;color:var(--ts)">⏳ '+sheetName+' 로딩 중…</div>';
+    document.getElementById('gs-info').textContent='로딩 중…';
+    document.getElementById('gs-pager').innerHTML='';
+    document.getElementById('gs-csv-btn').style.display='none';
+    var url='https://docs.google.com/spreadsheets/d/'+SSID+'/gviz/tq?tqx=out:json&headers=1&sheet='+encodeURIComponent(sheetName);
+    fetch(url)
+      .then(function(r){
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        return r.text();
+      })
+      .then(function(text){
+        var parsed=gsParseGviz(text);
+        GS_CACHE[sheetName]=parsed;
+        gsCols=parsed.cols; gsAllRows=parsed.rows; gsPage=0;
+        document.getElementById('gs-srch').value='';
+        document.getElementById('gs-info').textContent=parsed.rows.length.toLocaleString()+'행 · '+parsed.cols.length+'열';
+        gsRender();
+      })
+      .catch(function(e){
+        document.getElementById('gs-tbl').innerHTML=
+          '<div style="padding:20px;color:var(--danger)">⚠ 로드 실패: '+e.message+'</div>';
+        document.getElementById('gs-info').textContent='로드 실패';
+      });
+  }
+
+  document.getElementById('gs-srch').addEventListener('input',function(){ gsPage=0; gsRender(); });
+  document.getElementById('gs-csv-btn').onclick=function(){
+    if(!gsCols.length||!gsSheet) return;
+    var srch=(document.getElementById('gs-srch').value||'').trim().toLowerCase();
+    var rows=srch?gsFilteredRows:gsAllRows;
+    var csv='﻿'+gsCols.map(function(c){return '"'+c.replace(/"/g,'""')+'"';}).join(',')+'\n';
+    rows.forEach(function(r){
+      csv+=r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(',')+'\n';
+    });
+    triggerCsvDownload(csv, gsSheet+'_원본.csv');
+  };
+  // ── GS 피벗 로직 ────────────────────────────────────────
+  var gsPvData = [];
+
+  function gsUpdatePvSelects(){
+    var rs=document.getElementById('gs-pv-row'), vs=document.getElementById('gs-pv-val');
+    if(!rs||!vs) return;
+    rs.innerHTML=gsCols.map(function(c,i){return '<option value="'+i+'">'+c+'</option>';}).join('');
+    vs.innerHTML=gsCols.map(function(c,i){return '<option value="'+i+'">'+c+'</option>';}).join('');
+    if(gsCols.length>1) vs.value=String(gsCols.length-1);
+  }
+
+  function gsRunPivot(){
+    var ri=parseInt(document.getElementById('gs-pv-row').value);
+    var vi=parseInt(document.getElementById('gs-pv-val').value);
+    var agg=document.getElementById('gs-pv-agg').value;
+    var src = (document.getElementById('gs-srch').value||'').trim() ? gsFilteredRows : gsAllRows;
+    var map={};
+    src.forEach(function(r){
+      var k=r[ri]||'(없음)', raw=parseFloat(String(r[vi]).replace(/,/g,''));
+      var v=isNaN(raw)?0:raw;
+      if(!map[k]) map[k]={sum:0,cnt:0};
+      map[k].sum+=v; map[k].cnt+=1;
+    });
+    var aggLbl=agg==='sum'?'합계':agg==='count'?'건수':'평균';
+    gsPvData=Object.keys(map).map(function(k){
+      var v=agg==='sum'?map[k].sum:agg==='count'?map[k].cnt:map[k].sum/(map[k].cnt||1);
+      return [k, Math.round(v*100)/100];
+    }).sort(function(a,b){return b[1]-a[1];});
+    var thS='style="background:var(--bg2);padding:5px 8px;border:1px solid var(--bd);font-weight:600;font-size:12px"';
+    var tdS='style="padding:4px 8px;border:1px solid var(--bd);font-size:12px"';
+    var tdR='style="padding:4px 8px;border:1px solid var(--bd);font-size:12px;text-align:right"';
+    var th='<tr><th '+thS+'>'+gsCols[ri]+'</th><th '+thS+'>'+aggLbl+'('+gsCols[vi]+')</th></tr>';
+    var tb=gsPvData.map(function(r){
+      return '<tr><td '+tdS+'>'+r[0]+'</td><td '+tdR+'>'+r[1].toLocaleString()+'</td></tr>';
+    }).join('');
+    document.getElementById('gs-pv-result').innerHTML=
+      '<div style="overflow:auto;max-height:360px">'+
+      '<table style="border-collapse:collapse"><thead>'+th+'</thead><tbody>'+tb+'</tbody></table></div>';
+    document.getElementById('gs-pv-csv').style.display='';
+  }
+
+  document.getElementById('gs-pv-btn').onclick = gsRunPivot;
+  document.getElementById('gs-pv-csv').onclick = function(){
+    if(!gsPvData.length) return;
+    var ri=parseInt(document.getElementById('gs-pv-row').value);
+    var vi=parseInt(document.getElementById('gs-pv-val').value);
+    var agg=document.getElementById('gs-pv-agg').value;
+    var aggLbl=agg==='sum'?'합계':agg==='count'?'건수':'평균';
+    var csv='\ufeff'+gsCols[ri]+','+aggLbl+'('+gsCols[vi]+')\n';
+    gsPvData.forEach(function(r){csv+=r[0]+','+r[1]+'\n';});
+    triggerCsvDownload(csv, (gsSheet||'gs')+'_피벗.csv');
+  };
+
+  document.querySelectorAll('.gs-tab').forEach(function(b){
+    b.onclick=function(){ gsLoad(this.getAttribute('data-sheet')); };
+  });
+
+  switchSrc('cx');
+}
+
+if(typeof Chart !== "undefined"){ bootApp(); }
+else{ window.addEventListener("load", bootApp); }
+})();
+
+</script>
+</body>
+</html>
