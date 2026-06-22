@@ -2425,10 +2425,28 @@ function _rpAllSvcTblRender(period){
   var asL = isWk ? (as.weeks||[]) : (as.months||[]);
   var asV = isWk ? (as.wk_values||[]) : (as.values||[]);
   
-  // 모든 라벨 union (최신순 — 좌측이 최신)
+  // 모든 라벨 union (최신순 — 좌측이 최신) + GNB 기간 필터
   var allLab = {};
   [voteL, notifyL, surveyL, ppL, ofL, asL].forEach(function(arr){ arr.forEach(function(L){ allLab[L]=1; }); });
   var labels = Object.keys(allLab).sort().reverse();
+  // GNB 기간 필터 (gFilt) 적용
+  var _gf = (typeof gFilt !== 'undefined' && gFilt) ? gFilt : {start:null, end:null};
+  var _gS = _gf.start ? _gf.start.substring(0,7) : '';
+  var _gE = _gf.end ? _gf.end.substring(0,7) : '';
+  function _inRange(L){
+    var ym;
+    if(/^\d{4}-W\d{2}/.test(L)){
+      var y = parseInt(L.substring(0,4)), w = parseInt(L.substring(6,8));
+      var jan4 = new Date(y, 0, 4); var dow = jan4.getDay() || 7;
+      var monday = new Date(jan4.getTime() - (dow-1)*86400000 + (w-1)*7*86400000);
+      ym = monday.getFullYear() + '-' + String(monday.getMonth()+1).padStart(2,'0');
+    } else if(/^\d{4}-\d{2}/.test(L)){ ym = L.substring(0,7); }
+    else { ym = L; }
+    if(_gS && ym < _gS) return false;
+    if(_gE && ym > _gE) return false;
+    return true;
+  }
+  labels = labels.filter(_inRange);
   
   function lkp(L_arr, V_arr, L){ var i = L_arr.indexOf(L); return i>=0 ? (V_arr[i]||0) : 0; }
   
