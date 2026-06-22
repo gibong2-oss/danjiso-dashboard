@@ -1494,9 +1494,8 @@ function rpRender(){
     });
   }
 
-  var rtbl = '<table><thead><tr><th>기간</th><th>추정 전체</th><th>정산 전체</th>';
+  var rtbl = '<table><thead><tr><th>기간</th><th>추정 전체</th><th>정산 전체 (선결제 프로모션 포함)</th><th>선결제 프로모션</th><th>정산 전체 (선결제 프로모션 미포함)</th>';
   svcs.forEach(function(s){ rtbl += '<th>' + svcNames[s] + ' 추정</th><th>추정 변화</th><th>정산</th><th>정산 변화</th>'; });
-  rtbl += '<th>선결제 프로모션</th>';
   rtbl += '</tr></thead><tbody>';
   var showRev = revLabels.slice(-Math.min(revLabels.length, 24)).reverse();
   showRev.forEach(function(L){
@@ -1544,8 +1543,9 @@ function rpRender(){
     rtbl += '<tr><td style="text-align:left">' + _wkLabelFmt(L) + '</td>';
     rtbl += '<td style="text-align:left;font-weight:600">' + _rpFmt(totEst, true) + '</td>';
     rtbl += '<td style="text-align:left;font-weight:600">' + _rpFmt(totSt + prepaidV, true) + '</td>';
-    rtbl += svcCells;
     rtbl += '<td style="text-align:left">' + (prepaidV ? Math.round(prepaidV * 10000).toLocaleString() + '원' : '-') + '</td>';
+    rtbl += '<td style="text-align:left;font-weight:600">' + _rpFmt(totSt, true) + '</td>';
+    rtbl += svcCells;
     rtbl += '</tr>';
   });
   // 합계/평균 행 — 아파트너 매출 표
@@ -1580,14 +1580,18 @@ function rpRender(){
     var sumRow = '<tr><td style="' + pad + '">📊 합계</td>';
     sumRow += '<td style="' + pad + '">' + fmt(totEstA) + '</td>';
     sumRow += '<td style="' + pad + '">' + fmt(totStA + sumPP_apt) + '</td>';
+    sumRow += '<td style="' + pad + '">' + fmt(sumPP_apt) + '</td>';
+    sumRow += '<td style="' + pad + '">' + fmt(totStA) + '</td>';
     svcs.forEach(function(s){
       sumRow += '<td style="' + pad + '">' + fmt(sumByS[s].e) + '</td><td style="' + pad + '">-</td>';
       sumRow += '<td style="' + pad + '">' + fmt(sumByS[s].s) + '</td><td style="' + pad + '">-</td>';
     });
-    sumRow += '<td style="' + pad + '">' + fmt(sumPP_apt) + '</td></tr>';
+    sumRow += '</tr>';
     var avgRow = '<tr><td style="' + pad2 + '">📏 평균</td>';
     avgRow += '<td style="' + pad2 + '">' + fmt(totEstA/n) + '</td>';
     avgRow += '<td style="' + pad2 + '">' + fmt((totStA + sumPP_apt)/n) + '</td>';
+    avgRow += '<td style="' + pad2 + '">' + fmt(sumPP_apt/n) + '</td>';
+    avgRow += '<td style="' + pad2 + '">' + fmt(totStA/n) + '</td>';
     svcs.forEach(function(s){
       var aE = sumByS[s].e/n, aS = sumByS[s].s/n;
       var avC = avgChByS[s].e;
@@ -1595,7 +1599,7 @@ function rpRender(){
       avgRow += '<td style="' + pad2 + '">' + fmt(aE) + '</td><td style="' + pad2 + '">' + chStr + '</td>';
       avgRow += '<td style="' + pad2 + '">' + fmt(aS) + '</td><td style="' + pad2 + '">-</td>';
     });
-    avgRow += '<td style="' + pad2 + '">' + fmt(sumPP_apt/n) + '</td></tr>';
+    avgRow += '</tr>';
     rtbl += '</tbody><tfoot>' + sumRow + avgRow + '</tfoot></table>';
   } catch(e){ rtbl += '</tbody></table>'; }
   document.getElementById('rpRevTable').innerHTML = rtbl;
@@ -2722,8 +2726,10 @@ function rpOpenDetailModal(kind){
   } else {
     h += '<th style="padding:8px;border-bottom:2px solid #e5e7eb;background:#f9fafb;text-align:left;position:sticky;top:0">추정 전체</th>';
     h += '<th style="padding:8px;border-bottom:2px solid #e5e7eb;background:#f9fafb;text-align:left;position:sticky;top:0">추정 전체 변화</th>';
-    h += '<th style="padding:8px;border-bottom:2px solid #e5e7eb;background:#f9fafb;text-align:left;position:sticky;top:0">정산 전체</th>';
+    h += '<th style="padding:8px;border-bottom:2px solid #e5e7eb;background:#f9fafb;text-align:left;position:sticky;top:0">정산 전체 (선결제 프로모션 포함)</th>';
     h += '<th style="padding:8px;border-bottom:2px solid #e5e7eb;background:#f9fafb;text-align:left;position:sticky;top:0">정산 전체 변화</th>';
+    h += '<th style="padding:8px;border-bottom:2px solid #e5e7eb;background:#f9fafb;text-align:left;position:sticky;top:0">선결제 프로모션</th>';
+    h += '<th style="padding:8px;border-bottom:2px solid #e5e7eb;background:#f9fafb;text-align:left;position:sticky;top:0">정산 전체 (선결제 프로모션 미포함)</th>';
     svcs.forEach(function(s){
       h += '<th style="padding:8px;border-bottom:2px solid #e5e7eb;background:#f9fafb;text-align:left;position:sticky;top:0">' + svcNames[s] + ' 추정</th>';
       h += '<th style="padding:8px;border-bottom:2px solid #e5e7eb;background:#f9fafb;text-align:left;position:sticky;top:0">' + svcNames[s] + ' 추정 변화</th>';
@@ -2769,8 +2775,19 @@ function rpOpenDetailModal(kind){
       var totStCh = (prevTotSt > 0) ? ((totSt - prevTotSt) / prevTotSt) * 100 : null;
       h += '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:left;font-weight:600">' + Math.round(totEst * 10000).toLocaleString() + '원</td>';
       h += '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:left">' + _rpPctTag(totEstCh) + '</td>';
-      h += '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:left;font-weight:600">' + Math.round(totSt * 10000).toLocaleString() + '원</td>';
+      // 선결제 프로모션 lookup (모달)
+      var ppSrc_m = (typeof D !== 'undefined' && D.prepaid_promo) ? D.prepaid_promo : null;
+      var prepaidV_m = 0;
+      if(ppSrc_m){
+        var ppL_m = cmp === 'wow' ? (ppSrc_m.weeks||[]) : (ppSrc_m.months||[]);
+        var ppV_m = cmp === 'wow' ? (ppSrc_m.wk_values||[]) : (ppSrc_m.values||[]);
+        var pix_m = ppL_m.indexOf(L);
+        if(pix_m >= 0) prepaidV_m = ppV_m[pix_m] || 0;
+      }
+      h += '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:left;font-weight:600">' + Math.round((totSt + prepaidV_m) * 10000).toLocaleString() + '원</td>';
       h += '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:left">' + _rpPctTag(totStCh) + '</td>';
+      h += '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:left">' + (prepaidV_m ? Math.round(prepaidV_m * 10000).toLocaleString() + '원' : '-') + '</td>';
+      h += '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:left;font-weight:600">' + Math.round(totSt * 10000).toLocaleString() + '원</td>';
       svcs.forEach(function(s){
         var est = getVL(s, keys.revV, keys.revL, L);
         var st = getVL(s, keys.stV, keys.stL, L);
@@ -2848,9 +2865,22 @@ function rpOpenDetailModal(kind){
         svcEstChAvgs[s] = avgC(ec);
         totEst += svcEstSums[s]; totSt += svcStSums[s];
       });
+      // 선결제 프로모션 합계
+      var sumPP_m = 0;
+      var ppSrc_fm = (typeof D !== 'undefined' && D.prepaid_promo) ? D.prepaid_promo : null;
+      if(ppSrc_fm){
+        var ppL_fm = cmp === 'wow' ? (ppSrc_fm.weeks||[]) : (ppSrc_fm.months||[]);
+        var ppV_fm = cmp === 'wow' ? (ppSrc_fm.wk_values||[]) : (ppSrc_fm.values||[]);
+        labels.forEach(function(L){
+          var ix = ppL_fm.indexOf(L);
+          if(ix >= 0) sumPP_m += (ppV_fm[ix] || 0);
+        });
+      }
       footHtml += '<tr><td style="' + pad + '">📊 합계</td>';
       footHtml += '<td style="' + pad + '">' + fmt(totEst) + '</td><td style="' + pad + '">-</td>';
-      footHtml += '<td style="' + pad + '">' + fmt(totSt) + '</td><td style="' + pad + '">-</td>';
+      footHtml += '<td style="' + pad + '">' + fmt(totSt + sumPP_m) + '</td><td style="' + pad + '">-</td>';
+      footHtml += '<td style="' + pad + '">' + fmt(sumPP_m) + '</td>';
+      footHtml += '<td style="' + pad + '">' + fmt(totSt) + '</td>';
       svcs.forEach(function(s){
         footHtml += '<td style="' + pad + '">' + fmt(svcEstSums[s]) + '</td><td style="' + pad + '">-</td>';
         footHtml += '<td style="' + pad + '">' + fmt(svcStSums[s]) + '</td><td style="' + pad + '">-</td>';
@@ -2858,7 +2888,9 @@ function rpOpenDetailModal(kind){
       footHtml += '</tr>';
       footHtml += '<tr><td style="' + pad2 + '">📏 평균</td>';
       footHtml += '<td style="' + pad2 + '">' + fmt(totEst/n) + '</td><td style="' + pad2 + '">-</td>';
-      footHtml += '<td style="' + pad2 + '">' + fmt(totSt/n) + '</td><td style="' + pad2 + '">-</td>';
+      footHtml += '<td style="' + pad2 + '">' + fmt((totSt + sumPP_m)/n) + '</td><td style="' + pad2 + '">-</td>';
+      footHtml += '<td style="' + pad2 + '">' + fmt(sumPP_m/n) + '</td>';
+      footHtml += '<td style="' + pad2 + '">' + fmt(totSt/n) + '</td>';
       svcs.forEach(function(s){
         footHtml += '<td style="' + pad2 + '">' + fmt(svcEstSums[s]/n) + '</td><td style="' + pad2 + '">' + chS(svcEstChAvgs[s]) + '</td>';
         footHtml += '<td style="' + pad2 + '">' + fmt(svcStSums[s]/n) + '</td><td style="' + pad2 + '">-</td>';
@@ -2922,14 +2954,23 @@ function rpExportXls(kind){
         svcVals.push((c===null||c===undefined||isNaN(c)) ? '' : Number(c.toFixed(2)));
         if(typeof v === 'number') tot += v;
       });
-      var row = [L, tot].concat(svcVals);
+      var row = [(typeof _wkLabelFmt==='function'?_wkLabelFmt(L):L), tot].concat(svcVals);
       rows.push(row.map(escCsv).join(','));
     });
   } else {
     labels = window._rpRevLabels || [];
-    head = ['기간', '추정 전체(원)', '정산 전체(원)'];
+    head = ['기간', '추정 전체(원)', '정산 전체 (선결제 프로모션 포함)(원)', '선결제 프로모션(원)', '정산 전체 (선결제 프로모션 미포함)(원)'];
     svcs.forEach(function(s){ head.push(svcNames[s] + ' 추정(원)'); head.push(svcNames[s] + ' 추정 변화%'); head.push(svcNames[s] + ' 정산(원)'); head.push(svcNames[s] + ' 정산 변화%'); });
     rows.push(head.map(escCsv).join(','));
+    // 선결제 프로모션 lookup
+    function _ppVal(L){
+      var pp = (typeof D !== 'undefined') ? D.prepaid_promo : null;
+      if(!pp) return null;
+      var lbls = (cmp === 'wow') ? (pp.weeks||[]) : (pp.months||[]);
+      var vals = (cmp === 'wow') ? (pp.wk_values||[]) : (pp.values||[]);
+      var idx = lbls.indexOf(L);
+      return idx >= 0 ? vals[idx] : null;
+    }
     labels.forEach(function(L){
       var totEst = 0, totSt = 0;
       var svcVals = [];
@@ -2952,7 +2993,11 @@ function rpExportXls(kind){
         if(typeof est === 'number') totEst += est;
         if(typeof st === 'number') totSt += st;
       });
-      var row = [L, Math.round(totEst * 10000), Math.round(totSt * 10000)].concat(svcVals);
+      var pp = _ppVal(L);
+      var ppAmt = (typeof pp === 'number') ? Math.round(pp * 10000) : 0;
+      var totStExcl = Math.round(totSt * 10000);  // 선결제 미포함
+      var totStIncl = totStExcl + ppAmt;  // 선결제 포함
+      var row = [(typeof _wkLabelFmt==='function'?_wkLabelFmt(L):L), Math.round(totEst * 10000), totStIncl, ppAmt, totStExcl].concat(svcVals);
       rows.push(row.map(escCsv).join(','));
     });
   }
