@@ -1562,6 +1562,28 @@ def extract_d_from_html(html_path):
     return {}
 
 
+def _validate_template(path):
+    """v113 템플릿 무결성 검증"""
+    try:
+        with open(path, 'rb') as f:
+            raw = f.read()
+    except Exception as e:
+        return False, "읽기 실패: " + str(e)
+    null_n = raw.count(b'\x00')
+    if null_n > 0:
+        return False, "null bytes " + str(null_n) + "개"
+    if not raw.rstrip().endswith(b'</html>'):
+        return False, "파일 끝 </html> 누락 (잘림 의심)"
+    text = raw.decode('utf-8', errors='replace')
+    n_open = text.count('<script')
+    n_close = text.count('</script>')
+    if n_open != n_close:
+        return False, "<script> 불일치 (" + str(n_open) + " vs " + str(n_close) + ")"
+    if len(raw) < 1000000:
+        return False, "파일 크기 너무 작음 (" + str(len(raw)) + " bytes)"
+    return True, "OK (size=" + str(len(raw)) + ", scripts=" + str(n_open) + ")"
+
+
 def generate_html(D_new):
     print("[5/6] 기존 HTML → 안정 필드 추출...")
     src_path, cur_ver = find_latest_html()
@@ -1569,6 +1591,22 @@ def generate_html(D_new):
         print("  ✗ 기존 HTML 없음")
         sys.exit(1)
     print(f"  소스: {os.path.basename(src_path)} (v{cur_ver})")
+    # 🛡 템플릿 무결성 검증
+    ok, msg = _validate_template(src_path)
+    if not ok:
+        print("  🚨 템플릿 무결성 실패: " + msg)
+        print("  복구: git checkout HEAD -- \"" + os.path.basename(src_path) + "\"")
+        sys.exit(1)
+    print("  ✓ 템플릿 검증: " + msg)
+    # 자동 백업
+    bak_path = src_path + '.bak'
+    try:
+        with open(src_path, 'rb') as _s, open(bak_path, 'wb') as _d:
+            _d.write(_s.read())
+        print("  ✓ 백업: " + os.path.basename(bak_path))
+    except Exception as e:
+        print("  ⚠ 백업 실패: " + str(e))
+
 
     D_old = extract_d_from_html(src_path)
     for key in STABLE_KEYS:
