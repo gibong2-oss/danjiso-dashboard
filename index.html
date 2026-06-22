@@ -2075,8 +2075,10 @@ function rpRenderAll(){
      borderColor:'#475569', backgroundColor:'#47556933', fill:false, tension:0.2, borderWidth:0.8, pointRadius:2, spanGaps:false},
     {label:'아파트너 추정 전체', hidden: !allF.aptEst, data: aEstChs.map(_rpCapCh), _rawCh: aEstChs, _rawVal: aEstSeries, _money: true,
      borderColor:'#00BCFF', backgroundColor:'#00BCFF33',  fill:false, tension:0.2, borderWidth:0.8, pointRadius:2, spanGaps:false},
-    {label:'아파트너 정산 전체', hidden: !allF.aptSt, data: aStChs.map(_rpCapCh), _rawCh: aStChs, _rawVal: aStSeries, _money: true,
+    {label:'아파트너 정산 (선결제 포함)', hidden: !allF.aptStIncl, data: aStInclChs.map(_rpCapCh), _rawCh: aStInclChs, _rawVal: aStInclSeries, _money: true,
      borderColor:'#0284c7', backgroundColor:'#0284c733', fill:false, tension:0.2, borderWidth:0.8, pointRadius:2, spanGaps:false},
+    {label:'아파트너 정산 (선결제 미포함)', hidden: !allF.aptStExcl, data: aStExclChs.map(_rpCapCh), _rawCh: aStExclChs, _rawVal: aStExclSeries, _money: true,
+     borderColor:'#f97316', backgroundColor:'#f9731633', fill:false, tension:0.2, borderWidth:0.8, pointRadius:2, spanGaps:false},
     {label:'오피스너 매출', hidden: !allF.officener, data: ofChs.map(_rpCapCh), _rawCh: ofChs, _rawVal: ofSeries, _money: true,
      borderColor:'#2563eb', backgroundColor:'#2563eb33', fill:false, tension:0.2, borderWidth:0.8, pointRadius:2, spanGaps:false},
     {label:'아파트스토리 매출', hidden: !allF.aptstory, data: asChs.map(_rpCapCh), _rawCh: asChs, _rawVal: asSeries, _money: true,
@@ -2423,10 +2425,10 @@ function _rpAllSvcTblRender(period){
   var asL = isWk ? (as.weeks||[]) : (as.months||[]);
   var asV = isWk ? (as.wk_values||[]) : (as.values||[]);
   
-  // 모든 라벨 union (시간순)
+  // 모든 라벨 union (최신순 — 좌측이 최신)
   var allLab = {};
   [voteL, notifyL, surveyL, ppL, ofL, asL].forEach(function(arr){ arr.forEach(function(L){ allLab[L]=1; }); });
-  var labels = Object.keys(allLab).sort();
+  var labels = Object.keys(allLab).sort().reverse();
   
   function lkp(L_arr, V_arr, L){ var i = L_arr.indexOf(L); return i>=0 ? (V_arr[i]||0) : 0; }
   
@@ -2462,14 +2464,14 @@ function _rpAllSvcTblRender(period){
   
   // HTML 생성
   var h = '<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:max-content">';
-  h += '<thead><tr><th style="padding:8px;border-bottom:2px solid #e5e7eb;background:#f9fafb;text-align:left;position:sticky;left:0;z-index:2;min-width:280px">C. 매출 & 객단가</th>';
+  h += '<thead><tr><th style="padding:8px;border-bottom:2px solid #e5e7eb;background:#f9fafb;text-align:left;position:sticky;left:0;top:0;z-index:5;min-width:280px;box-shadow:2px 0 4px rgba(0,0,0,0.08)">C. 매출 & 객단가</th>';
   labels.forEach(function(L){ h += '<th style="padding:8px;border-bottom:2px solid #e5e7eb;background:#f9fafb;text-align:right;white-space:nowrap">' + _wkFmt(L) + '</th>'; });
   h += '<th style="padding:8px;border-bottom:2px solid #e5e7eb;background:#fef3c7;text-align:right;white-space:nowrap;font-weight:700">합계</th>';
   h += '</tr></thead><tbody>';
   rows.forEach(function(r){
     var sum = r.vals.reduce(function(a,b){return a+b;},0);
     var weight = r.bold ? 'font-weight:700' : '';
-    h += '<tr><td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;background:'+r.bg+';position:sticky;left:0;'+weight+'">' + r.label + '</td>';
+    h += '<tr><td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;background:'+r.bg+';position:sticky;left:0;z-index:3;box-shadow:2px 0 4px rgba(0,0,0,0.08);'+weight+'">' + r.label + '</td>';
     r.vals.forEach(function(v){ h += '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:right;'+weight+'">' + (v ? fmtKRW(v) : '-') + '</td>'; });
     h += '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;background:#fef3c7;text-align:right;font-weight:700">' + (sum ? fmtKRW(sum) : '-') + '</td>';
     h += '</tr>';
