@@ -2489,16 +2489,16 @@ function _rpAllSvcTblRender(period){
   // HTML 생성
   var h = '<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:max-content">';
   h += '<thead><tr><th style="padding:8px;border-bottom:2px solid #e5e7eb;background:#f9fafb;text-align:left;position:sticky;left:0;top:0;z-index:5;min-width:280px;box-shadow:2px 0 4px rgba(0,0,0,0.08)">C. 매출 & 객단가</th>';
+  h += '<th style="padding:8px;border-bottom:2px solid #e5e7eb;background:#fef3c7;text-align:right;white-space:nowrap;font-weight:700;position:sticky;left:280px;z-index:5;box-shadow:2px 0 4px rgba(0,0,0,0.08)">합계</th>';
   labels.forEach(function(L){ h += '<th style="padding:8px 6px;border-bottom:2px solid #e5e7eb;background:#f9fafb;text-align:center;white-space:nowrap;writing-mode:vertical-rl;text-orientation:mixed;min-width:32px;max-width:36px;vertical-align:bottom">' + _wkFmt(L) + '</th>'; });
-  h += '<th style="padding:8px;border-bottom:2px solid #e5e7eb;background:#fef3c7;text-align:right;white-space:nowrap;font-weight:700">합계</th>';
   h += '</tr></thead><tbody>';
   rows.forEach(function(r){
     var sum = r.vals.reduce(function(a,b){return a+b;},0);
     var weight = r.bold ? 'font-weight:700' : '';
     h += '<tr><td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;background:'+r.bg+';position:sticky;left:0;z-index:3;box-shadow:2px 0 4px rgba(0,0,0,0.08);'+weight+'">' + r.label + '</td>';
-    r.vals.forEach(function(v){ var disp = r.isCount ? (v || '-') : (v ? fmtKRW(v) : '-'); h += '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:right;'+weight+'">' + disp + '</td>'; });
     var sumDisp = r.isCount ? (sum || '-') : (sum ? fmtKRW(sum) : '-');
-    h += '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;background:#fef3c7;text-align:right;font-weight:700">' + sumDisp + '</td>';
+    h += '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;background:#fef3c7;text-align:right;font-weight:700;position:sticky;left:280px;z-index:3;box-shadow:2px 0 4px rgba(0,0,0,0.08)">' + sumDisp + '</td>';
+    r.vals.forEach(function(v){ var disp = r.isCount ? (v || '-') : (v ? fmtKRW(v) : '-'); h += '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:right;'+weight+'">' + disp + '</td>'; });
     h += '</tr>';
   });
   h += '</tbody></table>';
@@ -6349,137 +6349,4 @@ function initRd(){
       if(ps>0) pg2+='<button onclick="window._gsPage(0)" style="padding:2px 6px;margin:0 1px">1</button>'+(ps>1?'<span style="margin:0 2px">…</span>':'');
       for(var pi=ps;pi<=pe;pi++){
         var isC=pi===gsPage;
-        pg2+='<button onclick="window._gsPage('+pi+')" style="padding:2px 6px;margin:0 1px'+(isC?';background:var(--cp);color:#fff;border-radius:4px':'')+'">'+(pi+1)+'</button>';
-      }
-      if(pe<pages-1) pg2+=(pe<pages-2?'<span style="margin:0 2px">…</span>':'')+'<button onclick="window._gsPage('+(pages-1)+')" style="padding:2px 6px;margin:0 1px">'+pages+'</button>';
-      pg2+='<span style="margin-left:8px;font-size:11px;color:var(--ts)">'+(gsPage+1)+'/'+pages+' 페이지</span>';
-      document.getElementById('gs-pager').innerHTML=pg2;
-    }
-    document.getElementById('gs-csv-btn').style.display='';
-    // 피벗 섹션 표시 및 셀렉트 갱신
-    var pvWrap=document.getElementById('gs-pv-wrap');
-    if(pvWrap){ pvWrap.style.display=''; gsUpdatePvSelects(); }
-    document.getElementById('gs-pv-result').innerHTML='';
-    var pvCsv=document.getElementById('gs-pv-csv'); if(pvCsv) pvCsv.style.display='none';
-  }
-
-  window._gsPage = function(p){ gsPage=p; gsRender(); };
-
-  function gsLoad(sheetName){
-    document.querySelectorAll('.gs-tab').forEach(function(b){
-      b.classList.toggle('on', b.getAttribute('data-sheet')===sheetName);
-    });
-    gsSheet=sheetName;
-    if(GS_CACHE[sheetName]){
-      gsCols=GS_CACHE[sheetName].cols;
-      gsAllRows=GS_CACHE[sheetName].rows;
-      gsPage=0;
-      document.getElementById('gs-srch').value='';
-      document.getElementById('gs-info').textContent=gsAllRows.length.toLocaleString()+'행 · '+gsCols.length+'열 (캐시)';
-      gsRender();
-      return;
-    }
-    document.getElementById('gs-tbl').innerHTML=
-      '<div style="padding:30px;text-align:center;color:var(--ts)">⏳ '+sheetName+' 로딩 중…</div>';
-    document.getElementById('gs-info').textContent='로딩 중…';
-    document.getElementById('gs-pager').innerHTML='';
-    document.getElementById('gs-csv-btn').style.display='none';
-    var url='https://docs.google.com/spreadsheets/d/'+SSID+'/gviz/tq?tqx=out:json&headers=1&sheet='+encodeURIComponent(sheetName);
-    fetch(url)
-      .then(function(r){
-        if(!r.ok) throw new Error('HTTP '+r.status);
-        return r.text();
-      })
-      .then(function(text){
-        var parsed=gsParseGviz(text);
-        GS_CACHE[sheetName]=parsed;
-        gsCols=parsed.cols; gsAllRows=parsed.rows; gsPage=0;
-        document.getElementById('gs-srch').value='';
-        document.getElementById('gs-info').textContent=parsed.rows.length.toLocaleString()+'행 · '+parsed.cols.length+'열';
-        gsRender();
-      })
-      .catch(function(e){
-        document.getElementById('gs-tbl').innerHTML=
-          '<div style="padding:20px;color:var(--danger)">⚠ 로드 실패: '+e.message+'</div>';
-        document.getElementById('gs-info').textContent='로드 실패';
-      });
-  }
-
-  document.getElementById('gs-srch').addEventListener('input',function(){ gsPage=0; gsRender(); });
-  document.getElementById('gs-csv-btn').onclick=function(){
-    if(!gsCols.length||!gsSheet) return;
-    var srch=(document.getElementById('gs-srch').value||'').trim().toLowerCase();
-    var rows=srch?gsFilteredRows:gsAllRows;
-    var csv='﻿'+gsCols.map(function(c){return '"'+c.replace(/"/g,'""')+'"';}).join(',')+'\n';
-    rows.forEach(function(r){
-      csv+=r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(',')+'\n';
-    });
-    triggerCsvDownload(csv, gsSheet+'_원본.csv');
-  };
-  // ── GS 피벗 로직 ────────────────────────────────────────
-  var gsPvData = [];
-
-  function gsUpdatePvSelects(){
-    var rs=document.getElementById('gs-pv-row'), vs=document.getElementById('gs-pv-val');
-    if(!rs||!vs) return;
-    rs.innerHTML=gsCols.map(function(c,i){return '<option value="'+i+'">'+c+'</option>';}).join('');
-    vs.innerHTML=gsCols.map(function(c,i){return '<option value="'+i+'">'+c+'</option>';}).join('');
-    if(gsCols.length>1) vs.value=String(gsCols.length-1);
-  }
-
-  function gsRunPivot(){
-    var ri=parseInt(document.getElementById('gs-pv-row').value);
-    var vi=parseInt(document.getElementById('gs-pv-val').value);
-    var agg=document.getElementById('gs-pv-agg').value;
-    var src = (document.getElementById('gs-srch').value||'').trim() ? gsFilteredRows : gsAllRows;
-    var map={};
-    src.forEach(function(r){
-      var k=r[ri]||'(없음)', raw=parseFloat(String(r[vi]).replace(/,/g,''));
-      var v=isNaN(raw)?0:raw;
-      if(!map[k]) map[k]={sum:0,cnt:0};
-      map[k].sum+=v; map[k].cnt+=1;
-    });
-    var aggLbl=agg==='sum'?'합계':agg==='count'?'건수':'평균';
-    gsPvData=Object.keys(map).map(function(k){
-      var v=agg==='sum'?map[k].sum:agg==='count'?map[k].cnt:map[k].sum/(map[k].cnt||1);
-      return [k, Math.round(v*100)/100];
-    }).sort(function(a,b){return b[1]-a[1];});
-    var thS='style="background:var(--bg2);padding:5px 8px;border:1px solid var(--bd);font-weight:600;font-size:12px"';
-    var tdS='style="padding:4px 8px;border:1px solid var(--bd);font-size:12px"';
-    var tdR='style="padding:4px 8px;border:1px solid var(--bd);font-size:12px;text-align:right"';
-    var th='<tr><th '+thS+'>'+gsCols[ri]+'</th><th '+thS+'>'+aggLbl+'('+gsCols[vi]+')</th></tr>';
-    var tb=gsPvData.map(function(r){
-      return '<tr><td '+tdS+'>'+r[0]+'</td><td '+tdR+'>'+r[1].toLocaleString()+'</td></tr>';
-    }).join('');
-    document.getElementById('gs-pv-result').innerHTML=
-      '<div style="overflow:auto;max-height:360px">'+
-      '<table style="border-collapse:collapse"><thead>'+th+'</thead><tbody>'+tb+'</tbody></table></div>';
-    document.getElementById('gs-pv-csv').style.display='';
-  }
-
-  document.getElementById('gs-pv-btn').onclick = gsRunPivot;
-  document.getElementById('gs-pv-csv').onclick = function(){
-    if(!gsPvData.length) return;
-    var ri=parseInt(document.getElementById('gs-pv-row').value);
-    var vi=parseInt(document.getElementById('gs-pv-val').value);
-    var agg=document.getElementById('gs-pv-agg').value;
-    var aggLbl=agg==='sum'?'합계':agg==='count'?'건수':'평균';
-    var csv='\ufeff'+gsCols[ri]+','+aggLbl+'('+gsCols[vi]+')\n';
-    gsPvData.forEach(function(r){csv+=r[0]+','+r[1]+'\n';});
-    triggerCsvDownload(csv, (gsSheet||'gs')+'_피벗.csv');
-  };
-
-  document.querySelectorAll('.gs-tab').forEach(function(b){
-    b.onclick=function(){ gsLoad(this.getAttribute('data-sheet')); };
-  });
-
-  switchSrc('cx');
-}
-
-if(typeof Chart !== "undefined"){ bootApp(); }
-else{ window.addEventListener("load", bootApp); }
-})();
-
-</script>
-</body>
-</html>
+        pg
