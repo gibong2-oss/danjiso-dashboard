@@ -935,7 +935,9 @@ function rpUpdateSvcFilter(grp){
   if(grp === 'aptner'){
     var items = [
       {svc:'est_total', label:'📊 추정 전체', color:'#6366f1'},
-      {svc:'st_total', label:'📊 정산 전체', color:'#dc2626'},
+      {svc:'st_total', label:'📊 정산 전체 (선결제 포함)', color:'#dc2626'},
+      {svc:'pp_st', label:'💳 선결제 프로모션', color:'#a855f7'},
+      {svc:'st_total_excl', label:'📊 정산 전체 (선결제 미포함)', color:'#f97316'},
       {svc:'vote_est', label:'🗳 전자투표 추정', color:'#a78bfa'},
       {svc:'vote_st', label:'🗳 전자투표 정산', color:'#7c3aed'},
       {svc:'notify_est', label:'📣 알림 추정', color:'#34d399'},
@@ -943,8 +945,8 @@ function rpUpdateSvcFilter(grp){
       {svc:'survey_est', label:'📋 설문 추정', color:'#60a5fa'},
       {svc:'survey_st', label:'📋 설문 정산', color:'#2563eb'}
     ];
-    // 기본: 추정 전체만 true, 나머지 모두 false
-    window._rpSvc = window._rpSvc || {est_total:false, st_total:true, vote_est:false, vote_st:false, notify_est:false, notify_st:false, survey_est:false, survey_st:false, vote:true, notify:true, survey:true};
+    // 기본: 정산 전체 (선결제 포함)만 true
+    window._rpSvc = window._rpSvc || {est_total:false, st_total:true, pp_st:false, st_total_excl:false, vote_est:false, vote_st:false, notify_est:false, notify_st:false, survey_est:false, survey_st:false, vote:true, notify:true, survey:true};
     items.forEach(function(it){ if(!(it.svc in window._rpSvc)) window._rpSvc[it.svc] = (it.svc === 'st_total'); });
     var allOn = items.every(function(it){ return window._rpSvc[it.svc] !== false; });
     box.appendChild(_rpMakeBtn('🌐 전체', '#0f172a', allOn, function(){
@@ -1441,7 +1443,20 @@ function rpRender(){
   var totEstChsRaw = _calcChArr(totEstVals, perRev);
   var totStChsRaw = _calcChArr(totStVals, perRev);
   revDS.push({label:'추정 전체 변화', hidden: !(window._rpSvc && window._rpSvc.est_total), data:totEstChs, _rawCh:totEstChsRaw, _rawVal:totEstVals, _money:true, borderColor:'#00BCFF', backgroundColor:'#00BCFF33',  fill:false, tension:0.2, borderWidth:0.8, pointRadius:2, spanGaps:false});
-  revDS.push({label:'정산 전체 변화', hidden: !(window._rpSvc && window._rpSvc.st_total), data:totStChs, _rawCh:totStChsRaw, _rawVal:totStVals, _money:true, borderColor:'#dc2626', backgroundColor:'#dc262633', fill:false, tension:0.2, borderWidth:0.8, pointRadius:2, spanGaps:false});
+  // 선결제 프로모션 데이터 계산
+  var _ppSrc = (typeof D !== 'undefined' && D.prepaid_promo) ? D.prepaid_promo : null;
+  var _ppLab = _ppSrc ? (cmp === 'wow' ? (_ppSrc.weeks||[]) : (_ppSrc.months||[])) : [];
+  var _ppVal = _ppSrc ? (cmp === 'wow' ? (_ppSrc.wk_values||[]) : (_ppSrc.values||[])) : [];
+  var prepaidVals = revLabels.map(function(L){ var ix = _ppLab.indexOf(L); return ix >= 0 ? (_ppVal[ix] || 0) : 0; });
+  var totStInclVals = totStVals.map(function(v, i){ return (v || 0) + (prepaidVals[i] || 0); });
+  var totStInclChs = _calcChArr(totStInclVals, perRev).map(function(v){ return _rpCapChDyn(v, revCap); });
+  var totStInclChsRaw = _calcChArr(totStInclVals, perRev);
+  var prepaidChs = _calcChArr(prepaidVals, perRev).map(function(v){ return _rpCapChDyn(v, revCap); });
+  var prepaidChsRaw = _calcChArr(prepaidVals, perRev);
+  // 시리즈 3개: 포함 / 선결제 / 미포함
+  revDS.push({label:'정산 전체 (선결제 포함) 변화', hidden: !(window._rpSvc && window._rpSvc.st_total), data:totStInclChs, _rawCh:totStInclChsRaw, _rawVal:totStInclVals, _money:true, borderColor:'#dc2626', backgroundColor:'#dc262633', fill:false, tension:0.2, borderWidth:0.8, pointRadius:2, spanGaps:false});
+  revDS.push({label:'선결제 프로모션 변화', hidden: !(window._rpSvc && window._rpSvc.pp_st), data:prepaidChs, _rawCh:prepaidChsRaw, _rawVal:prepaidVals, _money:true, borderColor:'#a855f7', backgroundColor:'#a855f733', fill:false, tension:0.2, borderWidth:0.8, pointRadius:2, spanGaps:false});
+  revDS.push({label:'정산 전체 (선결제 미포함) 변화', hidden: !(window._rpSvc && window._rpSvc.st_total_excl), data:totStChs, _rawCh:totStChsRaw, _rawVal:totStVals, _money:true, borderColor:'#f97316', backgroundColor:'#f9731633', fill:false, tension:0.2, borderWidth:0.8, pointRadius:2, spanGaps:false});
   window._rpRevTotals = { est: totEstVals, st: totStVals, estCh: totEstChs, stCh: totStChs };
   if(window.rpRevChart) { try { window.rpRevChart.destroy(); } catch(e){} }
   // 매출 동적 cap (그룹에서)
