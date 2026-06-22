@@ -237,22 +237,35 @@ def load_prepaid_promo(ss):
     by_day = defaultdict(float)
     cnt_month = defaultdict(int)
     cnt_week = defaultdict(int)
+    skipped_date = 0
+    skipped_amt = 0
+    skipped_len = 0
     for row in rows:
-        if len(row) <= amt_idx: continue
-        date_str = str(row[date_idx]).strip()[:10]
-        if not re.match(r'\d{4}-\d{2}-\d{2}', date_str): continue
+        if len(row) <= max(date_idx, amt_idx):
+            skipped_len += 1
+            continue
+        raw_date = str(row[date_idx]).strip()
+        norm_date = re.sub(r'[./\s]+', '-', raw_date)
+        m_date = re.match(r'^(\d{4})-(\d{1,2})-(\d{1,2})', norm_date)
+        if not m_date:
+            skipped_date += 1
+            continue
+        date_str = f"{m_date.group(1)}-{int(m_date.group(2)):02d}-{int(m_date.group(3)):02d}"
         ym = date_str[:7]
         wk = _date_to_isoweek(date_str)
+        amt_raw = str(row[amt_idx]).replace(',', '').replace('원', '').replace('₩', '').strip()
         try:
-            amt = float(str(row[amt_idx]).replace(',', '').replace('원', '').strip() or 0)
+            amt = float(amt_raw or 0)
         except:
-            continue
-        amt_man = amt / 10000  # 만원 (VAT 이미 포함)
+            skipped_amt += 1
+            amt = 0
+        amt_man = amt / 10000
         by_month[ym] += amt_man
         by_week[wk] += amt_man
         by_day[date_str] += amt_man
         cnt_month[ym] += 1
         cnt_week[wk] += 1
+    print(f"  선결제 프로모션: 총 {len(rows)}행, 유효 {sum(cnt_month.values())}건, 스킵(짧음={skipped_len}, 날짜={skipped_date}, 금액={skipped_amt})")
     months = sorted(by_month.keys())
     weeks = sorted(by_week.keys())
     days = sorted(by_day.keys())
