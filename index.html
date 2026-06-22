@@ -2016,9 +2016,17 @@ function rpRenderAll(){
 
   // 변화율
   function calcCh(arr, per){
-    // 이전 값이 1만원 미만이면 노이즈 — null 처리 (시작 폭주 방지)
-    var TH = 1;  // 만원 단위 (10000원)
-    return arr.map(function(v, i){ if(i < per) return null; var pr = arr[i-per]; if(!pr || pr < TH) return null; return ((v - pr) / pr) * 100; });
+    // 이전 값 너무 작거나 변화율 폭주(>500%) 시 노이즈 — null
+    var TH = 5;  // 만원 (5만원 미만 이전값 무시)
+    var CAP = 500;  // 변화율 캡 (±500% 초과 노이즈)
+    return arr.map(function(v, i){
+      if(i < per) return null;
+      var pr = arr[i-per];
+      if(!pr || pr < TH) return null;
+      var ch = ((v - pr) / pr) * 100;
+      if(Math.abs(ch) > CAP) return null;
+      return ch;
+    });
   }
   var period = (cmp === 'yoy') ? 12 : 1;
   var aEstChs = calcCh(aEstSeries, period);
@@ -2507,14 +2515,13 @@ function _rpAllSvcTblRender(period){
   rows.push({label:'[아파트스토리] 앱 이용료 매출 (₩)', bg:'#fef3c7', vals:labels.map(function(L){ return asTypeVal(L, ['앱이용료']); })});
   // 15. [아파트스토리] 이사예약 매출 (이사예약)
   rows.push({label:'[아파트스토리] 이사예약 매출 (₩)', bg:'#fef3c7', vals:labels.map(function(L){ return asTypeVal(L, ['이사예약']); })});
-  // 16. [아파트너] 선결제 프로모션 구매건수
+  // 16. [아파트너] 선결제 프로모션 구매건수 (다중 fallback)
   var ppCntMap = isWk ? (pp.weekly_count || {}) : (pp.monthly_count || {});
-  // fallback: monthly_count/weekly_count 없으면 days 배열에서 직접 카운트
+  // fallback1: days 배열에서 직접 카운트 (단, days = unique 일자라 부정확할 수 있음)
   if(Object.keys(ppCntMap).length === 0 && pp.days && pp.days.length){
     pp.days.forEach(function(d){
       var key;
       if(isWk){
-        // 일자 → ISO 주차 라벨
         var dt = new Date(d + 'T00:00:00');
         var target = new Date(dt.valueOf());
         var dayNr = (dt.getDay() + 6) % 7;
@@ -2526,6 +2533,14 @@ function _rpAllSvcTblRender(period){
         key = target.getFullYear() + '-W' + String(wk).padStart(2,'0');
       } else { key = d.substring(0,7); }
       ppCntMap[key] = (ppCntMap[key] || 0) + 1;
+    });
+  }
+  // fallback2: days도 없으면 매출 있는 라벨엔 최소 1건 표시 (정확한 수 모름)
+  if(Object.keys(ppCntMap).length === 0){
+    var srcL = isWk ? (pp.weeks || []) : (pp.months || []);
+    var srcV = isWk ? (pp.wk_values || []) : (pp.values || []);
+    srcL.forEach(function(L, i){
+      if(srcV[i] > 0) ppCntMap[L] = 1;  // 최소 1건 표시 (정확한 수는 빌드 후)
     });
   }
   rows.push({label:'[아파트너] 선결제 프로모션 구매건수', bg:'#e0f2fe', vals:labels.map(function(L){ return ppCntMap[L] || 0; }), isCount:true});
