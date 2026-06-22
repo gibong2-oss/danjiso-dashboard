@@ -296,6 +296,7 @@ td{font-size:12px}tr:hover td{background:rgba(139,128,212,.04)}
   </div>
   <div id="rpAllRevBarSection" style="margin-bottom:14px;display:none;width:100%">
     <div class="card" style="height:700px;display:flex;flex-direction:column"><div class="ch"><span class="ct">매출 현황</span><span class="cs">서비스별 누적 막대 + 평균</span><button class="rp-xls" onclick="rpExportAllBarCsv()" style="margin-left:auto;padding:3px 10px;font-size:11px;background:#10b981;color:#fff;border:0;border-radius:4px;cursor:pointer">⬇ 엑셀</button></div><div style="flex:1;position:relative;min-height:560px"><canvas id="rpAllRevBar"></canvas></div></div>
+    <div class="card" style="margin-top:14px"><div class="ch"><span class="ct">📋 서비스별 매출 현황 표</span><span class="cs">서비스 통합 + 아파트너 세부</span><div id="rpAllSvcTblToggle" style="margin-left:auto;display:inline-flex;gap:4px"><button class="tgb on" data-per="mo">월간</button><button class="tgb" data-per="wk">주간</button></div></div><div id="rpAllSvcTblBody" style="overflow-x:auto;margin-top:8px"></div></div>
   </div>
 
   <div id="rpCntSection">
@@ -1007,11 +1008,12 @@ function rpUpdateSvcFilter(grp){
       {key:'totalEst', label:'🌐 전체 통합 (추정)', color:'#0f172a'},
       {key:'totalSt', label:'🌐 전체 통합 (정산)', color:'#475569'},
       {key:'aptEst', label:'🏘 아파트너 추정', color:'#00BCFF'},
-      {key:'aptSt', label:'🏘 아파트너 정산', color:'#0284c7'},
+      {key:'aptStIncl', label:'🏘 아파트너 정산 (선결제 포함)', color:'#0284c7'},
+      {key:'aptStExcl', label:'🏘 아파트너 정산 (선결제 미포함)', color:'#f97316'},
       {key:'officener', label:'🏢 오피스너', color:'#2563eb'},
       {key:'aptstory', label:'📰 아파트스토리', color:'#84cc16'}
     ];
-    window._rpAllFilter = window._rpAllFilter || {total:true, aptEst:false, aptSt:false, officener:false, aptstory:false};
+    window._rpAllFilter = window._rpAllFilter || {total:true, aptEst:false, aptStIncl:false, aptStExcl:false, officener:false, aptstory:false};
     var allOn = items.every(function(it){ return window._rpAllFilter[it.key]; });
     box.appendChild(_rpMakeBtn('🌐 전체', '#0f172a', allOn, function(){
       var newState = !allOn;
@@ -2025,14 +2027,19 @@ function rpRenderAll(){
   // 통합 전체 매출 (= 아파트너 정산 + 오피스너 + 아파트스토리)
   // 전체 통합 — 추정 + 정산 두 가지 (정산엔 선결제 프로모션 합산)
   var totalEstSeries = fLabels.map(function(L, i){ return (aEstSeries[i] || 0) + (ofSeries[i] || 0) + (asSeries[i] || 0); });
+  // 아파트너 정산 분리: aStSeries = 미포함 (vote+notify+survey만), aStInclSeries = + 선결제
+  var aStExclSeries = aStSeries;  // alias
+  var aStInclSeries = fLabels.map(function(L, i){ return (aStSeries[i] || 0) + (ppSeries[i] || 0); });
   var totalStSeries = fLabels.map(function(L, i){ return (aStSeries[i] || 0) + (ofSeries[i] || 0) + (asSeries[i] || 0) + (ppSeries[i] || 0); });
   var totalSeries = totalEstSeries;  // backward-compat (인사이트 등에서 사용)
   var totalEstChs = calcCh(totalEstSeries, period);
   var totalStChs = calcCh(totalStSeries, period);
+  var aStInclChs = calcCh(aStInclSeries, period);
+  var aStExclChs = aStChs;  // alias (이미 vote+notify+survey 합)
   var totalChs = totalEstChs;  // backward-compat
 
   window._rpCntLabels = fLabels; window._rpRevLabels = fLabels;
-  window._rpAllData = { fLabels: fLabels, aEstSeries: aEstSeries, aStSeries: aStSeries, ofSeries: ofSeries, asSeries: asSeries, ppSeries: ppSeries, totalEstSeries: totalEstSeries, totalStSeries: totalStSeries, totalSeries: totalSeries, aEstChs: aEstChs, aStChs: aStChs, ofChs: ofChs, asChs: asChs, totalEstChs: totalEstChs, totalStChs: totalStChs, totalChs: totalChs, cmp: cmp };
+  window._rpAllData = { fLabels: fLabels, aEstSeries: aEstSeries, aStSeries: aStSeries, aStInclSeries: aStInclSeries, aStExclSeries: aStExclSeries, ofSeries: ofSeries, asSeries: asSeries, ppSeries: ppSeries, totalEstSeries: totalEstSeries, totalStSeries: totalStSeries, totalSeries: totalSeries, aEstChs: aEstChs, aStChs: aStChs, aStInclChs: aStInclChs, aStExclChs: aStExclChs, ofChs: ofChs, asChs: asChs, totalEstChs: totalEstChs, totalStChs: totalStChs, totalChs: totalChs, cmp: cmp };
 
   // ─── 이용 영역 — 데이터 없음 (전체 그룹은 매출만) ───
   if(window.rpCntChart) { try { window.rpCntChart.destroy(); } catch(e){} }
@@ -2127,7 +2134,7 @@ function rpRenderAll(){
   }
 
   // 매출 표
-  var rtbl = '<table><thead><tr><th>기간</th><th>전체 통합 (추정)</th><th>변화</th><th>전체 통합 (정산)</th><th>변화</th><th>아파트너 추정</th><th>변화</th><th>아파트너 정산</th><th>변화</th><th>오피스너</th><th>변화</th><th>아파트스토리</th><th>변화</th><th>선결제 프로모션</th></tr></thead><tbody>';
+  var rtbl = '<table><thead><tr><th>기간</th><th>전체 통합 (추정)</th><th>변화</th><th>전체 통합 (정산)</th><th>변화</th><th>아파트너 추정</th><th>변화</th><th>아파트너 정산 (선결제 포함)</th><th>변화</th><th>아파트너 정산 (선결제 미포함)</th><th>변화</th><th>선결제 프로모션</th><th>오피스너</th><th>변화</th><th>아파트스토리</th><th>변화</th></tr></thead><tbody>';
   fLabels.slice().reverse().forEach(function(L, idxRev){
     var i = fLabels.length - 1 - idxRev;
     rtbl += '<tr><td style="text-align:left">' + _wkLabelFmt(L) + '</td>';
@@ -2137,13 +2144,15 @@ function rpRenderAll(){
     rtbl += '<td style="text-align:left">' + _rpPctTag(totalStChs[i]) + '</td>';
     rtbl += '<td style="text-align:left">' + Math.round((aEstSeries[i] || 0) * 10000).toLocaleString() + '원</td>';
     rtbl += '<td style="text-align:left">' + _rpPctTag(aEstChs[i]) + '</td>';
-    rtbl += '<td style="text-align:left">' + Math.round((aStSeries[i] || 0) * 10000).toLocaleString() + '원</td>';
-    rtbl += '<td style="text-align:left">' + _rpPctTag(aStChs[i]) + '</td>';
+    rtbl += '<td style="text-align:left">' + Math.round((aStInclSeries[i] || 0) * 10000).toLocaleString() + '원</td>';
+    rtbl += '<td style="text-align:left">' + _rpPctTag(aStInclChs[i]) + '</td>';
+    rtbl += '<td style="text-align:left">' + Math.round((aStExclSeries[i] || 0) * 10000).toLocaleString() + '원</td>';
+    rtbl += '<td style="text-align:left">' + _rpPctTag(aStExclChs[i]) + '</td>';
+    rtbl += '<td style="text-align:left">' + (ppSeries[i] ? Math.round(ppSeries[i] * 10000).toLocaleString() + '원' : '-') + '</td>';
     rtbl += '<td style="text-align:left">' + Math.round((ofSeries[i] || 0) * 10000).toLocaleString() + '원</td>';
     rtbl += '<td style="text-align:left">' + _rpPctTag(ofChs[i]) + '</td>';
     rtbl += '<td style="text-align:left">' + Math.round((asSeries[i] || 0) * 10000).toLocaleString() + '원</td>';
     rtbl += '<td style="text-align:left">' + _rpPctTag(asChs[i]) + '</td>';
-    rtbl += '<td style="text-align:left">' + (ppSeries[i] ? Math.round(ppSeries[i] * 10000).toLocaleString() + '원' : '-') + '</td>';
     rtbl += '</tr>';
   });
   // 합계/평균 — 전체 매출 표
@@ -2168,18 +2177,20 @@ function rpRenderAll(){
     sR += '<td style="' + rPad + '">' + fmtAll(sumTotE) + '</td><td style="' + rPad + '">-</td>';
     sR += '<td style="' + rPad + '">' + fmtAll(sumTotS) + '</td><td style="' + rPad + '">-</td>';
     sR += '<td style="' + rPad + '">' + fmtAll(sumAE) + '</td><td style="' + rPad + '">-</td>';
+    sR += '<td style="' + rPad + '">' + fmtAll(sumASv + sumPP) + '</td><td style="' + rPad + '">-</td>';
     sR += '<td style="' + rPad + '">' + fmtAll(sumASv) + '</td><td style="' + rPad + '">-</td>';
+    sR += '<td style="' + rPad + '">' + fmtAll(sumPP) + '</td>';
     sR += '<td style="' + rPad + '">' + fmtAll(sumOfV) + '</td><td style="' + rPad + '">-</td>';
-    sR += '<td style="' + rPad + '">' + fmtAll(sumAsV) + '</td><td style="' + rPad + '">-</td>';
-    sR += '<td style="' + rPad + '">' + fmtAll(sumPP) + '</td></tr>';
+    sR += '<td style="' + rPad + '">' + fmtAll(sumAsV) + '</td><td style="' + rPad + '">-</td></tr>';
     var aR = '<tr><td style="' + rPad2 + '">📏 평균</td>';
     aR += '<td style="' + rPad2 + '">' + fmtAll(sumTotE/nA) + '</td><td style="' + rPad2 + '">' + chStr(ach) + '</td>';
     aR += '<td style="' + rPad2 + '">' + fmtAll(sumTotS/nA) + '</td><td style="' + rPad2 + '">' + chStr(ach) + '</td>';
     aR += '<td style="' + rPad2 + '">' + fmtAll(sumAE/nA) + '</td><td style="' + rPad2 + '">' + chStr(aac) + '</td>';
+    aR += '<td style="' + rPad2 + '">' + fmtAll((sumASv + sumPP)/nA) + '</td><td style="' + rPad2 + '">-</td>';
     aR += '<td style="' + rPad2 + '">' + fmtAll(sumASv/nA) + '</td><td style="' + rPad2 + '">' + chStr(asc) + '</td>';
+    aR += '<td style="' + rPad2 + '">' + fmtAll(sumPP/nA) + '</td>';
     aR += '<td style="' + rPad2 + '">' + fmtAll(sumOfV/nA) + '</td><td style="' + rPad2 + '">' + chStr(ofch) + '</td>';
-    aR += '<td style="' + rPad2 + '">' + fmtAll(sumAsV/nA) + '</td><td style="' + rPad2 + '">' + chStr(asch) + '</td>';
-    aR += '<td style="' + rPad2 + '">' + fmtAll(sumPP/nA) + '</td></tr>';
+    aR += '<td style="' + rPad2 + '">' + fmtAll(sumAsV/nA) + '</td><td style="' + rPad2 + '">' + chStr(asch) + '</td></tr>';
     rtbl += '</tbody><tfoot>' + sR + aR + '</tfoot></table>';
   } catch(e){ rtbl += '</tbody></table>'; }
   document.getElementById('rpRevTable').innerHTML = rtbl;
@@ -2381,10 +2392,107 @@ function rpRenderAll(){
     });
   }
   console.log('[rp] grp=all cmp=' + cmp + ' labels=' + fLabels.length);
+
+  try { _rpAllSvcTblInit(); _rpAllSvcTblRender("mo"); } catch(e){ console.warn("rpAllSvcTbl err:", e); }
 }
 window.rpRenderAll = rpRenderAll;
 
 // 전체 그룹 모달
+
+
+// 보고서 전체 탭 — 서비스별 매출 표 (월간/주간 토글)
+function _rpAllSvcTblRender(period){
+  var body = document.getElementById('rpAllSvcTblBody');
+  if(!body) return;
+  var gr = (typeof D !== 'undefined' && D.gr) ? D.gr : {};
+  var pp = (typeof D !== 'undefined' && D.prepaid_promo) ? D.prepaid_promo : {months:[],values:[],weeks:[],wk_values:[]};
+  var of = (typeof D !== 'undefined' && D.officener) ? D.officener : {months:[],values:[],weeks:[],wk_values:[]};
+  var as = (typeof D !== 'undefined' && D.aptstory) ? D.aptstory : {months:[],values:[],weeks:[],wk_values:[]};
+  
+  var isWk = (period === 'wk');
+  var voteL = isWk ? (gr.vote_settle_wk_labels||[]) : (gr.vote_settle_labels||[]);
+  var voteV = isWk ? (gr.vote_settle_wk_vals||[]) : (gr.vote_settle_vals||[]);
+  var notifyL = isWk ? (gr.notify_settle_wk_labels||[]) : (gr.notify_settle_labels||[]);
+  var notifyV = isWk ? (gr.notify_settle_wk_vals||[]) : (gr.notify_settle_vals||[]);
+  var surveyL = isWk ? (gr.survey_settle_wk_labels||[]) : (gr.survey_settle_labels||[]);
+  var surveyV = isWk ? (gr.survey_settle_wk_vals||[]) : (gr.survey_settle_vals||[]);
+  var ppL = isWk ? (pp.weeks||[]) : (pp.months||[]);
+  var ppV = isWk ? (pp.wk_values||[]) : (pp.values||[]);
+  var ofL = isWk ? (of.weeks||[]) : (of.months||[]);
+  var ofV = isWk ? (of.wk_values||[]) : (of.values||[]);
+  var asL = isWk ? (as.weeks||[]) : (as.months||[]);
+  var asV = isWk ? (as.wk_values||[]) : (as.values||[]);
+  
+  // 모든 라벨 union (시간순)
+  var allLab = {};
+  [voteL, notifyL, surveyL, ppL, ofL, asL].forEach(function(arr){ arr.forEach(function(L){ allLab[L]=1; }); });
+  var labels = Object.keys(allLab).sort();
+  
+  function lkp(L_arr, V_arr, L){ var i = L_arr.indexOf(L); return i>=0 ? (V_arr[i]||0) : 0; }
+  
+  function fmtKRW(v){ return '₩' + Math.round(v * 10000).toLocaleString(); }
+  function _wkFmt(L){ return (typeof _wkLabelFmt==='function') ? _wkLabelFmt(L) : L; }
+  
+  // 각 행별 데이터 계산
+  var rows = [];
+  // 1. 아파트너 3종 통합 (정산 + 선결제)
+  var aptIntegrated = labels.map(function(L){ return lkp(voteL,voteV,L) + lkp(notifyL,notifyV,L) + lkp(surveyL,surveyV,L) + lkp(ppL,ppV,L); });
+  rows.push({label:'[아파트너] 3종 서비스 통합 매출 (₩) - 정산 매출 + 선결제', bg:'#e0f2fe', vals:aptIntegrated});
+  // 2. 오피스너 통합
+  var ofTotal = labels.map(function(L){ return lkp(ofL,ofV,L); });
+  rows.push({label:'[오피스너] 서비스 통합 매출 (₩)', bg:'#dcfce7', vals:ofTotal});
+  // 3. 아파트스토리 통합
+  var asTotal = labels.map(function(L){ return lkp(asL,asV,L); });
+  rows.push({label:'[아파트스토리] 3종 서비스 통합 매출 (₩)', bg:'#fef3c7', vals:asTotal});
+  // 4. 합계
+  var total = labels.map(function(L,i){ return aptIntegrated[i] + ofTotal[i] + asTotal[i]; });
+  rows.push({label:'▶ 서비스 통합 매출 합계 (₩)', bg:'#fef3c7', vals:total, bold:true});
+  // 5. 아파트너 투표 정산 (선결제 제외)
+  var voteOnly = labels.map(function(L){ return lkp(voteL,voteV,L); });
+  rows.push({label:'[아파트너] 투표 - 정산 매출 (영업팀/프로모션 제외) (₩)', bg:'#e0f2fe', vals:voteOnly});
+  // 6. 아파트너 투표 선결제
+  var votePp = labels.map(function(L){ return lkp(ppL,ppV,L); });
+  rows.push({label:'[아파트너] 투표 - 선결제 프로모션 매출 (₩)', bg:'#e0f2fe', vals:votePp});
+  // 7. 아파트너 알림
+  var notifyOnly = labels.map(function(L){ return lkp(notifyL,notifyV,L); });
+  rows.push({label:'[아파트너] 알림 매출 (₩)', bg:'#e0f2fe', vals:notifyOnly});
+  // 8. 아파트너 설문
+  var surveyOnly = labels.map(function(L){ return lkp(surveyL,surveyV,L); });
+  rows.push({label:'[아파트너] 설문 매출 (₩)', bg:'#e0f2fe', vals:surveyOnly});
+  
+  // HTML 생성
+  var h = '<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:max-content">';
+  h += '<thead><tr><th style="padding:8px;border-bottom:2px solid #e5e7eb;background:#f9fafb;text-align:left;position:sticky;left:0;z-index:2;min-width:280px">C. 매출 & 객단가</th>';
+  labels.forEach(function(L){ h += '<th style="padding:8px;border-bottom:2px solid #e5e7eb;background:#f9fafb;text-align:right;white-space:nowrap">' + _wkFmt(L) + '</th>'; });
+  h += '<th style="padding:8px;border-bottom:2px solid #e5e7eb;background:#fef3c7;text-align:right;white-space:nowrap;font-weight:700">합계</th>';
+  h += '</tr></thead><tbody>';
+  rows.forEach(function(r){
+    var sum = r.vals.reduce(function(a,b){return a+b;},0);
+    var weight = r.bold ? 'font-weight:700' : '';
+    h += '<tr><td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;background:'+r.bg+';position:sticky;left:0;'+weight+'">' + r.label + '</td>';
+    r.vals.forEach(function(v){ h += '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:right;'+weight+'">' + (v ? fmtKRW(v) : '-') + '</td>'; });
+    h += '<td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;background:#fef3c7;text-align:right;font-weight:700">' + (sum ? fmtKRW(sum) : '-') + '</td>';
+    h += '</tr>';
+  });
+  h += '</tbody></table>';
+  body.innerHTML = h;
+}
+
+function _rpAllSvcTblInit(){
+  var btns = document.querySelectorAll('#rpAllSvcTblToggle button');
+  if(!btns.length) return;
+  // 한 번만 바인딩
+  if(btns[0].dataset._bound) return;
+  btns.forEach(function(b){
+    b.dataset._bound = '1';
+    b.addEventListener('click', function(){
+      btns.forEach(function(x){ x.classList.remove('on'); });
+      b.classList.add('on');
+      _rpAllSvcTblRender(b.dataset.per);
+    });
+  });
+}
+
 function rpOpenAllDetailModal(){
   var d = window._rpAllData || {};
   var fLabels = d.fLabels || [];
@@ -2451,17 +2559,25 @@ function rpExportAllCsv(){
   var fLabels = d.fLabels || [];
   var cmp = d.cmp || 'wow';
   function esc(v){ var s = String(v == null ? '' : v); if(s.indexOf(',')>=0||s.indexOf('"')>=0) return '"'+s.replace(/"/g,'""')+'"'; return s; }
-  var rows = [['기간','전체통합(추정)(원)','변화%','전체통합(정산)(원)','변화%','아파트너추정(원)','변화%','아파트너정산(원)','변화%','오피스너(원)','변화%','아파트스토리(원)','변화%'].map(esc).join(',')];
+  var rows = [['기간','전체통합(추정)(원)','변화%','전체통합(정산)(원)','변화%','아파트너추정(원)','변화%','아파트너정산(선결제 포함)(원)','변화%','아파트너정산(선결제 미포함)(원)','변화%','선결제프로모션(원)','오피스너(원)','변화%','아파트스토리(원)','변화%'].map(esc).join(',')];
   fLabels.forEach(function(L, i){
-    var row = [L,
+    var aStExcl = (d.aStSeries[i]||0);
+    var ppV = (d.ppSeries && d.ppSeries[i]) ? d.ppSeries[i] : 0;
+    var aStIncl = aStExcl + ppV;
+    var aStInclCh = (d.aStInclChs && d.aStInclChs[i]!=null && !isNaN(d.aStInclChs[i])) ? Number(d.aStInclChs[i].toFixed(2)) : ((d.aStChs[i]==null||isNaN(d.aStChs[i]))?'':Number(d.aStChs[i].toFixed(2)));
+    var aStExclCh = (d.aStChs[i]==null||isNaN(d.aStChs[i]))?'':Number(d.aStChs[i].toFixed(2));
+    var row = [(typeof _wkLabelFmt==='function'?_wkLabelFmt(L):L),
       Math.round((d.totalEstSeries[i]||0)*10000),
       (d.totalEstChs[i]==null||isNaN(d.totalEstChs[i]))?'':Number(d.totalEstChs[i].toFixed(2)),
       Math.round((d.totalStSeries[i]||0)*10000),
       (d.totalStChs[i]==null||isNaN(d.totalStChs[i]))?'':Number(d.totalStChs[i].toFixed(2)),
       Math.round((d.aEstSeries[i]||0)*10000),
       (d.aEstChs[i]==null||isNaN(d.aEstChs[i]))?'':Number(d.aEstChs[i].toFixed(2)),
-      Math.round((d.aStSeries[i]||0)*10000),
-      (d.aStChs[i]==null||isNaN(d.aStChs[i]))?'':Number(d.aStChs[i].toFixed(2)),
+      Math.round(aStIncl*10000),
+      aStInclCh,
+      Math.round(aStExcl*10000),
+      aStExclCh,
+      Math.round(ppV*10000),
       Math.round((d.ofSeries[i]||0)*10000),
       (d.ofChs[i]==null||isNaN(d.ofChs[i]))?'':Number(d.ofChs[i].toFixed(2)),
       Math.round((d.asSeries[i]||0)*10000),
