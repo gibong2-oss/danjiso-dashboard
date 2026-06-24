@@ -4832,15 +4832,29 @@ function initUsage(){
 
 // ─── 이용 현황 아파트너 sub-tab — 서비스별 top 10 단지 표 ───
 function _cplxTopCards(){
-  var tgl = '<div style="margin-left:auto;display:inline-flex;gap:3px"><button onclick="_cplxTopSetMode(\'cnt\')" class="cplxTopBtnCnt tgb on" style="padding:3px 8px;font-size:11px">건수</button><button onclick="_cplxTopSetMode(\'rev_est\')" class="cplxTopBtnRevEst tgb" style="padding:3px 8px;font-size:11px">매출(추정)</button><button onclick="_cplxTopSetMode(\'rev_st\')" class="cplxTopBtnRevSt tgb" style="padding:3px 8px;font-size:11px">매출(정산)</button></div>';
-  return '<div class="g3" style="margin-top:14px"><div class="card"><div class="ch"><span class="ct">🗳 전자투표 — Top 10 단지</span><span class="cs">사용량 순위</span>'+tgl+'</div><div id="cplxTopVote" style="overflow:hidden;margin-top:6px"></div></div><div class="card"><div class="ch"><span class="ct">🔔 알림서비스 — Top 10 단지</span><span class="cs">사용량 순위</span>'+tgl+'</div><div id="cplxTopNotify" style="overflow:hidden;margin-top:6px"></div></div><div class="card"><div class="ch"><span class="ct">📋 설문조사 — Top 10 단지</span><span class="cs">사용량 순위</span>'+tgl+'</div><div id="cplxTopSurvey" style="overflow:hidden;margin-top:6px"></div></div></div>';
+  function tgl(svc){
+    return '<div style="margin-left:auto;display:inline-flex;gap:3px">'+
+      '<button onclick="_cplxTopSetMode(\''+svc+'\',\'cnt\')" class="cplxTopBtn-'+svc+'-cnt tgb on" style="padding:3px 8px;font-size:11px">건수</button>'+
+      '<button onclick="_cplxTopSetMode(\''+svc+'\',\'rev_est\')" class="cplxTopBtn-'+svc+'-rev_est tgb" style="padding:3px 8px;font-size:11px">매출(추정)</button>'+
+      '<button onclick="_cplxTopSetMode(\''+svc+'\',\'rev_st\')" class="cplxTopBtn-'+svc+'-rev_st tgb" style="padding:3px 8px;font-size:11px">매출(정산)</button>'+
+    '</div>';
+  }
+  return '<div class="g3" style="margin-top:14px"><div class="card"><div class="ch"><span class="ct">🗳 전자투표 — Top 10 단지</span><span class="cs">사용량 순위</span>'+tgl('vote')+'</div><div id="cplxTopVote" style="overflow:hidden;margin-top:6px"></div></div><div class="card"><div class="ch"><span class="ct">🔔 알림서비스 — Top 10 단지</span><span class="cs">사용량 순위</span>'+tgl('notify')+'</div><div id="cplxTopNotify" style="overflow:hidden;margin-top:6px"></div></div><div class="card"><div class="ch"><span class="ct">📋 설문조사 — Top 10 단지</span><span class="cs">사용량 순위</span>'+tgl('survey')+'</div><div id="cplxTopSurvey" style="overflow:hidden;margin-top:6px"></div></div></div>';
 }
 window._cplxTopMode = 'cnt';
-function _cplxTopSetMode(m){
-  window._cplxTopMode = m;
-  document.querySelectorAll('.cplxTopBtnCnt').forEach(function(b){ b.classList.toggle('on', m === 'cnt'); });
-  document.querySelectorAll('.cplxTopBtnRevEst').forEach(function(b){ b.classList.toggle('on', m === 'rev_est'); });
-  document.querySelectorAll('.cplxTopBtnRevSt').forEach(function(b){ b.classList.toggle('on', m === 'rev_st'); });
+function _cplxTopSetMode(svc, m){
+  if(typeof m === 'undefined'){
+    m = svc;
+    ['vote','notify','survey'].forEach(function(s){ _cplxTopSetMode(s, m); });
+    return;
+  }
+  if(!window._cplxTopModes) window._cplxTopModes = {vote:'cnt', notify:'cnt', survey:'cnt'};
+  window._cplxTopModes[svc] = m;
+  ['cnt','rev_est','rev_st'].forEach(function(mm){
+    document.querySelectorAll('.cplxTopBtn-' + svc + '-' + mm).forEach(function(b){
+      b.classList.toggle('on', mm === m);
+    });
+  });
   try { _cplxTopDraw(); } catch(e){ console.warn(e); }
 }
 function _cplxTopDraw(){
@@ -4852,8 +4866,9 @@ function _cplxTopDraw(){
     });
     return;
   }
+  if(!window._cplxTopModes) window._cplxTopModes = {vote:'cnt', notify:'cnt', survey:'cnt'};
+  var modes = window._cplxTopModes;
   var UNIT = {vote: 44, notify: 22, survey: 22};
-  var mode = window._cplxTopMode || 'cnt';
   var gf = (typeof gFilt !== 'undefined' && gFilt) ? gFilt : {start:null, end:null};
   var fS = gf.start ? gf.start.substring(0,7) : '';
   var fE = gf.end ? gf.end.substring(0,7) : '';
@@ -4863,6 +4878,7 @@ function _cplxTopDraw(){
     var el = document.getElementById(elId);
     if(!el) return;
     var unit = UNIT[svcKey] || 22;
+    var mode = modes[svcKey] || 'cnt';
     var scored = list.map(function(c){
       var val;
       if(mode === 'rev_st') val = sumR(c.rev_monthly);
@@ -4877,21 +4893,31 @@ function _cplxTopDraw(){
     }
     var maxV = top10[0].val || 1;
     var isMoney = (mode === 'rev_st' || mode === 'rev_est');
+    var lastColHead = isMoney ? '세대당 평균' : '이용률';
     var rows = top10.map(function(c, i){
       var pct = (c.val/maxV)*100;
-      var rate = (c.hh > 0) ? (c.val/c.hh*100) : 0;
-      var vd = isMoney ? (Math.round(c.val*10000).toLocaleString()+'원') : c.val.toLocaleString();
-      var rd = (c.hh > 0) ? rate.toFixed(1)+'%' : '-';
+      var vd;
+      if(isMoney) vd = Math.round(c.val*10000).toLocaleString()+'원';
+      else vd = c.val.toLocaleString();
+      var rd;
+      if(c.hh > 0){
+        if(isMoney){
+          var perHh = (c.val * 10000) / c.hh;
+          rd = Math.round(perHh).toLocaleString() + '원/세대';
+        } else {
+          rd = (c.val / c.hh * 100).toFixed(1) + '%';
+        }
+      } else rd = '-';
       return '<tr style="cursor:pointer" onclick="_cplxTopOpenModal(\''+c.code+'\')">'
         + '<td style="padding:5px 6px;text-align:center;font-weight:600;color:'+(i<3?'#dc2626':'var(--tm)')+'">'+(i+1)+'</td>'
         + '<td style="padding:5px 6px;font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+c.name+'">'+c.name+'</td>'
         + '<td style="padding:5px 6px;text-align:right;font-size:11px;position:relative">'
         + '<div style="position:absolute;left:0;top:50%;transform:translateY(-50%);height:18px;width:'+pct+'%;background:rgba(99,102,241,0.15);border-radius:3px;z-index:0"></div>'
         + '<span style="position:relative;z-index:1;font-weight:600">'+vd+'</span></td>'
-        + '<td style="padding:5px 6px;text-align:right;font-size:10px;color:var(--ts)">'+rd+'</td>'
+        + '<td style="padding:5px 6px;text-align:right;font-size:10px;color:var(--ts);white-space:nowrap">'+rd+'</td>'
         + '</tr>';
     }).join('');
-    el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#f9fafb"><th style="padding:5px 6px;text-align:center;font-size:10px;color:var(--ts);border-bottom:1px solid #e5e7eb">#</th><th style="padding:5px 6px;text-align:left;font-size:10px;color:var(--ts);border-bottom:1px solid #e5e7eb">단지명</th><th style="padding:5px 6px;text-align:right;font-size:10px;color:var(--ts);border-bottom:1px solid #e5e7eb">사용량</th><th style="padding:5px 6px;text-align:right;font-size:10px;color:var(--ts);border-bottom:1px solid #e5e7eb">이용률</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#f9fafb"><th style="padding:5px 6px;text-align:center;font-size:10px;color:var(--ts);border-bottom:1px solid #e5e7eb">#</th><th style="padding:5px 6px;text-align:left;font-size:10px;color:var(--ts);border-bottom:1px solid #e5e7eb">단지명</th><th style="padding:5px 6px;text-align:right;font-size:10px;color:var(--ts);border-bottom:1px solid #e5e7eb">사용량</th><th style="padding:5px 6px;text-align:right;font-size:10px;color:var(--ts);border-bottom:1px solid #e5e7eb">'+lastColHead+'</th></tr></thead><tbody>' + rows + '</tbody></table>';
   }
   render('cplxTopVote', src.vote || [], 'vote');
   render('cplxTopNotify', src.notify || [], 'notify');
