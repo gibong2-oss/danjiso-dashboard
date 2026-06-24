@@ -4832,15 +4832,15 @@ function initUsage(){
 
 // ─── 이용 현황 아파트너 sub-tab — 서비스별 top 10 단지 표 ───
 function _cplxTopCards(){
-  return '<div class="g3" style="margin-top:14px"><div class="card"><div class="ch"><span class="ct">🗳 전자투표 — Top 10 단지</span><span class="cs">사용량 순위</span></div><div id="cplxTopVote" style="overflow:hidden;margin-top:6px"></div></div><div class="card"><div class="ch"><span class="ct">🔔 알림서비스 — Top 10 단지</span><span class="cs">사용량 순위</span></div><div id="cplxTopNotify" style="overflow:hidden;margin-top:6px"></div></div><div class="card"><div class="ch"><span class="ct">📋 설문조사 — Top 10 단지</span><span class="cs">사용량 순위</span></div><div id="cplxTopSurvey" style="overflow:hidden;margin-top:6px"></div></div></div><div class="card" style="margin-top:8px;padding:8px 14px;display:flex;align-items:center;gap:12px;background:#f9fafb"><span style="font-weight:600;font-size:12px;color:var(--ts)">기준:</span><button onclick="_cplxTopSetMode(\'cnt\')" id="cplxTopBtnCnt" class="tgb on" style="padding:4px 12px;font-size:12px">건수</button><button onclick="_cplxTopSetMode(\'rev\')" id="cplxTopBtnRev" class="tgb" style="padding:4px 12px;font-size:12px">매출(원)</button><span style="margin-left:auto;font-size:11px;color:var(--ts)">⚙ GNB 기간 필터 자동 적용</span></div>';
+  var tgl = '<div style="margin-left:auto;display:inline-flex;gap:3px"><button onclick="_cplxTopSetMode(\'cnt\')" class="cplxTopBtnCnt tgb on" style="padding:3px 8px;font-size:11px">건수</button><button onclick="_cplxTopSetMode(\'rev_est\')" class="cplxTopBtnRevEst tgb" style="padding:3px 8px;font-size:11px">매출(추정)</button><button onclick="_cplxTopSetMode(\'rev_st\')" class="cplxTopBtnRevSt tgb" style="padding:3px 8px;font-size:11px">매출(정산)</button></div>';
+  return '<div class="g3" style="margin-top:14px"><div class="card"><div class="ch"><span class="ct">🗳 전자투표 — Top 10 단지</span><span class="cs">사용량 순위</span>'+tgl+'</div><div id="cplxTopVote" style="overflow:hidden;margin-top:6px"></div></div><div class="card"><div class="ch"><span class="ct">🔔 알림서비스 — Top 10 단지</span><span class="cs">사용량 순위</span>'+tgl+'</div><div id="cplxTopNotify" style="overflow:hidden;margin-top:6px"></div></div><div class="card"><div class="ch"><span class="ct">📋 설문조사 — Top 10 단지</span><span class="cs">사용량 순위</span>'+tgl+'</div><div id="cplxTopSurvey" style="overflow:hidden;margin-top:6px"></div></div></div>';
 }
 window._cplxTopMode = 'cnt';
 function _cplxTopSetMode(m){
   window._cplxTopMode = m;
-  var bC = document.getElementById('cplxTopBtnCnt');
-  var bR = document.getElementById('cplxTopBtnRev');
-  if(bC) bC.classList.toggle('on', m === 'cnt');
-  if(bR) bR.classList.toggle('on', m === 'rev');
+  document.querySelectorAll('.cplxTopBtnCnt').forEach(function(b){ b.classList.toggle('on', m === 'cnt'); });
+  document.querySelectorAll('.cplxTopBtnRevEst').forEach(function(b){ b.classList.toggle('on', m === 'rev_est'); });
+  document.querySelectorAll('.cplxTopBtnRevSt').forEach(function(b){ b.classList.toggle('on', m === 'rev_st'); });
   try { _cplxTopDraw(); } catch(e){ console.warn(e); }
 }
 function _cplxTopDraw(){
@@ -4852,17 +4852,22 @@ function _cplxTopDraw(){
     });
     return;
   }
+  var UNIT = {vote: 44, notify: 22, survey: 22};
   var mode = window._cplxTopMode || 'cnt';
   var gf = (typeof gFilt !== 'undefined' && gFilt) ? gFilt : {start:null, end:null};
   var fS = gf.start ? gf.start.substring(0,7) : '';
   var fE = gf.end ? gf.end.substring(0,7) : '';
   function inR(ym){ if(fS && ym < fS) return false; if(fE && ym > fE) return false; return true; }
   function sumR(map){ var s=0; if(!map) return 0; Object.keys(map).forEach(function(ym){ if(inR(ym)) s += (map[ym]||0); }); return s; }
-  function render(elId, list){
+  function render(elId, list, svcKey){
     var el = document.getElementById(elId);
     if(!el) return;
+    var unit = UNIT[svcKey] || 22;
     var scored = list.map(function(c){
-      var val = (mode === 'rev') ? sumR(c.rev_monthly) : sumR(c.monthly);
+      var val;
+      if(mode === 'rev_st') val = sumR(c.rev_monthly);
+      else if(mode === 'rev_est') val = sumR(c.monthly) * unit / 10000;
+      else val = sumR(c.monthly);
       return {code:c.code, name:c.name, hh:c.hh, val:val};
     }).filter(function(x){ return x.val > 0; }).sort(function(a,b){ return b.val - a.val; });
     var top10 = scored.slice(0, 10);
@@ -4871,10 +4876,11 @@ function _cplxTopDraw(){
       return;
     }
     var maxV = top10[0].val || 1;
+    var isMoney = (mode === 'rev_st' || mode === 'rev_est');
     var rows = top10.map(function(c, i){
       var pct = (c.val/maxV)*100;
       var rate = (c.hh > 0) ? (c.val/c.hh*100) : 0;
-      var vd = (mode === 'rev') ? (Math.round(c.val*10000).toLocaleString()+'원') : c.val.toLocaleString();
+      var vd = isMoney ? (Math.round(c.val*10000).toLocaleString()+'원') : c.val.toLocaleString();
       var rd = (c.hh > 0) ? rate.toFixed(1)+'%' : '-';
       return '<tr style="cursor:pointer" onclick="_cplxTopOpenModal(\''+c.code+'\')">'
         + '<td style="padding:5px 6px;text-align:center;font-weight:600;color:'+(i<3?'#dc2626':'var(--tm)')+'">'+(i+1)+'</td>'
@@ -4887,9 +4893,9 @@ function _cplxTopDraw(){
     }).join('');
     el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#f9fafb"><th style="padding:5px 6px;text-align:center;font-size:10px;color:var(--ts);border-bottom:1px solid #e5e7eb">#</th><th style="padding:5px 6px;text-align:left;font-size:10px;color:var(--ts);border-bottom:1px solid #e5e7eb">단지명</th><th style="padding:5px 6px;text-align:right;font-size:10px;color:var(--ts);border-bottom:1px solid #e5e7eb">사용량</th><th style="padding:5px 6px;text-align:right;font-size:10px;color:var(--ts);border-bottom:1px solid #e5e7eb">이용률</th></tr></thead><tbody>' + rows + '</tbody></table>';
   }
-  render('cplxTopVote', src.vote || []);
-  render('cplxTopNotify', src.notify || []);
-  render('cplxTopSurvey', src.survey || []);
+  render('cplxTopVote', src.vote || [], 'vote');
+  render('cplxTopNotify', src.notify || [], 'notify');
+  render('cplxTopSurvey', src.survey || [], 'survey');
 }
 function _cplxTopOpenModal(code){
   var src = (typeof D !== 'undefined' && D.cplx_top) ? D.cplx_top : null;
