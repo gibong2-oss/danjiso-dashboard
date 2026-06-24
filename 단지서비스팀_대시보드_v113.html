@@ -2041,7 +2041,7 @@ function rpRenderAll(){
   var aStExclSeries = aStSeries;  // alias
   var aStInclSeries = fLabels.map(function(L, i){ return (aStSeries[i] || 0) + (ppSeries[i] || 0); });
   var totalStSeries = fLabels.map(function(L, i){ return (aStSeries[i] || 0) + (ofSeries[i] || 0) + (asSeries[i] || 0) + (ppSeries[i] || 0); });
-  var totalSeries = totalEstSeries;  // backward-compat (인사이트 등에서 사용)
+  var totalSeries = totalStSeries;  // 인사이트/footer에서 정산 기준 사용 (선결제 포함)
   var totalEstChs = calcCh(totalEstSeries, period);
   var totalStChs = calcCh(totalStSeries, period);
   var aStInclChs = calcCh(aStInclSeries, period);
