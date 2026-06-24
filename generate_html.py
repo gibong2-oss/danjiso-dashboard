@@ -1349,6 +1349,83 @@ def compute_gr(v_day_cnt, v_day_rev, v_excl_rows, v_excl_sms, v_excl_cmap,
 # ═══════════════════════════════════════════════════════════════
 # 8. 전체 D 객체 조합
 # ═══════════════════════════════════════════════════════════════
+
+def build_cplx_top_data(ss, table):
+    """단지별 서비스 사용량 top 200 + 매출 데이터 수집.
+    Returns: {vote: [{code, name, hh, monthly:{ym:cnt}, rev_monthly:{ym:amt}, total_cnt, total_rev}], notify: [...], survey: [...]}
+    """
+    # 단지 정보 lookup (table에서)
+    cplx_info = {}
+    for t in (table or []):
+        c = t.get('code', '') if isinstance(t, dict) else ''
+        if c:
+            cplx_info[c] = {'name': t.get('name', '') or c, 'hh': t.get('hh', 0) or 0}
+    # 정산현황 — 단지별 월별 매출 (만원 단위)
+    settle_by_cplx = {'vote': {}, 'notify': {}, 'survey': {}}
+    SVC_MAP = {'전자투표': 'vote', '전자투표 (30% 할인)': 'vote', '알림서비스': 'notify', '설문조사': 'survey'}
+    s_header, s_rows = read_tab(ss, '정산현황')
+    if s_header:
+        for d in to_dicts(s_header, s_rows):
+            issued = str(d.get('발행여부', '')).strip().lower()
+            if issued in ('cancel', 'void', '취소', '무효', 'skip'):
+                continue
+            svc = SVC_MAP.get(str(d.get('서비스명', '')).strip())
+            if not svc: continue
+            code = str(d.get('단지코드', '')).strip()
+            if not code: continue
+            ym_raw = str(d.get('정산월', '')).strip()
+            m = re.match(r'(\d{4})[./-](\d{1,2})', ym_raw)
+            if not m: continue
+            ym = m.group(1) + '-' + str(int(m.group(2))).zfill(2)
+            try:
+                amt = float(str(d.get('청구금액', 0)).replace(',', '').replace('원', '').strip())
+            except:
+                continue
+            settle_by_cplx[svc].setdefault(code, {}).setdefault(ym, 0.0)
+            settle_by_cplx[svc][code][ym] += amt / 10000
+    # 각 서비스 raw 시트 → 단지별 월별 cnt
+    result = {}
+    for svc, sheet_name in [('vote', '전자투표'), ('notify', '알림서비스'), ('survey', '설문조사')]:
+        header, rows = read_tab(ss, sheet_name)
+        cplx_monthly = {}  # code -> {ym: cnt}
+        cplx_name = {}
+        if header:
+            for d in to_dicts(header, rows):
+                date_str = str(d.get('일자', '')).strip()[:10]
+                ym = ym_of(date_str)
+                code = str(d.get('단지코드', '')).strip()
+                name = str(d.get('단지명', '')).strip()
+                c = safe_int(d.get('건수', 0))
+                if not ym or not code or c <= 0: continue
+                cplx_monthly.setdefault(code, {}).setdefault(ym, 0)
+                cplx_monthly[code][ym] += c
+                if name and code not in cplx_name:
+                    cplx_name[code] = name
+        # top 200 (누적 cnt 기준)
+        totals = [(code, sum(mo.values())) for code, mo in cplx_monthly.items()]
+        totals.sort(key=lambda x: -x[1])
+        top200 = totals[:200]
+        out = []
+        for code, total_cnt in top200:
+            info = cplx_info.get(code, {})
+            name = info.get('name') or cplx_name.get(code, code)
+            hh = info.get('hh', 0)
+            rev_m = {ym: round(amt, 2) for ym, amt in settle_by_cplx[svc].get(code, {}).items()}
+            total_rev = round(sum(rev_m.values()), 2)
+            out.append({
+                'code': code,
+                'name': name,
+                'hh': hh,
+                'monthly': {ym: int(cnt) for ym, cnt in cplx_monthly[code].items()},
+                'rev_monthly': rev_m,
+                'total_cnt': int(total_cnt),
+                'total_rev': total_rev
+            })
+        result[svc] = out
+        print('  cplx_top.' + svc + ': ' + str(len(out)) + '개 단지')
+    return result
+
+
 def build_d(ss):
     print("[1/6] 참조 탭 읽기...")
     free    = load_code_set(ss, '무료단지')
@@ -1508,6 +1585,7 @@ def build_d(ss):
         'mau_m':       mau_m,
         'svc_usage':   svc_usage,
         'svc_count_history': svc_count_history,
+        'cplx_top': build_cplx_top_data(ss, table),
         # 날짜
         'data_as_of': datetime.now().strftime('%Y-%m-%d'),
         # 일/주/월/분기/연간 시계열 (D.gr — Sheets 기반 자동 갱신)
