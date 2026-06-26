@@ -1426,6 +1426,104 @@ def build_cplx_top_data(ss, table):
     return result
 
 
+
+def build_yearly_compare(D_obj):
+    """년도별 월별 매출 비교."""
+    months_all = D_obj.get('months', [])
+    years_set = set()
+    for m in months_all:
+        if isinstance(m, str) and len(m) >= 4:
+            years_set.add(m[:4])
+    years = sorted(years_set)
+    gr = D_obj.get('gr', {})
+    def gm(labels, vals):
+        out = {}
+        for i, lab in enumerate(labels or []):
+            if not isinstance(lab, str) or len(lab) < 7: continue
+            out[(lab[:4], int(lab[5:7]))] = float((vals or [0])[i] if i < len(vals) else 0)
+        return out
+    apt_est, apt_st_excl, apt_pp, of_data, as_data = {}, {}, {}, {}, {}
+    for svc in ['vote', 'notify', 'survey']:
+        for k, v in gm(gr.get(svc + '_rev_months', []) or gr.get(svc + '_mo_labels', []), gr.get(svc + '_rev_vals', [])).items():
+            apt_est[k] = apt_est.get(k, 0) + v
+        for k, v in gm(gr.get(svc + '_settle_labels', []), gr.get(svc + '_settle_vals', [])).items():
+            apt_st_excl[k] = apt_st_excl.get(k, 0) + v
+    pp = D_obj.get('prepaid_promo', {})
+    for k, v in gm(pp.get('months', []), pp.get('values', [])).items():
+        apt_pp[k] = apt_pp.get(k, 0) + v
+    of = D_obj.get('officener', {})
+    for k, v in gm(of.get('months', []), of.get('values', [])).items():
+        of_data[k] = v
+    as_ = D_obj.get('aptstory', {})
+    for k, v in gm(as_.get('months', []), as_.get('values', [])).items():
+        as_data[k] = v
+    def to_arr(d):
+        return {y: [round(d.get((y, m), 0), 2) for m in range(1, 13)] for y in years}
+    apt_st = {k: v + apt_pp.get(k, 0) for k, v in apt_st_excl.items()}
+    total_est = {}
+    for d in (apt_est, of_data, as_data):
+        for k, v in d.items(): total_est[k] = total_est.get(k, 0) + v
+    total_st = {}
+    for d in (apt_st, of_data, as_data):
+        for k, v in d.items(): total_st[k] = total_st.get(k, 0) + v
+    return {
+        'years': years,
+        'data': {
+            'aptner_est': to_arr(apt_est), 'aptner_st': to_arr(apt_st),
+            'officener_est': to_arr(of_data), 'officener_st': to_arr(of_data),
+            'aptstory_est': to_arr(as_data), 'aptstory_st': to_arr(as_data),
+            'total_est': to_arr(total_est), 'total_st': to_arr(total_st)
+        }
+    }
+
+
+def build_free_cplx_data(ss, free, table):
+    """전자투표 무료단지."""
+    if not free:
+        return []
+    cplx_info = {}
+    for t in (table or []):
+        c = t.get('code', '') if isinstance(t, dict) else ''
+        if c:
+            cplx_info[c] = {'name': t.get('name', '') or c, 'hh': t.get('hh', 0) or 0}
+    header, rows = read_tab(ss, '전자투표')
+    cplx_monthly, cplx_weekly, cplx_name = {}, {}, {}
+    if header:
+        for d in to_dicts(header, rows):
+            date_str = str(d.get('일자', '')).strip()[:10]
+            ym = ym_of(date_str)
+            wk = _date_to_isoweek(date_str)
+            code = str(d.get('단지코드', '')).strip()
+            name = str(d.get('단지명', '')).strip()
+            c = safe_int(d.get('건수', 0))
+            if not ym or not code or c <= 0: continue
+            if code not in free: continue
+            cplx_monthly.setdefault(code, {}).setdefault(ym, 0)
+            cplx_monthly[code][ym] += c
+            cplx_weekly.setdefault(code, {}).setdefault(wk, 0)
+            cplx_weekly[code][wk] += c
+            if name and code not in cplx_name:
+                cplx_name[code] = name
+    out = []
+    for code in cplx_monthly:
+        monthly = cplx_monthly[code]
+        weekly = cplx_weekly.get(code, {})
+        monthly_est = {ym: round(cnt * 44 / 10000, 2) for ym, cnt in monthly.items()}
+        info = cplx_info.get(code, {})
+        out.append({
+            'code': code,
+            'name': info.get('name') or cplx_name.get(code, code),
+            'hh': info.get('hh', 0),
+            'monthly_cnt': {ym: int(cnt) for ym, cnt in monthly.items()},
+            'weekly_cnt': {wk: int(cnt) for wk, cnt in weekly.items()},
+            'monthly_est': monthly_est,
+            'total_cnt': int(sum(monthly.values()))
+        })
+    out.sort(key=lambda x: -x['total_cnt'])
+    print('  free_cplx: ' + str(len(out)) + '개 무료단지')
+    return out
+
+
 def build_d(ss):
     print("[1/6] 참조 탭 읽기...")
     free    = load_code_set(ss, '무료단지')
@@ -1586,6 +1684,7 @@ def build_d(ss):
         'svc_usage':   svc_usage,
         'svc_count_history': svc_count_history,
         'cplx_top': build_cplx_top_data(ss, table),
+        'free_cplx': build_free_cplx_data(ss, free, table),
         # 날짜
         'data_as_of': datetime.now().strftime('%Y-%m-%d'),
         # 일/주/월/분기/연간 시계열 (D.gr — Sheets 기반 자동 갱신)
@@ -1595,6 +1694,7 @@ def build_d(ss):
         'aptstory': aptstory_rev,
         'prepaid_promo': prepaid_promo,
     }
+    D['yearly_compare'] = build_yearly_compare(D)
     return D
 
 

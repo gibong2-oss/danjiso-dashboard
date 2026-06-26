@@ -309,6 +309,34 @@ td{font-size:12px}tr:hover td{background:rgba(139,128,212,.04)}
 
   <div class="st">💡 분석 인사이트</div>
   <div id="rpInsightBox" style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;font-size:13px;line-height:1.55"></div>
+
+  <div class="st">📊 월별 비교 분석 <span style="font-size:11px;color:var(--ts);font-weight:400">⚙ GNB 기간 무관</span></div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="ch">
+      <span class="ct">📊 월별 매출 비교</span>
+      <span class="cs">년도별 1~12월 비교</span>
+      <div style="margin-left:auto;display:inline-flex;gap:8px;align-items:center">
+        <button onclick="_ycExport()" style="padding:5px 14px;font-size:12px;background:#10b981;color:#fff;border:0;border-radius:4px;cursor:pointer">⬇ 엑셀</button>
+      </div>
+    </div>
+    <div style="padding:8px 14px;background:#f9fafb;display:flex;gap:14px;flex-wrap:wrap;align-items:center;border-radius:6px;margin-top:8px">
+      <span style="font-size:12px;font-weight:600">년도:</span>
+      <div id="ycYearBox" style="display:inline-flex;gap:8px;flex-wrap:wrap"></div>
+      <span style="font-size:12px;font-weight:600;margin-left:20px">그룹:</span>
+      <div style="display:inline-flex;gap:2px">
+        <button onclick="_ycSetGrp('total')" class="ycGrp ycGrp-total tgb on" style="padding:4px 10px;font-size:11px">🌐 통합</button>
+        <button onclick="_ycSetGrp('aptner')" class="ycGrp ycGrp-aptner tgb" style="padding:4px 10px;font-size:11px">🏘 아파트너</button>
+        <button onclick="_ycSetGrp('officener')" class="ycGrp ycGrp-officener tgb" style="padding:4px 10px;font-size:11px">🏢 오피</button>
+        <button onclick="_ycSetGrp('aptstory')" class="ycGrp ycGrp-aptstory tgb" style="padding:4px 10px;font-size:11px">📰 아스</button>
+      </div>
+      <span style="font-size:12px;font-weight:600;margin-left:20px">모드:</span>
+      <div style="display:inline-flex;gap:2px">
+        <button onclick="_ycSetMode('est')" class="ycMode ycMode-est tgb" style="padding:4px 10px;font-size:11px">추정</button>
+        <button onclick="_ycSetMode('st')" class="ycMode ycMode-st tgb on" style="padding:4px 10px;font-size:11px">정산</button>
+      </div>
+    </div>
+    <div style="flex:1;position:relative;min-height:360px;margin-top:8px"><canvas id="cYearlyCompare"></canvas></div>
+  </div>
 </div>
 
 <!-- 단지 분석 -->
@@ -2413,6 +2441,16 @@ function rpRenderAll(){
   } catch(e){ console.warn("rpAllSvcTbl err:", e); }
 }
 window.rpRenderAll = rpRenderAll;
+function _ycEnsure(){ try { _ycInit(); _ycRender(); } catch(e) { console.warn("yc err:", e); } }
+window._ycEnsure = _ycEnsure;
+// 페이지 로드 후 + rpRender 후 자동 호출
+setTimeout(function(){ try{ _ycEnsure(); }catch(e){} }, 1500);
+// rpRender 호출되면 _ycEnsure 자동 호출 (래퍼)
+if(typeof rpRender === "function"){
+  var _origRpRender = rpRender;
+  rpRender = function(){ var r = _origRpRender.apply(this, arguments); try{ _ycEnsure(); }catch(e){} return r; };
+  window.rpRender = rpRender;
+}
 
 // 전체 그룹 모달
 
@@ -4518,6 +4556,7 @@ function renderRevenueCards(){
     return '<div class="spg '+(i===0?'on':'')+'" id="rv-'+g.key+'">'+
            '<div class="g3" style="margin-bottom:var(--g)">'+sc+'</div>'+
            '<div class="g3">'+gc+'</div>'+
+           (g.key === 'aptner' ? _freeCplxCard() : '') +
            '</div>';
   }).join('');
   var revGrowthCard = '<div class="card" style="display:flex;flex-direction:column;height:360px;margin-bottom:var(--g)">'+
@@ -4996,8 +5035,160 @@ function initRevenue(){
   drawTotalRevGrowth();
   SERVICES.forEach(initServiceRevenue);
   try{ drawPrepaidPromoCards(); }catch(e){console.warn('prepaid cards err', e);}
+  try{ _freeCplxRender(); }catch(e){console.warn('freeCplx err', e);}
   if(window._attachChartClickHandlers) window._attachChartClickHandlers();
 }
+
+// ─── 매출 현황 아파트너 — 전자투표 무료단지 현황 ───
+function _freeCplxCard(){
+  return '<div class="card" style="margin-top:14px"><div class="ch"><span class="ct">🆓 전자투표 무료단지 현황</span><span class="cs">사용 건수 + 추정 매출</span>'+
+    '<div style="margin-left:auto;display:inline-flex;gap:8px;align-items:center">'+
+      '<span style="font-size:11px;color:var(--ts)">기간:</span>'+
+      '<div style="display:inline-flex;gap:2px">'+
+        '<button onclick="_freeCplxSetPer(\'wk\')" class="fcPer fcPer-wk tgb" style="padding:3px 8px;font-size:11px">주간</button>'+
+        '<button onclick="_freeCplxSetPer(\'mo\')" class="fcPer fcPer-mo tgb on" style="padding:3px 8px;font-size:11px">월간</button>'+
+        '<button onclick="_freeCplxSetPer(\'yr\')" class="fcPer fcPer-yr tgb" style="padding:3px 8px;font-size:11px">연간</button>'+
+      '</div>'+
+      '<span style="font-size:11px;color:var(--ts);margin-left:8px">Top:</span>'+
+      '<div style="display:inline-flex;gap:2px">'+
+        '<button onclick="_freeCplxSetTop(10)" class="fcTop fcTop-10 tgb on" style="padding:3px 8px;font-size:11px">10</button>'+
+        '<button onclick="_freeCplxSetTop(50)" class="fcTop fcTop-50 tgb" style="padding:3px 8px;font-size:11px">50</button>'+
+        '<button onclick="_freeCplxSetTop(100)" class="fcTop fcTop-100 tgb" style="padding:3px 8px;font-size:11px">100</button>'+
+        '<button onclick="_freeCplxSetTop(0)" class="fcTop fcTop-0 tgb" style="padding:3px 8px;font-size:11px">전체</button>'+
+      '</div>'+
+      '<button onclick="_freeCplxExport()" style="margin-left:8px;padding:3px 10px;font-size:11px;background:#10b981;color:#fff;border:0;border-radius:4px;cursor:pointer">⬇ 엑셀</button>'+
+    '</div></div><div id="freeCplxBody" style="overflow:auto;margin-top:8px;max-height:560px"></div></div>';
+}
+window._freeCplxState = {per: 'mo', topN: 10};
+function _freeCplxSetPer(p){ window._freeCplxState.per = p; document.querySelectorAll('.fcPer').forEach(function(b){ b.classList.toggle('on', b.classList.contains('fcPer-'+p)); }); _freeCplxRender(); }
+function _freeCplxSetTop(n){ window._freeCplxState.topN = n; document.querySelectorAll('.fcTop').forEach(function(b){ b.classList.toggle('on', b.classList.contains('fcTop-'+n)); }); _freeCplxRender(); }
+function _freeCplxRender(){
+  var body = document.getElementById('freeCplxBody');
+  if(!body) return;
+  var src = (typeof D !== 'undefined' && D.free_cplx) ? D.free_cplx : null;
+  if(!src || !src.length){
+    body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ts);font-size:12px">무료단지 데이터 없음 — generate_html.py 재빌드 필요</div>';
+    return;
+  }
+  var st = window._freeCplxState;
+  var per = st.per, topN = st.topN;
+  var gf = (typeof gFilt !== 'undefined' && gFilt) ? gFilt : {start:null, end:null};
+  var fS = gf.start ? gf.start.substring(0,7) : '';
+  var fE = gf.end ? gf.end.substring(0,7) : '';
+  function inR(ym){ if(fS && ym < fS) return false; if(fE && ym > fE) return false; return true; }
+  function sumPer(c){
+    // per에 따라 monthly_cnt / weekly_cnt / yearly
+    if(per === 'wk'){
+      var s = 0;
+      Object.keys(c.weekly_cnt||{}).forEach(function(wk){
+        var y = parseInt(wk.substring(0,4)), w = parseInt(wk.substring(6,8));
+        var jan4 = new Date(y, 0, 4); var dow = jan4.getDay() || 7;
+        var monday = new Date(jan4.getTime() - (dow-1)*86400000 + (w-1)*7*86400000);
+        var ym = monday.getFullYear() + '-' + String(monday.getMonth()+1).padStart(2,'0');
+        if(inR(ym)) s += (c.weekly_cnt[wk]||0);
+      });
+      return s;
+    } else if(per === 'yr'){
+      var s = 0;
+      Object.keys(c.monthly_cnt||{}).forEach(function(ym){ if(inR(ym)) s += (c.monthly_cnt[ym]||0); });
+      return s;
+    } else {
+      var s = 0;
+      Object.keys(c.monthly_cnt||{}).forEach(function(ym){ if(inR(ym)) s += (c.monthly_cnt[ym]||0); });
+      return s;
+    }
+  }
+  function sumEst(c){
+    var s = 0;
+    Object.keys(c.monthly_est||{}).forEach(function(ym){ if(inR(ym)) s += (c.monthly_est[ym]||0); });
+    return s;
+  }
+  var scored = src.map(function(c){
+    return {code:c.code, name:c.name, hh:c.hh, cnt:sumPer(c), est:sumEst(c)};
+  }).filter(function(x){ return x.cnt > 0; }).sort(function(a,b){ return b.cnt - a.cnt; });
+  var top = (topN === 0) ? scored : scored.slice(0, topN);
+  if(top.length === 0){
+    body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ts);font-size:12px">선택 기간에 데이터 없음</div>';
+    return;
+  }
+  var maxV = top[0].cnt || 1;
+  var rows = top.map(function(c, i){
+    var pct = (c.cnt/maxV)*100;
+    return '<tr style="cursor:pointer" onclick="_freeCplxOpenModal(\''+c.code+'\')">'+
+      '<td style="padding:5px 8px;text-align:center;font-weight:600;color:'+(i<3?'#dc2626':'var(--tm)')+'">'+(i+1)+'</td>'+
+      '<td style="padding:5px 8px;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+c.name+'">'+c.name+'</td>'+
+      '<td style="padding:5px 8px;text-align:right;font-size:11px;position:relative">'+
+        '<div style="position:absolute;left:0;top:50%;transform:translateY(-50%);height:18px;width:'+pct+'%;background:rgba(99,102,241,0.15);border-radius:3px;z-index:0"></div>'+
+        '<span style="position:relative;z-index:1;font-weight:600">'+c.cnt.toLocaleString()+'</span></td>'+
+      '<td style="padding:5px 8px;text-align:right;font-size:11px">'+Math.round(c.est*10000).toLocaleString()+'원</td>'+
+      '<td style="padding:5px 8px;text-align:right;font-size:11px;color:var(--ts)">₩0 (무료)</td>'+
+      '</tr>';
+  }).join('');
+  body.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#f9fafb"><th style="padding:6px 8px;text-align:center;border-bottom:1px solid #e5e7eb">#</th><th style="padding:6px 8px;text-align:left;border-bottom:1px solid #e5e7eb">단지명</th><th style="padding:6px 8px;text-align:right;border-bottom:1px solid #e5e7eb">사용 건수</th><th style="padding:6px 8px;text-align:right;border-bottom:1px solid #e5e7eb">추정 매출</th><th style="padding:6px 8px;text-align:right;border-bottom:1px solid #e5e7eb">정산 매출</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  // 합계 행
+  var totCnt = top.reduce(function(a,b){return a+b.cnt;}, 0);
+  var totEst = top.reduce(function(a,b){return a+b.est;}, 0);
+  body.innerHTML += '<div style="padding:8px 12px;background:#fef3c7;font-weight:700;font-size:12px;margin-top:0;border-radius:0 0 4px 4px">📊 합계 (' + top.length + '개 단지): 사용 ' + totCnt.toLocaleString() + '건 / 추정 매출 ' + Math.round(totEst*10000).toLocaleString() + '원 / 정산 ₩0</div>';
+}
+function _freeCplxOpenModal(code){
+  var src = (typeof D !== 'undefined' && D.free_cplx) ? D.free_cplx : [];
+  var c = src.find(function(x){ return x.code === code; });
+  if(!c) return;
+  var gf = (typeof gFilt !== 'undefined' && gFilt) ? gFilt : {start:null, end:null};
+  var fS = gf.start ? gf.start.substring(0,7) : '';
+  var fE = gf.end ? gf.end.substring(0,7) : '';
+  function inR(ym){ if(fS && ym < fS) return false; if(fE && ym > fE) return false; return true; }
+  var allYm = Object.keys(c.monthly_cnt || {}).filter(inR).sort();
+  var h = '<div style="margin-bottom:10px;padding:8px 12px;background:#f0f9ff;border-radius:6px;font-size:12px">';
+  h += '<div><b>'+c.name+'</b> <span style="color:var(--ts)">('+c.code+')</span> <span style="background:#fef3c7;padding:2px 8px;border-radius:3px;margin-left:8px;font-size:10px">무료</span></div>';
+  h += '<div style="margin-top:4px;font-size:11px;color:var(--ts)">세대수: '+(c.hh ? c.hh.toLocaleString()+'세대' : '미상')+'</div></div>';
+  if(allYm.length === 0){
+    h += '<div style="padding:20px;text-align:center;color:var(--ts)">선택 기간에 데이터 없음</div>';
+  } else {
+    h += '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#f9fafb"><th style="padding:6px 8px;text-align:left;border-bottom:2px solid #e5e7eb">월</th><th style="padding:6px 8px;text-align:right;border-bottom:2px solid #e5e7eb">사용 건수</th><th style="padding:6px 8px;text-align:right;border-bottom:2px solid #e5e7eb">추정 매출</th><th style="padding:6px 8px;text-align:right;border-bottom:2px solid #e5e7eb">정산 매출</th></tr></thead><tbody>';
+    var tot = {c:0, e:0};
+    allYm.forEach(function(ym){
+      var cnt = (c.monthly_cnt||{})[ym] || 0;
+      var est = (c.monthly_est||{})[ym] || 0;
+      tot.c += cnt; tot.e += est;
+      h += '<tr><td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;font-weight:600">'+ym+'</td>';
+      h += '<td style="padding:5px 8px;text-align:right;border-bottom:1px solid #e5e7eb">'+cnt.toLocaleString()+'</td>';
+      h += '<td style="padding:5px 8px;text-align:right;border-bottom:1px solid #e5e7eb">'+Math.round(est*10000).toLocaleString()+'원</td>';
+      h += '<td style="padding:5px 8px;text-align:right;border-bottom:1px solid #e5e7eb;color:var(--ts)">₩0</td></tr>';
+    });
+    h += '<tr style="background:#fef3c7;font-weight:700"><td style="padding:6px 8px;border-top:2px solid #d1d5db">📊 합계</td>';
+    h += '<td style="padding:6px 8px;text-align:right;border-top:2px solid #d1d5db">'+tot.c.toLocaleString()+'</td>';
+    h += '<td style="padding:6px 8px;text-align:right;border-top:2px solid #d1d5db">'+Math.round(tot.e*10000).toLocaleString()+'원</td>';
+    h += '<td style="padding:6px 8px;text-align:right;border-top:2px solid #d1d5db">₩0</td></tr></tbody></table>';
+  }
+  if(typeof openModal === 'function') openModal('🆓 무료단지 상세 — ' + c.name, h);
+}
+function _freeCplxExport(){
+  var body = document.getElementById('freeCplxBody');
+  if(!body) return;
+  var tbl = body.querySelector('table');
+  if(!tbl) return;
+  function esc(v){ var s = String(v == null ? '' : v); if(s.indexOf(',') >= 0 || s.indexOf('"') >= 0) return '"' + s.replace(/"/g, '""') + '"'; return s; }
+  var rows = [];
+  var ths = tbl.querySelectorAll('thead th');
+  var head = []; ths.forEach(function(th){ head.push(th.innerText.trim()); });
+  rows.push(head.map(esc).join(','));
+  tbl.querySelectorAll('tbody tr').forEach(function(tr){
+    var r = []; tr.querySelectorAll('td').forEach(function(td){ r.push(td.innerText.trim()); });
+    rows.push(r.map(esc).join(','));
+  });
+  var csv = '\ufeff' + rows.join('\n');
+  var blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = '무료단지_' + window._freeCplxState.per + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 100);
+}
+window._freeCplxSetPer = _freeCplxSetPer;
+window._freeCplxSetTop = _freeCplxSetTop;
+window._freeCplxOpenModal = _freeCplxOpenModal;
+window._freeCplxExport = _freeCplxExport;
 
 function drawPrepaidPromoCards(){
   // 매출 현황 — 아파트너 sub-tab의 선결제 프로모션 카드 (매출 + 성장률)
