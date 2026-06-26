@@ -326,8 +326,8 @@ td{font-size:12px}tr:hover td{background:rgba(139,128,212,.04)}
       <div style="display:inline-flex;gap:2px">
         <button onclick="_ycSetGrp('total')" class="ycGrp ycGrp-total tgb on" style="padding:4px 10px;font-size:11px">🌐 통합</button>
         <button onclick="_ycSetGrp('aptner')" class="ycGrp ycGrp-aptner tgb" style="padding:4px 10px;font-size:11px">🏘 아파트너</button>
-        <button onclick="_ycSetGrp('officener')" class="ycGrp ycGrp-officener tgb" style="padding:4px 10px;font-size:11px">🏢 오피</button>
-        <button onclick="_ycSetGrp('aptstory')" class="ycGrp ycGrp-aptstory tgb" style="padding:4px 10px;font-size:11px">📰 아스</button>
+        <button onclick="_ycSetGrp('officener')" class="ycGrp ycGrp-officener tgb" style="padding:4px 10px;font-size:11px">🏢 오피스너</button>
+        <button onclick="_ycSetGrp('aptstory')" class="ycGrp ycGrp-aptstory tgb" style="padding:4px 10px;font-size:11px">📰 아파트스토리</button>
       </div>
       <span style="font-size:12px;font-weight:600;margin-left:20px">모드:</span>
       <div style="display:inline-flex;gap:2px">
@@ -2476,19 +2476,37 @@ function _ycRender(){
   var st = window._ycState;
   var key = st.grp + '_' + st.mode;
   var data = (src.data || {})[key] || {};
-  var COLORS = ['#94a3b8', '#3b82f6', '#ef4444', '#10b981', '#a855f7', '#f59e0b'];
+  // 년도별 색상/점선 매핑 (24=회색 점선, 25=파랑 점선, 26=빨강 실선)
+  var YEAR_STYLE = {
+    '2023': {color:'#cbd5e1', dash:[3,3]},
+    '2024': {color:'#94a3b8', dash:[5,5]},
+    '2025': {color:'#3b82f6', dash:[5,5]},
+    '2026': {color:'#ef4444', dash:[]},
+    '2027': {color:'#10b981', dash:[]},
+    '2028': {color:'#a855f7', dash:[]}
+  };
   var datasets = (st.years || []).map(function(y, i){
-    var col = COLORS[i % COLORS.length];
+    var s = YEAR_STYLE[y] || {color:'#64748b', dash:[]};
     return {
       label: y + '년',
       data: (data[y] || []).map(function(v){ return Math.round(v * 10000); }),
-      borderColor: col,
-      backgroundColor: col + '33',
+      borderColor: s.color,
+      backgroundColor: s.color + '33',
+      borderDash: s.dash,
       fill: false,
       tension: 0.2,
       borderWidth: 2,
       pointRadius: 3,
-      pointHoverRadius: 6
+      pointHoverRadius: 6,
+      datalabels: {
+        align: 'top',
+        anchor: 'end',
+        offset: 4,
+        clip: false,
+        font: {size: 10, weight: '600'},
+        color: s.color,
+        formatter: function(v){ return (v > 0) ? v.toLocaleString() : ''; }
+      }
     };
   });
   if(window._ycChart){ try{ window._ycChart.destroy(); }catch(e){} }
@@ -2499,9 +2517,11 @@ function _ycRender(){
     options: {
       responsive: true, maintainAspectRatio: false,
       interaction: {mode: 'index', intersect: false},
+      layout: {padding: {top: 20}},
       plugins: {
         legend: {position: 'top', align: 'end', labels:{font:{size:11},padding:6}},
-        tooltip: {callbacks: {label: function(ctx){ return ctx.dataset.label + ': ₩' + ctx.parsed.y.toLocaleString(); }}}
+        tooltip: {callbacks: {label: function(ctx){ return ctx.dataset.label + ': ₩' + ctx.parsed.y.toLocaleString(); }}},
+        datalabels: {display: true}
       },
       scales: {
         y: {beginAtZero: true, ticks: {callback: function(v){ return '₩' + (v/10000).toFixed(0) + '만'; }}}
@@ -2516,12 +2536,30 @@ function _ycExport(){
   var key = st.grp + '_' + st.mode;
   var data = (src.data || {})[key] || {};
   function esc(v){ var s = String(v == null ? '' : v); if(s.indexOf(',') >= 0 || s.indexOf('"') >= 0) return '"' + s.replace(/"/g, '""') + '"'; return s; }
-  var rows = [['월'].concat(st.years.map(function(y){ return y + '년 (원)'; })).map(esc).join(',')];
+  // 메타데이터
+  var grpName = {total:'🌐 통합', aptner:'🏘 아파트너', officener:'🏢 오피스너', aptstory:'📰 아파트스토리'}[st.grp] || st.grp;
+  var modeName = st.mode === 'est' ? '추정 매출' : '정산 매출';
+  var rows = [
+    ['# 보고서명', '월별 매출 비교 분석'].map(esc).join(','),
+    ['# 그룹', grpName].map(esc).join(','),
+    ['# 모드', modeName].map(esc).join(','),
+    ['# 선택 년도', st.years.join(', ')].map(esc).join(','),
+    ['# 생성일', new Date().toISOString().slice(0,10)].map(esc).join(','),
+    [''].join(','),
+    ['월'].concat(st.years.map(function(y){ return y + '년 (원)'; })).map(esc).join(',')
+  ];
   for(var m = 0; m < 12; m++){
     var r = [(m+1) + '월'];
     st.years.forEach(function(y){ r.push(Math.round(((data[y]||[])[m] || 0) * 10000)); });
     rows.push(r.map(esc).join(','));
   }
+  // 합계 행
+  var sumRow = ['합계'];
+  st.years.forEach(function(y){
+    var s = (data[y] || []).reduce(function(a,b){return a+(b||0);},0);
+    sumRow.push(Math.round(s * 10000));
+  });
+  rows.push(sumRow.map(esc).join(','));
   var csv = '\ufeff' + rows.join('\n');
   var blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
   var url = URL.createObjectURL(blob);
