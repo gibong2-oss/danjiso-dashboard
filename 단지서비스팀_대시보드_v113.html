@@ -2443,14 +2443,28 @@ function rpRenderAll(){
 window.rpRenderAll = rpRenderAll;
 function _ycEnsure(){ try { _ycInit(); _ycRender(); } catch(e) { console.warn("yc err:", e); } }
 window._ycEnsure = _ycEnsure;
-// 페이지 로드 후 + rpRender 후 자동 호출
-setTimeout(function(){ try{ _ycEnsure(); }catch(e){} }, 1500);
-// rpRender 호출되면 _ycEnsure 자동 호출 (래퍼)
-if(typeof rpRender === "function"){
-  var _origRpRender = rpRender;
-  rpRender = function(){ var r = _origRpRender.apply(this, arguments); try{ _ycEnsure(); }catch(e){} return r; };
-  window.rpRender = rpRender;
-}
+// 다중 트리거로 _ycEnsure 호출 안정화
+function _ycEnsureWrapper(){ try{ _ycEnsure(); }catch(e){ console.warn('[yc] ensure err:', e); } }
+// 1. 페이지 로드 후 1초 + 3초 (D, Chart 로딩 대기)
+setTimeout(_ycEnsureWrapper, 1000);
+setTimeout(_ycEnsureWrapper, 3000);
+// 2. 보고서 탭 클릭 시
+document.addEventListener('DOMContentLoaded', function(){
+  var rpTab = document.getElementById('tab-rp');
+  if(rpTab) rpTab.addEventListener('click', function(){ setTimeout(_ycEnsureWrapper, 300); });
+});
+// 3. rpRender 래퍼 (즉시 + 호출 후)
+(function(){
+  var checkRp = setInterval(function(){
+    if(typeof rpRender === 'function' && !window._rpRenderWrapped){
+      window._rpRenderWrapped = true;
+      var _orig = rpRender;
+      window.rpRender = function(){ var r = _orig.apply(this, arguments); _ycEnsureWrapper(); return r; };
+      clearInterval(checkRp);
+    }
+  }, 200);
+  setTimeout(function(){ clearInterval(checkRp); }, 10000);
+})();
 
 // 전체 그룹 모달
 
@@ -5043,13 +5057,7 @@ function initRevenue(){
 function _freeCplxCard(){
   return '<div class="card" style="margin-top:14px"><div class="ch"><span class="ct">🆓 전자투표 무료단지 현황</span><span class="cs">사용 건수 + 추정 매출</span>'+
     '<div style="margin-left:auto;display:inline-flex;gap:8px;align-items:center">'+
-      '<span style="font-size:11px;color:var(--ts)">기간:</span>'+
-      '<div style="display:inline-flex;gap:2px">'+
-        '<button onclick="_freeCplxSetPer(\'wk\')" class="fcPer fcPer-wk tgb" style="padding:3px 8px;font-size:11px">주간</button>'+
-        '<button onclick="_freeCplxSetPer(\'mo\')" class="fcPer fcPer-mo tgb on" style="padding:3px 8px;font-size:11px">월간</button>'+
-        '<button onclick="_freeCplxSetPer(\'yr\')" class="fcPer fcPer-yr tgb" style="padding:3px 8px;font-size:11px">연간</button>'+
-      '</div>'+
-      '<span style="font-size:11px;color:var(--ts);margin-left:8px">Top:</span>'+
+      '<span style="font-size:11px;color:var(--ts)">Top:</span>'+
       '<div style="display:inline-flex;gap:2px">'+
         '<button onclick="_freeCplxSetTop(10)" class="fcTop fcTop-10 tgb on" style="padding:3px 8px;font-size:11px">10</button>'+
         '<button onclick="_freeCplxSetTop(50)" class="fcTop fcTop-50 tgb" style="padding:3px 8px;font-size:11px">50</button>'+
