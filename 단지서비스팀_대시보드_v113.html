@@ -5039,6 +5039,14 @@ function drawPrepaidPromoCards(){
         pp.months||[], mom,
         pp.weeks||[], wow);
     }catch(e){console.warn('cPrepaidRevGrowth draw err', e);}
+    // 모달 + 엑셀 등록 (성장률)
+    try {
+      if(typeof mkGrowthTabs === 'function' && typeof _MDATA !== 'undefined'){
+        var _ppGrMD = mkGrowthTabs(pp.weeks||[], wow, pp.months||[], pp.values||[], '선결제프로모션_성장률');
+        _ppGrMD.title = '💳 선결제 프로모션 — 성장률 (매출)';
+        _MDATA['cPrepaidRevGrowth'] = _ppGrMD;
+      }
+    } catch(e){ console.warn('cPrepaidRevGrowth MDATA err', e); }
   }
 }
 
