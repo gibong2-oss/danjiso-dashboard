@@ -5010,20 +5010,25 @@ function drawPrepaidPromoCards(){
         {day:{labels:pp.days||[],vals:pp.day_values||[]}, wk:{labels:pp.weeks||[],vals:pp.wk_values||[]}, mo:{labels:pp.months||[],vals:pp.values||[]}}
       );
     }catch(e){console.warn('cPrepaidRev draw err', e);}
-    // 모달 + 엑셀 등록 (mkRevTabs 활용)
+    // 모달 + 엑셀 등록 (직접 객체 — nested function 우회)
     try {
-      if(typeof mkRevTabs === 'function' && typeof _MDATA !== 'undefined'){
-        var _ppMD = mkRevTabs(
-          pp.days||[], pp.day_values||[],
-          pp.weeks||[], pp.wk_values||[],
-          pp.months||[], pp.values||[],
-          pp.days||[], pp.day_values||[],
-          pp.weeks||[], pp.wk_values||[],
-          pp.months||[], pp.values||[],
-          '선결제프로모션_매출'
-        );
-        _ppMD.title = '💳 선결제 프로모션 — 매출';
-        _MDATA['cPrepaidRev'] = _ppMD;
+      if(typeof _MDATA !== 'undefined'){
+        var _fmt = function(v){ return Math.round((v||0)*10000).toLocaleString(); };
+        var _mkTab = function(key, label, colHead, L, V){
+          var rows = (L||[]).map(function(l, i){ return [l, _fmt((V||[])[i])]; });
+          var sum = (V||[]).reduce(function(a,b){return a+(b||0);}, 0);
+          return {key:key, label:label, cols:[colHead, '매출(원)'], rows:rows, totals:['합계', _fmt(sum)]};
+        };
+        _MDATA['cPrepaidRev'] = {
+          type: 'tabbed',
+          title: '💳 선결제 프로모션 — 매출',
+          fname_base: '선결제프로모션_매출',
+          tabs: [
+            _mkTab('day', '일간', '날짜', pp.days||[], pp.day_values||[]),
+            _mkTab('wk',  '주간', '주',  pp.weeks||[], pp.wk_values||[]),
+            _mkTab('mo',  '월간', '월',  pp.months||[], pp.values||[])
+          ]
+        };
       }
     } catch(e){ console.warn('cPrepaidRev MDATA err', e); }
   }
@@ -5041,10 +5046,21 @@ function drawPrepaidPromoCards(){
     }catch(e){console.warn('cPrepaidRevGrowth draw err', e);}
     // 모달 + 엑셀 등록 (성장률)
     try {
-      if(typeof mkGrowthTabs === 'function' && typeof _MDATA !== 'undefined'){
-        var _ppGrMD = mkGrowthTabs(pp.weeks||[], wow, pp.months||[], pp.values||[], '선결제프로모션_성장률');
-        _ppGrMD.title = '💳 선결제 프로모션 — 성장률 (매출)';
-        _MDATA['cPrepaidRevGrowth'] = _ppGrMD;
+      if(typeof _MDATA !== 'undefined'){
+        function _gfmt(v){ return (v == null || isNaN(v)) ? '-' : (v.toFixed(1) + '%'); }
+        function _mkGrTab(key, label, colHead, L, V){
+          var rows = (L||[]).map(function(l, i){ return [l, _gfmt((V||[])[i])]; });
+          return {key:key, label:label, cols:[colHead, '변화율(%)'], rows:rows};
+        }
+        _MDATA['cPrepaidRevGrowth'] = {
+          type: 'tabbed',
+          title: '💳 선결제 프로모션 — 성장률 (매출)',
+          fname_base: '선결제프로모션_성장률',
+          tabs: [
+            _mkGrTab('wow', 'WoW', '주', pp.weeks||[], wow),
+            _mkGrTab('mom', 'MoM', '월', pp.months||[], mom)
+          ]
+        };
       }
     } catch(e){ console.warn('cPrepaidRevGrowth MDATA err', e); }
   }
