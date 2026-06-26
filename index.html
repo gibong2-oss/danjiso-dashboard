@@ -6226,7 +6226,7 @@ function bootApp(){
 
     // ── 차트 카드 클릭 이벤트 ──
     function attachChartClickHandlers(){
-      var ids = ['cTotalRev','cTotalCnt','cTotalCplx','cTotalExcl','cSvcCntHist','cTotalCntGrowth','cTotalCplxGrowth','cTotalRevGrowth'];
+      var ids = ['cTotalRev','cTotalCnt','cTotalCplx','cTotalExcl','cSvcCntHist','cTotalCntGrowth','cTotalCplxGrowth','cTotalRevGrowth','cPrepaidRev','cPrepaidRevGrowth'];
       // SERVICES 기반 동적 ID 추가 (vote/notify/survey + 신규 서비스)
       if(typeof SERVICES !== 'undefined'){
         SERVICES.forEach(function(s){
