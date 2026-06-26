@@ -4453,6 +4453,7 @@ function renderUsageCards(){
            _extraFor(g.key) +
            '<div class="g3" style="margin-bottom:var(--g)">'+sc+'</div>'+
            '<div class="g3">'+gc+'</div>'+
+           (g.key === 'aptner' ? _cplxTopCards() : '') +
            '</div>';
   }).join('');
   var growthCards = '<div class="g2" style="margin-bottom:var(--g)">'+
@@ -4825,8 +4826,169 @@ function initUsage(){
   drawTotalCntGrowth();
   drawTotalCplxGrowth();
   SERVICES.forEach(initServiceUsage);
+  try { _cplxTopDraw(); } catch(e){ console.warn('cplxTop err:', e); }
   if(window._attachChartClickHandlers) window._attachChartClickHandlers();
 }
+
+// ─── 이용 현황 아파트너 sub-tab — 서비스별 top 10 단지 표 ───
+function _cplxTopCards(){
+  function tgl(svc){
+    return '<div style="margin-left:auto;display:inline-flex;gap:3px">'+
+      '<button onclick="_cplxTopSetMode(\''+svc+'\',\'cnt\')" class="cplxTopBtn-'+svc+'-cnt tgb on" style="padding:3px 8px;font-size:11px">건수</button>'+
+      '<button onclick="_cplxTopSetMode(\''+svc+'\',\'rev_est\')" class="cplxTopBtn-'+svc+'-rev_est tgb" style="padding:3px 8px;font-size:11px">매출(추정)</button>'+
+      '<button onclick="_cplxTopSetMode(\''+svc+'\',\'rev_st\')" class="cplxTopBtn-'+svc+'-rev_st tgb" style="padding:3px 8px;font-size:11px">매출(정산)</button>'+
+    '</div>';
+  }
+  return '<div class="g3" style="margin-top:14px"><div class="card"><div class="ch"><span class="ct">🗳 전자투표 — Top 10 단지</span><span class="cs">사용량 순위</span>'+tgl('vote')+'</div><div id="cplxTopVote" style="overflow:hidden;margin-top:6px"></div></div><div class="card"><div class="ch"><span class="ct">🔔 알림서비스 — Top 10 단지</span><span class="cs">사용량 순위</span>'+tgl('notify')+'</div><div id="cplxTopNotify" style="overflow:hidden;margin-top:6px"></div></div><div class="card"><div class="ch"><span class="ct">📋 설문조사 — Top 10 단지</span><span class="cs">사용량 순위</span>'+tgl('survey')+'</div><div id="cplxTopSurvey" style="overflow:hidden;margin-top:6px"></div></div></div>';
+}
+window._cplxTopMode = 'cnt';
+function _cplxTopSetMode(svc, m){
+  // svc 인자 1개일 때 (구버전 호환) — 모든 카드에 같은 mode 적용
+  if(typeof m === 'undefined'){
+    m = svc;
+    ['vote','notify','survey'].forEach(function(s){ _cplxTopSetMode(s, m); });
+    return;
+  }
+  if(!window._cplxTopModes) window._cplxTopModes = {vote:'cnt', notify:'cnt', survey:'cnt'};
+  window._cplxTopModes[svc] = m;
+  // 해당 svc의 3개 버튼만 동기화
+  ['cnt','rev_est','rev_st'].forEach(function(mm){
+    document.querySelectorAll('.cplxTopBtn-' + svc + '-' + mm).forEach(function(b){
+      b.classList.toggle('on', mm === m);
+    });
+  });
+  try { _cplxTopDraw(); } catch(e){ console.warn(e); }
+}
+function _cplxTopDraw(){
+  var src = (typeof D !== 'undefined' && D.cplx_top) ? D.cplx_top : null;
+  if(!src){
+    ['cplxTopVote','cplxTopNotify','cplxTopSurvey'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ts);font-size:12px">데이터 없음 — generate_html.py 재빌드 필요</div>';
+    });
+    return;
+  }
+  if(!window._cplxTopModes) window._cplxTopModes = {vote:'cnt', notify:'cnt', survey:'cnt'};
+  var modes = window._cplxTopModes;
+  var UNIT = {vote: 44, notify: 22, survey: 22};
+  var gf = (typeof gFilt !== 'undefined' && gFilt) ? gFilt : {start:null, end:null};
+  var fS = gf.start ? gf.start.substring(0,7) : '';
+  var fE = gf.end ? gf.end.substring(0,7) : '';
+  function inR(ym){ if(fS && ym < fS) return false; if(fE && ym > fE) return false; return true; }
+  function sumR(map){ var s=0; if(!map) return 0; Object.keys(map).forEach(function(ym){ if(inR(ym)) s += (map[ym]||0); }); return s; }
+  function render(elId, list, svcKey){
+    var el = document.getElementById(elId);
+    if(!el) return;
+    var unit = UNIT[svcKey] || 22;
+    var mode = modes[svcKey] || 'cnt';
+    var scored = list.map(function(c){
+      var val;
+      if(mode === 'rev_st') val = sumR(c.rev_monthly);
+      else if(mode === 'rev_est') val = sumR(c.monthly) * unit / 10000;
+      else val = sumR(c.monthly);
+      return {code:c.code, name:c.name, hh:c.hh, val:val};
+    }).filter(function(x){ return x.val > 0; }).sort(function(a,b){ return b.val - a.val; });
+    var top10 = scored.slice(0, 10);
+    if(top10.length === 0){
+      el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--ts);font-size:12px">선택 기간에 데이터 없음</div>';
+      return;
+    }
+    var maxV = top10[0].val || 1;
+    var isMoney = (mode === 'rev_st' || mode === 'rev_est');
+    // 마지막 컬럼 라벨/값 — mode 따라 다름
+    var lastColHead = isMoney ? '세대당 평균' : '이용률';
+    var rows = top10.map(function(c, i){
+      var pct = (c.val/maxV)*100;
+      var vd;
+      if(isMoney) vd = Math.round(c.val*10000).toLocaleString()+'원';
+      else vd = c.val.toLocaleString();
+      // 마지막 컬럼 값
+      var rd;
+      if(c.hh > 0){
+        if(isMoney){
+          // 세대당 평균 매출 (원/세대)
+          var perHh = (c.val * 10000) / c.hh;
+          rd = Math.round(perHh).toLocaleString() + '원/세대';
+        } else {
+          // 이용률 (%) — 건수/세대수
+          rd = (c.val / c.hh * 100).toFixed(1) + '%';
+        }
+      } else rd = '-';
+      return '<tr style="cursor:pointer" onclick="_cplxTopOpenModal(\''+c.code+'\')">'
+        + '<td style="padding:5px 6px;text-align:center;font-weight:600;color:'+(i<3?'#dc2626':'var(--tm)')+'">'+(i+1)+'</td>'
+        + '<td style="padding:5px 6px;font-size:11px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+c.name+'">'+c.name+'</td>'
+        + '<td style="padding:5px 6px;text-align:right;font-size:11px;position:relative">'
+        + '<div style="position:absolute;left:0;top:50%;transform:translateY(-50%);height:18px;width:'+pct+'%;background:rgba(99,102,241,0.15);border-radius:3px;z-index:0"></div>'
+        + '<span style="position:relative;z-index:1;font-weight:600">'+vd+'</span></td>'
+        + '<td style="padding:5px 6px;text-align:right;font-size:10px;color:var(--ts);white-space:nowrap">'+rd+'</td>'
+        + '</tr>';
+    }).join('');
+    el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#f9fafb"><th style="padding:5px 6px;text-align:center;font-size:10px;color:var(--ts);border-bottom:1px solid #e5e7eb">#</th><th style="padding:5px 6px;text-align:left;font-size:10px;color:var(--ts);border-bottom:1px solid #e5e7eb">단지명</th><th style="padding:5px 6px;text-align:right;font-size:10px;color:var(--ts);border-bottom:1px solid #e5e7eb">사용량</th><th style="padding:5px 6px;text-align:right;font-size:10px;color:var(--ts);border-bottom:1px solid #e5e7eb">'+lastColHead+'</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+  render('cplxTopVote', src.vote || [], 'vote');
+  render('cplxTopNotify', src.notify || [], 'notify');
+  render('cplxTopSurvey', src.survey || [], 'survey');
+}
+function _cplxTopOpenModal(code){
+  var src = (typeof D !== 'undefined' && D.cplx_top) ? D.cplx_top : null;
+  if(!src) return;
+  var info = null;
+  var svcData = {};
+  ['vote','notify','survey'].forEach(function(svc){
+    var found = (src[svc] || []).find(function(c){ return c.code === code; });
+    if(found){ if(!info) info = {code:found.code, name:found.name, hh:found.hh}; svcData[svc] = found; }
+  });
+  if(!info) return;
+  var gf = (typeof gFilt !== 'undefined' && gFilt) ? gFilt : {start:null, end:null};
+  var fS = gf.start ? gf.start.substring(0,7) : '';
+  var fE = gf.end ? gf.end.substring(0,7) : '';
+  function inR(ym){ if(fS && ym < fS) return false; if(fE && ym > fE) return false; return true; }
+  var allYm = {};
+  ['vote','notify','survey'].forEach(function(svc){
+    if(svcData[svc]) Object.keys(svcData[svc].monthly || {}).forEach(function(ym){ if(inR(ym)) allYm[ym] = 1; });
+  });
+  var months = Object.keys(allYm).sort();
+  var svcNames = {vote:'🗳 전자투표', notify:'🔔 알림서비스', survey:'📋 설문조사'};
+  var h = '<div style="margin-bottom:10px;padding:8px 12px;background:#f0f9ff;border-radius:6px;font-size:12px">';
+  h += '<div><b>'+info.name+'</b> <span style="color:var(--ts)">('+info.code+')</span></div>';
+  h += '<div style="margin-top:4px;font-size:11px;color:var(--ts)">세대수: '+(info.hh ? info.hh.toLocaleString()+'세대' : '미상')+'</div></div>';
+  if(months.length === 0){
+    h += '<div style="padding:20px;text-align:center;color:var(--ts)">선택 기간에 데이터 없음</div>';
+  } else {
+    h += '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#f9fafb">';
+    h += '<th style="padding:6px 8px;text-align:left;border-bottom:2px solid #e5e7eb">월</th>';
+    ['vote','notify','survey'].forEach(function(svc){
+      if(svcData[svc]) h += '<th style="padding:6px 8px;text-align:right;border-bottom:2px solid #e5e7eb">'+svcNames[svc]+' 건수</th><th style="padding:6px 8px;text-align:right;border-bottom:2px solid #e5e7eb">매출</th>';
+    });
+    h += '</tr></thead><tbody>';
+    var tot = {};
+    months.forEach(function(ym){
+      h += '<tr><td style="padding:5px 8px;border-bottom:1px solid #e5e7eb;font-weight:600">'+ym+'</td>';
+      ['vote','notify','survey'].forEach(function(svc){
+        if(svcData[svc]){
+          var cnt = (svcData[svc].monthly||{})[ym] || 0;
+          var rev = (svcData[svc].rev_monthly||{})[ym] || 0;
+          tot[svc+'_c'] = (tot[svc+'_c']||0)+cnt; tot[svc+'_r'] = (tot[svc+'_r']||0)+rev;
+          h += '<td style="padding:5px 8px;text-align:right;border-bottom:1px solid #e5e7eb">'+(cnt ? cnt.toLocaleString() : '-')+'</td>';
+          h += '<td style="padding:5px 8px;text-align:right;border-bottom:1px solid #e5e7eb">'+(rev ? Math.round(rev*10000).toLocaleString()+'원' : '-')+'</td>';
+        }
+      });
+      h += '</tr>';
+    });
+    h += '<tr style="background:#fef3c7;font-weight:700"><td style="padding:6px 8px;border-top:2px solid #d1d5db">📊 합계</td>';
+    ['vote','notify','survey'].forEach(function(svc){
+      if(svcData[svc]){
+        h += '<td style="padding:6px 8px;text-align:right;border-top:2px solid #d1d5db">'+(tot[svc+'_c']||0).toLocaleString()+'</td>';
+        h += '<td style="padding:6px 8px;text-align:right;border-top:2px solid #d1d5db">'+Math.round((tot[svc+'_r']||0)*10000).toLocaleString()+'원</td>';
+      }
+    });
+    h += '</tr></tbody></table>';
+  }
+  if(typeof openModal === 'function') openModal('단지 상세 — ' + info.name, h);
+}
+window._cplxTopOpenModal = _cplxTopOpenModal;
+window._cplxTopSetMode = _cplxTopSetMode;
+
 function initRevenue(){
   renderRevenueCards();
   drawTotalRev();
@@ -4844,10 +5006,26 @@ function drawPrepaidPromoCards(){
   if(document.getElementById('cPrepaidRev')){
     try{
       drawUsageRev('cPrepaidRev',
-        {day:{labels:[],vals:[]}, wk:{labels:pp.weeks||[],vals:pp.wk_values||[]}, mo:{labels:pp.months||[],vals:pp.values||[]}},
-        {day:{labels:[],vals:[]}, wk:{labels:pp.weeks||[],vals:pp.wk_values||[]}, mo:{labels:pp.months||[],vals:pp.values||[]}}
+        {day:{labels:pp.days||[],vals:pp.day_values||[]}, wk:{labels:pp.weeks||[],vals:pp.wk_values||[]}, mo:{labels:pp.months||[],vals:pp.values||[]}},
+        {day:{labels:pp.days||[],vals:pp.day_values||[]}, wk:{labels:pp.weeks||[],vals:pp.wk_values||[]}, mo:{labels:pp.months||[],vals:pp.values||[]}}
       );
     }catch(e){console.warn('cPrepaidRev draw err', e);}
+    // 모달 + 엑셀 등록 (mkRevTabs 활용)
+    try {
+      if(typeof mkRevTabs === 'function' && typeof _MDATA !== 'undefined'){
+        var _ppMD = mkRevTabs(
+          pp.days||[], pp.day_values||[],
+          pp.weeks||[], pp.wk_values||[],
+          pp.months||[], pp.values||[],
+          pp.days||[], pp.day_values||[],
+          pp.weeks||[], pp.wk_values||[],
+          pp.months||[], pp.values||[],
+          '선결제프로모션_매출'
+        );
+        _ppMD.title = '💳 선결제 프로모션 — 매출';
+        _MDATA['cPrepaidRev'] = _ppMD;
+      }
+    } catch(e){ console.warn('cPrepaidRev MDATA err', e); }
   }
   if(document.getElementById('cPrepaidRevGrowth')){
     var wkV=pp.wk_values||[], moV=pp.values||[];
@@ -4861,6 +5039,14 @@ function drawPrepaidPromoCards(){
         pp.months||[], mom,
         pp.weeks||[], wow);
     }catch(e){console.warn('cPrepaidRevGrowth draw err', e);}
+    // 모달 + 엑셀 등록 (성장률)
+    try {
+      if(typeof mkGrowthTabs === 'function' && typeof _MDATA !== 'undefined'){
+        var _ppGrMD = mkGrowthTabs(pp.weeks||[], wow, pp.months||[], pp.values||[], '선결제프로모션_성장률');
+        _ppGrMD.title = '💳 선결제 프로모션 — 성장률 (매출)';
+        _MDATA['cPrepaidRevGrowth'] = _ppGrMD;
+      }
+    } catch(e){ console.warn('cPrepaidRevGrowth MDATA err', e); }
   }
 }
 
