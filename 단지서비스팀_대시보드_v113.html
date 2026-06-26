@@ -2441,30 +2441,136 @@ function rpRenderAll(){
   } catch(e){ console.warn("rpAllSvcTbl err:", e); }
 }
 window.rpRenderAll = rpRenderAll;
+// ─── 월별 비교 분석 (보고서 탭) ───
+window._ycState = {years: [], grp: 'total', mode: 'st'};
+function _ycInit(){
+  var box = document.getElementById('ycYearBox');
+  if(!box) return;
+  var src = (typeof D !== 'undefined' && D.yearly_compare) ? D.yearly_compare : null;
+  if(!src){
+    box.innerHTML = '<span style="color:#dc2626;font-size:11px;padding:6px">⚠ 데이터 없음 — generate_html.py 재빌드 필요</span>';
+    return;
+  }
+  if(!window._ycState.years.length){
+    window._ycState.years = (src.years || []).slice();
+  }
+  box.innerHTML = (src.years || []).map(function(y){
+    var checked = window._ycState.years.indexOf(y) >= 0 ? 'checked' : '';
+    return '<label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:12px"><input type="checkbox" '+checked+' onchange="_ycToggleYear(\''+y+'\', this.checked)" style="margin:0"/>'+y+'</label>';
+  }).join('');
+}
+function _ycToggleYear(y, on){
+  var ys = window._ycState.years;
+  var i = ys.indexOf(y);
+  if(on && i < 0) ys.push(y);
+  if(!on && i >= 0) ys.splice(i, 1);
+  _ycRender();
+}
+function _ycSetGrp(g){ window._ycState.grp = g; document.querySelectorAll('.ycGrp').forEach(function(b){ b.classList.toggle('on', b.classList.contains('ycGrp-'+g)); }); _ycRender(); }
+function _ycSetMode(m){ window._ycState.mode = m; document.querySelectorAll('.ycMode').forEach(function(b){ b.classList.toggle('on', b.classList.contains('ycMode-'+m)); }); _ycRender(); }
+function _ycRender(){
+  var src = (typeof D !== 'undefined' && D.yearly_compare) ? D.yearly_compare : null;
+  if(!src) return;
+  var canvas = document.getElementById('cYearlyCompare');
+  if(!canvas) return;
+  var st = window._ycState;
+  var key = st.grp + '_' + st.mode;
+  var data = (src.data || {})[key] || {};
+  var COLORS = ['#94a3b8', '#3b82f6', '#ef4444', '#10b981', '#a855f7', '#f59e0b'];
+  var datasets = (st.years || []).map(function(y, i){
+    var col = COLORS[i % COLORS.length];
+    return {
+      label: y + '년',
+      data: (data[y] || []).map(function(v){ return Math.round(v * 10000); }),
+      borderColor: col,
+      backgroundColor: col + '33',
+      fill: false,
+      tension: 0.2,
+      borderWidth: 2,
+      pointRadius: 3,
+      pointHoverRadius: 6
+    };
+  });
+  if(window._ycChart){ try{ window._ycChart.destroy(); }catch(e){} }
+  var ctx = canvas.getContext('2d');
+  window._ycChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'], datasets: datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: {mode: 'index', intersect: false},
+      plugins: {
+        legend: {position: 'top', align: 'end', labels:{font:{size:11},padding:6}},
+        tooltip: {callbacks: {label: function(ctx){ return ctx.dataset.label + ': ₩' + ctx.parsed.y.toLocaleString(); }}}
+      },
+      scales: {
+        y: {beginAtZero: true, ticks: {callback: function(v){ return '₩' + (v/10000).toFixed(0) + '만'; }}}
+      }
+    }
+  });
+}
+function _ycExport(){
+  var src = (typeof D !== 'undefined' && D.yearly_compare) ? D.yearly_compare : null;
+  if(!src) return;
+  var st = window._ycState;
+  var key = st.grp + '_' + st.mode;
+  var data = (src.data || {})[key] || {};
+  function esc(v){ var s = String(v == null ? '' : v); if(s.indexOf(',') >= 0 || s.indexOf('"') >= 0) return '"' + s.replace(/"/g, '""') + '"'; return s; }
+  var rows = [['월'].concat(st.years.map(function(y){ return y + '년 (원)'; })).map(esc).join(',')];
+  for(var m = 0; m < 12; m++){
+    var r = [(m+1) + '월'];
+    st.years.forEach(function(y){ r.push(Math.round(((data[y]||[])[m] || 0) * 10000)); });
+    rows.push(r.map(esc).join(','));
+  }
+  var csv = '\ufeff' + rows.join('\n');
+  var blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = '월별비교_' + st.grp + '_' + st.mode + '_' + new Date().toISOString().slice(0,10) + '.csv';
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 100);
+}
+window._ycToggleYear = _ycToggleYear;
+window._ycSetGrp = _ycSetGrp;
+window._ycSetMode = _ycSetMode;
+window._ycExport = _ycExport;
+window._ycInit = _ycInit;
+window._ycRender = _ycRender;
+
+
 function _ycEnsure(){ try { _ycInit(); _ycRender(); } catch(e) { console.warn("yc err:", e); } }
 window._ycEnsure = _ycEnsure;
 // 다중 트리거로 _ycEnsure 호출 안정화
-function _ycEnsureWrapper(){ try{ _ycEnsure(); }catch(e){ console.warn('[yc] ensure err:', e); } }
-// 1. 페이지 로드 후 1초 + 3초 (D, Chart 로딩 대기)
-setTimeout(_ycEnsureWrapper, 1000);
+function _ycEnsureWrapper(){
+  try{
+    if(typeof _ycEnsure === 'function'){
+      _ycEnsure();
+      console.log('[yc] _ycEnsure 호출 OK, 년도수:', (D && D.yearly_compare ? D.yearly_compare.years.length : '?'));
+    } else {
+      console.warn('[yc] _ycEnsure 함수 없음');
+    }
+  }catch(e){ console.warn('[yc] err:', e); }
+}
+window._ycEnsureWrapper = _ycEnsureWrapper;
+window._ycInit = _ycInit;
+window._ycRender = _ycRender;
+// 즉시 + 다중 시점 호출
+_ycEnsureWrapper();
+setTimeout(_ycEnsureWrapper, 100);
+setTimeout(_ycEnsureWrapper, 500);
+setTimeout(_ycEnsureWrapper, 1500);
 setTimeout(_ycEnsureWrapper, 3000);
-// 2. 보고서 탭 클릭 시
-document.addEventListener('DOMContentLoaded', function(){
+// DOMContentLoaded
+if(document.readyState !== 'loading'){
+  setTimeout(_ycEnsureWrapper, 0);
+} else {
+  document.addEventListener('DOMContentLoaded', function(){ setTimeout(_ycEnsureWrapper, 100); });
+}
+// 보고서 탭 클릭
+window.addEventListener('load', function(){
   var rpTab = document.getElementById('tab-rp');
   if(rpTab) rpTab.addEventListener('click', function(){ setTimeout(_ycEnsureWrapper, 300); });
 });
-// 3. rpRender 래퍼 (즉시 + 호출 후)
-(function(){
-  var checkRp = setInterval(function(){
-    if(typeof rpRender === 'function' && !window._rpRenderWrapped){
-      window._rpRenderWrapped = true;
-      var _orig = rpRender;
-      window.rpRender = function(){ var r = _orig.apply(this, arguments); _ycEnsureWrapper(); return r; };
-      clearInterval(checkRp);
-    }
-  }, 200);
-  setTimeout(function(){ clearInterval(checkRp); }, 10000);
-})();
 
 // 전체 그룹 모달
 
