@@ -5276,11 +5276,11 @@ function _freeCplxRender(){
       '<td style="padding:5px 8px;text-align:right;font-size:11px;color:var(--ts)">₩0 (무료)</td>'+
       '</tr>';
   }).join('');
-  body.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#f9fafb"><th style="padding:6px 8px;text-align:center;border-bottom:1px solid #e5e7eb">#</th><th style="padding:6px 8px;text-align:left;border-bottom:1px solid #e5e7eb">단지명</th><th style="padding:6px 8px;text-align:right;border-bottom:1px solid #e5e7eb">사용 건수</th><th style="padding:6px 8px;text-align:right;border-bottom:1px solid #e5e7eb">추정 매출</th><th style="padding:6px 8px;text-align:right;border-bottom:1px solid #e5e7eb">정산 매출</th></tr></thead><tbody>' + rows + '</tbody></table>';
-  // 합계 행
+  // 합계 (상단 표시)
   var totCnt = top.reduce(function(a,b){return a+b.cnt;}, 0);
   var totEst = top.reduce(function(a,b){return a+b.est;}, 0);
-  body.innerHTML += '<div style="padding:8px 12px;background:#fef3c7;font-weight:700;font-size:12px;margin-top:0;border-radius:0 0 4px 4px">📊 합계 (' + top.length + '개 단지): 사용 ' + totCnt.toLocaleString() + '건 / 추정 매출 ' + Math.round(totEst*10000).toLocaleString() + '원 / 정산 ₩0</div>';
+  var sumHtml = '<div style="padding:10px 14px;background:#fef3c7;font-weight:700;font-size:13px;margin-bottom:8px;border-radius:6px;border-left:4px solid #f59e0b">📊 합계 (' + top.length + '개 단지): 사용 ' + totCnt.toLocaleString() + '건 / 추정 매출 ' + Math.round(totEst*10000).toLocaleString() + '원 / 정산 ₩0</div>';
+  body.innerHTML = sumHtml + '<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#f9fafb"><th style="padding:6px 8px;text-align:center;border-bottom:1px solid #e5e7eb">#</th><th style="padding:6px 8px;text-align:left;border-bottom:1px solid #e5e7eb">단지명</th><th style="padding:6px 8px;text-align:right;border-bottom:1px solid #e5e7eb">사용 건수</th><th style="padding:6px 8px;text-align:right;border-bottom:1px solid #e5e7eb">추정 매출</th><th style="padding:6px 8px;text-align:right;border-bottom:1px solid #e5e7eb">정산 매출</th></tr></thead><tbody>' + rows + '</tbody></table>';
 }
 function _freeCplxOpenModal(code){
   var src = (typeof D !== 'undefined' && D.free_cplx) ? D.free_cplx : [];
