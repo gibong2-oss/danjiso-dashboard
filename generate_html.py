@@ -49,6 +49,13 @@ DISCOUNT_30_END   = '2026-07'
 DISCOUNT_30_TAB   = '30% 할인 적용 단지'
 SOURCE_VERSION    = 113
 
+# 데모 / 내부 테스트 단지 — 모든 집계에서 제외
+EXCLUDED_DEMO_CODES = {
+    'V22222225',  # 두꺼비세상 데모
+    'V16003123',  # 아파트너 (내부)
+    'V22222221',  # aptner v2dev
+}
+
 # ── 활성도 기준 (MAU / 세대수 %) ─────────────────────────────
 def classify_status(ratio):
     if ratio is None: return '미이용'
@@ -471,6 +478,7 @@ def load_settlement_from_raw(ss, free, jikbang, promo_snap, discount_30_codes):
         date_str = str(d.get('일자', '')).strip()[:10]
         ym = ym_of(date_str)
         code = str(d.get('단지코드', '')).strip()
+        if code in EXCLUDED_DEMO_CODES: continue
         c = safe_int(d.get('건수', 0))
         if not ym or not code or c <= 0: continue
         if is_excluded(code, date_str): continue
@@ -482,6 +490,7 @@ def load_settlement_from_raw(ss, free, jikbang, promo_snap, discount_30_codes):
         date_str = str(d.get('일자', '')).strip()[:10]
         ym = ym_of(date_str)
         code = str(d.get('단지코드', '')).strip()
+        if code in EXCLUDED_DEMO_CODES: continue
         c = safe_int(d.get('건수', 0))
         stype = str(d.get('발송수단', '')).strip().lower()
         if not ym or not code or c <= 0: continue
@@ -494,6 +503,7 @@ def load_settlement_from_raw(ss, free, jikbang, promo_snap, discount_30_codes):
         date_str = str(d.get('일자', '')).strip()[:10]
         ym = ym_of(date_str)
         code = str(d.get('단지코드', '')).strip()
+        if code in EXCLUDED_DEMO_CODES: continue
         c = safe_int(d.get('건수', 0))
         if not ym or not code or c <= 0: continue
         if ym < SETTLE_START: continue
@@ -635,6 +645,7 @@ def aggregate_vote(ss, free, jikbang, promo):
         date_str = str(d.get('일자', '')).strip()[:10]
         ym   = ym_of(date_str)
         code = str(d.get('단지코드', '')).strip()
+        if code in EXCLUDED_DEMO_CODES: continue
         name = str(d.get('단지명', '')).strip()
         c    = safe_int(d.get('건수', 0))
         if not ym or not code or c <= 0:
@@ -718,6 +729,7 @@ def aggregate_survey(ss, free, promo):
         date_str = str(d.get('일자', '')).strip()[:10]
         ym   = ym_of(date_str)
         code = str(d.get('단지코드', '')).strip()
+        if code in EXCLUDED_DEMO_CODES: continue
         name = str(d.get('단지명', d.get('kapt_name', d.get('apt_name', '')))).strip()
         c    = safe_int(d.get('건수', 0))
         if not ym or not code or c <= 0:
@@ -851,6 +863,7 @@ def load_mau(ss, all_months):
     cplx = {}
     for d in to_dicts(header, rows):
         code = str(d.get('kapt_code', '')).strip()
+        if code in EXCLUDED_DEMO_CODES: continue
         name = str(d.get('apt_name',  '')).strip()
         ym   = str(d.get('date', '')).strip()[:7]
         mau  = safe_int(d.get('MAU', 0))
@@ -923,6 +936,7 @@ def load_table_and_autocomplete(ss, mau_m):
 
     for d in to_dicts(header, rows):
         code = str(d.get('kapt_code', '')).strip()
+        if code in EXCLUDED_DEMO_CODES: continue
         name = str(d.get('apt_name',  '')).strip()
         if not code or not name:
             continue
@@ -1072,6 +1086,7 @@ def build_svc_count_history(ss):
         for d in to_dicts(header, rows):
             date_str = str(d.get('일자', '')).strip()[:10]
             code = str(d.get('단지코드', '')).strip()
+            if code in EXCLUDED_DEMO_CODES: continue
             c = safe_int(d.get('건수', 0))
             if not date_str or not code or c <= 0:
                 continue
@@ -1372,6 +1387,7 @@ def build_cplx_top_data(ss, table):
             svc = SVC_MAP.get(str(d.get('서비스명', '')).strip())
             if not svc: continue
             code = str(d.get('단지코드', '')).strip()
+            if code in EXCLUDED_DEMO_CODES: continue
             if not code: continue
             ym_raw = str(d.get('정산월', '')).strip()
             m = re.match(r'(\d{4})[./-](\d{1,2})', ym_raw)
@@ -1394,6 +1410,7 @@ def build_cplx_top_data(ss, table):
                 date_str = str(d.get('일자', '')).strip()[:10]
                 ym = ym_of(date_str)
                 code = str(d.get('단지코드', '')).strip()
+                if code in EXCLUDED_DEMO_CODES: continue
                 name = str(d.get('단지명', '')).strip()
                 c = safe_int(d.get('건수', 0))
                 if not ym or not code or c <= 0: continue
@@ -1494,6 +1511,7 @@ def build_free_cplx_data(ss, free, table):
             ym = ym_of(date_str)
             wk = _date_to_isoweek(date_str)
             code = str(d.get('단지코드', '')).strip()
+            if code in EXCLUDED_DEMO_CODES: continue
             name = str(d.get('단지명', '')).strip()
             c = safe_int(d.get('건수', 0))
             if not ym or not code or c <= 0: continue
