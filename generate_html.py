@@ -230,15 +230,27 @@ def load_discount_30(ss):
 
 def load_prepaid_promo(ss):
     """선결제 프로모션 구매 현황 시트.
-    A열: 세금계산서 발행일, E열: 부가세 포함 매출
-    Returns: {months, values, weeks, wk_values}  (만원 단위, VAT 이미 포함)
+    헤더로 컬럼 자동 매칭 (구조 변경 대응):
+      - 날짜: '처리 완료일' / '실 적용 시작 일' / '구매 완료일' / 'A열 (fallback)'
+      - 매출: '결제 금액의 SUM' / '결제 금액' / '부가세 포함 매출' / 'E열 (fallback)'
+    Returns: {months, values, weeks, wk_values}  (만원 단위, VAT 포함)
     """
     header, rows = read_tab(ss, '선결제 프로모션 구매 현황')
     if not header:
         return {'months': [], 'values': [], 'weeks': [], 'wk_values': []}
-    # A열 = 0, E열 = 4
-    date_idx = 0
-    amt_idx = 4
+    # 컬럼 자동 매칭
+    def _find_col(keys):
+        for k in keys:
+            if k in header: return header.index(k)
+        for i, h in enumerate(header):
+            for k in keys:
+                if k in h: return i
+        return -1
+    date_idx = _find_col(['처리 완료일', '구매 완료일', '구매완료일', '실 적용 시작 일', '실적용시작일', '발행일'])
+    amt_idx = _find_col(['결제 금액의 SUM', '결제금액의 SUM', '결제 금액', '결제금액', '부가세 포함 매출'])
+    if date_idx < 0: date_idx = 0   # fallback (A열)
+    if amt_idx < 0: amt_idx = 4    # fallback (E열)
+    print(f"  선결제 시트 컬럼: 날짜={header[date_idx] if date_idx<len(header) else '?'} (idx={date_idx}), 매출={header[amt_idx] if amt_idx<len(header) else '?'} (idx={amt_idx})")
     by_month = defaultdict(float)
     by_week = defaultdict(float)
     by_day = defaultdict(float)
