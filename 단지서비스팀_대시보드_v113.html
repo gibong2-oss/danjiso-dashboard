@@ -519,8 +519,11 @@ function mkC(id, cfg){
   return CHARTS[id];
 }
 function sliceArr(labels){
-  var s = gFilt.start ? gFilt.start.substring(0,7) : null;
-  var e = gFilt.end   ? gFilt.end.substring(0,7)   : null;
+  // 라벨 형식에 따라 정밀도 자동 결정 (YYYY-MM-DD면 특정 날짜, YYYY-MM이면 월)
+  var sFull = gFilt.start || null;  // 원본 (특정 날짜 가능)
+  var eFull = gFilt.end   || null;
+  var s = sFull ? sFull.substring(0,7) : null;  // 월 단위 fallback
+  var e = eFull ? eFull.substring(0,7)   : null;
   var idx = [];
   for(var i = 0; i < labels.length; i++){
     var l = labels[i].substring(0,7);
@@ -687,8 +690,9 @@ function _dsUpdate(){
   (function(){
     var sm=_gnbMonths[_gnbSI]||"", em=_gnbMonths[_gnbEI]||"";
     var sd=document.getElementById("rngStartDate"), ed=document.getElementById("rngEndDate");
-    if(sd&&sm) sd.value=sm+"-01";
-    if(ed&&em){ var yr=parseInt(em.substring(0,4)),mo=parseInt(em.substring(5,7));
+    // 슬라이더 조작 시엔 자동 월말, 사용자가 date input 직접 편집한 경우엔 유지
+    if(sd&&sm && !sd.dataset._userSet) sd.value=sm+"-01";
+    if(ed&&em && !ed.dataset._userSet){ var yr=parseInt(em.substring(0,4)),mo=parseInt(em.substring(5,7));
       ed.value=em+"-"+(new Date(yr,mo,0).getDate().toString().padStart(2,"0")); }
   })();
 }
@@ -761,6 +765,7 @@ function _gnbApply(){
   }
   if(sdEl) sdEl.addEventListener("change",function(){
     gFilt.start=this.value||null;
+    this.dataset._userSet='1';
     _gnbSI=_dateToNearestMonthIdx(this.value);
     _dsUpdate();
     INITED={};
@@ -775,6 +780,7 @@ function _gnbApply(){
   });
   if(edEl) edEl.addEventListener("change",function(){
     gFilt.end=this.value||null;
+    this.dataset._userSet='1';  // 사용자 편집 flag — 슬라이더가 덮어쓰지 않도록
     _gnbEI=_dateToNearestMonthIdx(this.value);
     _dsUpdate();
     INITED={};
@@ -2639,7 +2645,7 @@ function _rpAllSvcTblRender(period){
   // 모든 라벨 union (최신순 — 좌측이 최신) + GNB 기간 필터
   var allLab = {};
   [voteL, notifyL, surveyL, ppL, ofL, asL].forEach(function(arr){ arr.forEach(function(L){ allLab[L]=1; }); });
-  var labels = Object.keys(allLab).sort().reverse();
+  var labels = Object.keys(allLab).sort();  // 오름차순 (최신 우측)
   // GNB 기간 필터 (gFilt) 적용
   var _gf = (typeof gFilt !== 'undefined' && gFilt) ? gFilt : {start:null, end:null};
   var _gS = _gf.start ? _gf.start.substring(0,7) : '';
