@@ -56,6 +56,20 @@ EXCLUDED_DEMO_CODES = {
     'V22222221',  # aptner v2dev
 }
 
+# 수동 무료 처리 목록 (특정 단지 × 특정 월 → 전자투표 청구 0원)
+# 매칭 조건: ym + (code 또는 biz 번호 또는 name) 중 하나 이상
+MANUAL_FREE_VOTE = [
+    {'ym': '2026-06', 'code': 'A10024163', 'biz': '1228287735', 'name': '검단신도시푸르지오더베뉴'},
+]
+
+def is_manual_free_vote(ym, code, name=''):
+    for f in MANUAL_FREE_VOTE:
+        if f['ym'] != ym: continue
+        if f.get('code') == code or f.get('biz') == code or (f.get('name') and name and f['name'] == name):
+            return True
+    return False
+
+
 # ── 활성도 기준 (MAU / 세대수 %) ─────────────────────────────
 def classify_status(ratio):
     if ratio is None: return '미이용'
@@ -456,13 +470,18 @@ def load_settlement(ss):
         if not m:
             continue
         ym_key = f"{m.group(1)}-{int(m.group(2)):02d}"
+        # 단지코드 (수동 무료 처리용)
+        code = str(d.get('단지코드', '')).strip()
         # 서비스명 매핑
         svc = SVC_MAP.get(str(d.get('서비스명', '')).strip())
         if not svc:
             continue
-        # 청구금액 (원 단위) → 만원
+        # 청구금액 (원 단위) → 만원 — 수동 무료 처리 시 0
         try:
             amt = float(str(d.get('청구금액', 0)).replace(',', '').replace('원', '').strip())
+            # 전자투표 + 수동 무료 처리 시 0
+            if svc == 'vote' and is_manual_free_vote(ym_key, code):
+                amt = 0
             settled[svc][ym_key] = round(settled[svc].get(ym_key, 0) + amt / 10000, 2)
         except Exception:
             pass
@@ -662,7 +681,8 @@ def aggregate_vote(ss, free, jikbang, promo):
         c    = safe_int(d.get('건수', 0))
         if not ym or not code or c <= 0:
             continue
-        is_free = code in free
+        # 무료단지 or 수동 무료 처리 (특정 단지 × 특정 월)
+        is_free = code in free or is_manual_free_vote(ym, code, name)
         if is_free:
             revenue = 0.0
         elif ym < SETTLE_START:
